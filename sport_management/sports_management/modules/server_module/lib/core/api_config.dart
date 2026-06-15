@@ -1,17 +1,13 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConfig {
   const ApiConfig._();
 
-  static const String _localAndroidEmulatorBaseUrl =
-      'http://10.0.2.2:3000/api/v1';
-  static const String _productionBaseUrl =
-      'FLUTTER_API_URL'; 
-
+  // Compile-time constant được truyền qua --dart-define=API_BASE_URL=...
+  // Fallback: URL production thật (Render backend)
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: kDebugMode ? _localAndroidEmulatorBaseUrl : _productionBaseUrl,
+    defaultValue: 'https://doantotnghiep-f3bh.onrender.com/api/v1',
   );
+
   static const int connectionTimeout = 30000;
   static const int receiveTimeout = 30000;
 }
