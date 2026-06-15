@@ -2,8 +2,10 @@ import { UserSession } from '../utils/auth_storage';
 
 export interface MockSport {
   _id: string;
+  id?: string;
   name: string;
   description: string;
+  iconUrl?: string;
   teamSize: number;
   active: boolean;
 }

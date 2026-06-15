@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Typography, Tag } from 'antd';
+import { Table, Typography, Tag, Image, Avatar } from 'antd';
+import { PictureOutlined } from '@ant-design/icons';
 import { MockSport } from '../../../../core/network/mock_db';
 import { apiClient } from '../../../../core/network/api_client';
 
@@ -21,6 +22,27 @@ const StaffSportsPage: React.FC = () => {
   }, []);
 
   const columns = [
+    {
+      title: 'Hình ảnh',
+      dataIndex: 'iconUrl',
+      key: 'iconUrl',
+      width: 96,
+      render: (src: string, record: MockSport) => (
+        src ? (
+          <Image
+            src={src}
+            alt={record.name}
+            width={48}
+            height={48}
+            className="rounded-full object-cover"
+            fallback=""
+            preview={{ mask: 'Xem' }}
+          />
+        ) : (
+          <Avatar size={48} icon={<PictureOutlined />} className="bg-brand-orange/10 text-brand-orange" />
+        )
+      ),
+    },
     {
       title: 'Tên môn thể thao',
       dataIndex: 'name',
@@ -65,7 +87,7 @@ const StaffSportsPage: React.FC = () => {
       <Table
         dataSource={sports}
         columns={columns}
-        rowKey="_id"
+        rowKey={(record) => record._id || record.id || ''}
         pagination={{ pageSize: 8 }}
         className="border border-semantic-border/10 dark:border-semantic-borderDark/10 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-surface-dark1"
       />

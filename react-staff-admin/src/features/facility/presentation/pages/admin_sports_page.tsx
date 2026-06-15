@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Switch, Space, message, Typography, Tag, Popconfirm } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, InputNumber, Switch, Space, message, Typography, Tag, Popconfirm, Upload, Image, Avatar } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, PictureOutlined } from '@ant-design/icons';
 import { MockSport } from '../../../../core/network/mock_db';
 import { apiClient } from '../../../../core/network/api_client';
 
@@ -9,9 +9,13 @@ const { Title, Text } = Typography;
 const AdminSportsPage: React.FC = () => {
   const [sports, setSports] = useState<MockSport[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [iconUrl, setIconUrl] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSport, setEditingSport] = useState<MockSport | null>(null);
   const [form] = Form.useForm();
+
+  const getSportId = (sport: MockSport) => sport._id || sport.id || '';
 
   const loadData = async () => {
     setLoading(true);
@@ -31,17 +35,22 @@ const AdminSportsPage: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingSport(null);
+    setIconUrl('');
+    setUploadingIcon(false);
     form.resetFields();
-    form.setFieldsValue({ active: true, teamSize: 2 });
+    form.setFieldsValue({ active: true, teamSize: 2, iconUrl: '' });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (sport: MockSport) => {
     setEditingSport(sport);
+    setIconUrl(sport.iconUrl || '');
+    setUploadingIcon(false);
     form.resetFields();
     form.setFieldsValue({
       name: sport.name,
       description: sport.description,
+      iconUrl: sport.iconUrl || '',
       teamSize: sport.teamSize,
       active: sport.active
     });
@@ -63,12 +72,13 @@ const AdminSportsPage: React.FC = () => {
       const payload = {
         name: values.name,
         description: values.description,
+        iconUrl: values.iconUrl || iconUrl || '',
         teamSize: values.teamSize,
         active: values.active
       };
 
       if (editingSport) {
-        await apiClient.put(`/sport/${editingSport._id}`, payload);
+        await apiClient.put(`/sport/${getSportId(editingSport)}`, payload);
         message.success('Cập nhật môn thể thao thành công!');
       } else {
         await apiClient.post('/sport', payload);
@@ -81,7 +91,75 @@ const AdminSportsPage: React.FC = () => {
     }
   };
 
+  const handleIconUpload = async (options: any) => {
+    const { file, onError, onSuccess } = options;
+    const formData = new FormData();
+    formData.append('file', file as File);
+    setUploadingIcon(true);
+
+    try {
+      const res = await apiClient.post('/upload/single', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const uploadedUrl =
+        res.data?.data?.url ||
+        res.data?.url ||
+        res.data?.file?.url ||
+        res.data?.data?.file?.url ||
+        '';
+
+      if (!uploadedUrl) {
+        throw new Error('Missing uploaded image URL');
+      }
+
+      setIconUrl(uploadedUrl);
+      form.setFieldsValue({ iconUrl: uploadedUrl });
+      message.success('Tải ảnh môn thể thao thành công');
+      onSuccess?.(res.data);
+    } catch (error) {
+      message.error('Không thể tải ảnh lên');
+      onError?.(error);
+    } finally {
+      setUploadingIcon(false);
+    }
+  };
+
+  const beforeIconUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      message.error('Vui lòng chọn file hình ảnh');
+      return Upload.LIST_IGNORE;
+    }
+
+    if (file.size / 1024 / 1024 >= 5) {
+      message.error('Kích thước ảnh phải nhỏ hơn 5MB');
+      return Upload.LIST_IGNORE;
+    }
+
+    return true;
+  };
+
   const columns = [
+    {
+      title: 'Hình ảnh',
+      dataIndex: 'iconUrl',
+      key: 'iconUrl',
+      width: 96,
+      render: (src: string, record: MockSport) => (
+        src ? (
+          <Image
+            src={src}
+            alt={record.name}
+            width={48}
+            height={48}
+            className="rounded-full object-cover"
+            fallback=""
+            preview={{ mask: 'Xem' }}
+          />
+        ) : (
+          <Avatar size={48} icon={<PictureOutlined />} className="bg-brand-orange/10 text-brand-orange" />
+        )
+      ),
+    },
     {
       title: 'Tên môn thể thao',
       dataIndex: 'name',
@@ -123,7 +201,7 @@ const AdminSportsPage: React.FC = () => {
           />
           <Popconfirm
             title="Bạn có chắc chắn muốn xóa môn này?"
-            onConfirm={() => handleDelete(record._id)}
+            onConfirm={() => handleDelete(getSportId(record))}
             okText="Xóa"
             cancelText="Hủy"
             okButtonProps={{ danger: true }}
@@ -167,7 +245,7 @@ const AdminSportsPage: React.FC = () => {
       <Table
         dataSource={sports}
         columns={columns}
-        rowKey="_id"
+        rowKey={(record) => getSportId(record)}
         loading={loading}
         pagination={{ pageSize: 8 }}
         className="border border-semantic-border/10 dark:border-semantic-borderDark/10 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-surface-dark1"
@@ -188,6 +266,51 @@ const AdminSportsPage: React.FC = () => {
           onFinish={handleSave}
           className="mt-4"
         >
+          <Form.Item name="iconUrl" hidden>
+            <Input />
+          </Form.Item>
+
+          <div className="flex items-center gap-4 mb-5">
+            {iconUrl ? (
+              <Image
+                src={iconUrl}
+                alt="Sport"
+                width={72}
+                height={72}
+                className="rounded-full object-cover border border-semantic-border/20"
+                fallback=""
+              />
+            ) : (
+              <Avatar size={72} icon={<PictureOutlined />} className="bg-brand-orange/10 text-brand-orange" />
+            )}
+            <Space direction="vertical" size={8} className="flex-1">
+              <Upload
+                accept="image/*"
+                maxCount={1}
+                showUploadList={false}
+                customRequest={handleIconUpload}
+                beforeUpload={beforeIconUpload}
+              >
+                <Button icon={<UploadOutlined />} loading={uploadingIcon} className="rounded-md">
+                  {iconUrl ? 'Thay đổi hình ảnh' : 'Thêm hình ảnh'}
+                </Button>
+              </Upload>
+              {iconUrl && (
+                <Button
+                  type="link"
+                  danger
+                  className="h-auto p-0"
+                  onClick={() => {
+                    setIconUrl('');
+                    form.setFieldsValue({ iconUrl: '' });
+                  }}
+                >
+                  Xóa hình ảnh
+                </Button>
+              )}
+            </Space>
+          </div>
+
           <Form.Item
             name="name"
             label={<span className="font-semibold dark:text-white">Tên môn thể thao</span>}
