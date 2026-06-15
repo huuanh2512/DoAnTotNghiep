@@ -1,0 +1,16 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Backend env
+node_be_refactor/.env
+node_be_refactor/.env.*
+
+# React env
+react-staff-admin/.env
+react-staff-admin/.env.*
+
+# Flutter/Dart env nếu có
+sport_management/sport_management.env
+sport_management/sport_management.env.*
