@@ -258,6 +258,49 @@ app.use(cors({
 
 ---
 
+## 🏥 Health Check & Render Keep-Alive
+
+### Endpoint
+
+| Method | Endpoint | Auth | Mô Tả |
+|--------|----------|------|--------|
+| GET | `/health` | ❌ Không cần | Health check, trả JSON status |
+
+**Response mẫu:**
+```json
+{
+  "status": "ok",
+  "service": "sport-energy-backend",
+  "uptime": 12345.678,
+  "timestamp": "2026-06-15T15:00:00.000Z"
+}
+```
+
+### Cấu hình Ping giữ Render Free Tier hoạt động
+
+Render Free Tier sẽ tự động **sleep sau 15 phút** không có request. Để giữ service hoạt động cho môi trường demo, sử dụng một trong các dịch vụ sau ping endpoint `/health` định kỳ:
+
+#### Cách 1: cron-job.org (Miễn phí)
+1. Đăng ký tại [https://cron-job.org](https://cron-job.org)
+2. Tạo cron job mới:
+   - **URL**: `https://<render-service-name>.onrender.com/health`
+   - **Schedule**: Mỗi **10 phút** (`*/10 * * * *`)
+   - **Method**: GET
+   - **Timeout**: 30 giây
+3. Bật cron job
+
+#### Cách 2: UptimeRobot (Miễn phí)
+1. Đăng ký tại [https://uptimerobot.com](https://uptimerobot.com)
+2. Tạo monitor mới:
+   - **Monitor Type**: HTTP(s)
+   - **URL**: `https://<render-service-name>.onrender.com/health`
+   - **Monitoring Interval**: 10 phút
+3. Lưu và kích hoạt
+
+> ⚠️ **Lưu ý**: Đây chỉ là giải pháp giữ service hoạt động cho **môi trường demo/free tier**. Không thay thế paid instance cho production 24/7.
+
+---
+
 ## 🔗 Tài Liệu Tham Khảo
 
 - Specification: [notification.md](./notification.md)

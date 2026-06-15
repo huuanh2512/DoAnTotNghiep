@@ -6,7 +6,7 @@ class ApiConfig {
   static const String _localAndroidEmulatorBaseUrl =
       'http://10.0.2.2:3000/api/v1';
   static const String _productionBaseUrl =
-      'http://sport-be.vanhuy2004h.io.vn/api/v1';
+      'FLUTTER_API_URL'; 
 
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',

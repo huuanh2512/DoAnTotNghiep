@@ -19,6 +19,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/v1', routes);
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
+// Health check endpoint — dùng cho Render/UptimeRobot/cron-job.org ping giữ service không bị sleep
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        service: 'sport-energy-backend',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Khởi tạo Socket.IO
 socketIOService.initialize(httpServer);
 
