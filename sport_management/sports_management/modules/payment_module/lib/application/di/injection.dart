@@ -12,7 +12,7 @@ final sl = GetIt.instance;
 Future<void> initInjection() async {
   // ── DataSources ─────────────────────────────────────────────────────────
   if (!sl.isRegistered<ZaloPayService>()) {
-    sl.registerLazySingleton<ZaloPayService>(() => ZaloPayService());
+    sl.registerLazySingleton<ZaloPayService>(() => ZaloPayService(sl<DioClient>()));
   }
 
   if (!sl.isRegistered<PaymentRemoteDataSource>()) {

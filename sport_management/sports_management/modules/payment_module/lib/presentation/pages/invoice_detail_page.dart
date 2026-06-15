@@ -314,8 +314,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     });
 
     try {
+      // Truyền paymentId để backend tự động cập nhật DB nếu đã thanh toán
       final isPaid = await GetIt.I<ZaloPayService>().checkOrderStatus(
         _zaloPayTransId!,
+        paymentId: _invoice!.id,
       );
       if (isPaid) {
         final updateStatus = GetIt.I<UpdatePaymentStatusUseCase>();
@@ -422,9 +424,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     });
 
     try {
+      // Gọi backend để tạo đơn ZaloPay — backend ký HMAC với key1 server-side
       final response = await GetIt.I<ZaloPayService>().createOrder(
-        bookingId: _invoice!.bookingId ?? _invoice!.id,
-        amount: _invoice!.amount ?? 0.0,
+        paymentId: _invoice!.id,
       );
 
       if (response != null &&
@@ -455,8 +457,8 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       } else {
         throw Exception(
           translate(
-            'Tạo đơn hàng ZaloPay thất bại',
-            'Failed to create ZaloPay order',
+            'Tạo đơn hàng ZaloPay thất bại. Vui lòng thử lại.',
+            'Failed to create ZaloPay order. Please try again.',
           ),
         );
       }
