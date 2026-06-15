@@ -1,5 +1,13 @@
 const Booking = require('../models/booking.model');
 
+const courtPopulate = {
+  path: 'court_id',
+  populate: [
+    { path: 'facility_id' },
+    { path: 'sport_id' }
+  ]
+};
+
 class BookingRepository {
   async create(bookingData) {
     const booking = new Booking(bookingData);
@@ -9,10 +17,7 @@ class BookingRepository {
   async findById(id) {
     return await Booking.findById(id)
       .populate('user_id')
-      .populate({
-        path: 'court_id',
-        populate: { path: 'facility_id' }
-      });
+      .populate(courtPopulate);
   }
 
   async findMany(query, skip, limit) {
@@ -20,10 +25,7 @@ class BookingRepository {
       .skip(skip)
       .limit(limit)
       .populate('user_id')
-      .populate({
-        path: 'court_id',
-        populate: { path: 'facility_id' }
-      })
+      .populate(courtPopulate)
       .sort({ created_at: -1 });
   }
 
@@ -75,19 +77,13 @@ class BookingRepository {
   async updateStatus(id, status) {
     return await Booking.findByIdAndUpdate(id, { status }, { new: true })
       .populate('user_id')
-      .populate({
-        path: 'court_id',
-        populate: { path: 'facility_id' }
-      });
+      .populate(courtPopulate);
   }
 
   async updateById(id, updates) {
     return await Booking.findByIdAndUpdate(id, updates, { new: true })
       .populate('user_id')
-      .populate({
-        path: 'court_id',
-        populate: { path: 'facility_id' }
-      });
+      .populate(courtPopulate);
   }
 
   async cancelByCustomerIfAllowed(id, userId, expectedStatus, updates) {
@@ -101,10 +97,7 @@ class BookingRepository {
       { new: true }
     )
       .populate('user_id')
-      .populate({
-        path: 'court_id',
-        populate: { path: 'facility_id' }
-      });
+      .populate(courtPopulate);
   }
 
   async cancelIfStatusMatches(id, expectedStatus, updates, userId = null) {
@@ -118,10 +111,7 @@ class BookingRepository {
 
     return await Booking.findOneAndUpdate(query, updates, { new: true })
       .populate('user_id')
-      .populate({
-        path: 'court_id',
-        populate: { path: 'facility_id' }
-      });
+      .populate(courtPopulate);
   }
 }
 

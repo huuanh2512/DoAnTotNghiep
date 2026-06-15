@@ -7,7 +7,9 @@ import {
   CloseCircleOutlined,
   PlayCircleOutlined,
   UserOutlined,
-  EyeOutlined
+  EyeOutlined,
+  CalendarOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -311,7 +313,25 @@ const StaffBookingsPage: React.FC = () => {
       title: 'Mã Đặt Lịch',
       dataIndex: 'id',
       key: 'id',
-      render: (id: string) => <span className="font-semibold text-brand-orange text-xs">{id}</span>,
+      render: (id: string, record: Booking) => {
+        const isFixed = Boolean(record.isFixedSchedule || record.fixedScheduleId);
+        const isMatching = Boolean(record.matchingSessionId || (record as any).matching_session_id);
+        const isFixedMatching = isFixed && isMatching;
+        return (
+          <div>
+            <span className="font-semibold text-brand-orange text-xs block">{id}</span>
+            {isFixedMatching && (
+              <Tag icon={<TeamOutlined />} color="purple" className="border-none text-[10px] px-1 py-0 mt-1 rounded">Ghép cố định</Tag>
+            )}
+            {!isFixedMatching && isFixed && (
+              <Tag icon={<CalendarOutlined />} color="blue" className="border-none text-[10px] px-1 py-0 mt-1 rounded">Lịch cố định</Tag>
+            )}
+            {!isFixedMatching && !isFixed && isMatching && (
+              <Tag icon={<TeamOutlined />} color="orange" className="border-none text-[10px] px-1 py-0 mt-1 rounded">Ghép trận</Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Khách hàng',
@@ -391,6 +411,7 @@ const StaffBookingsPage: React.FC = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_: any, record: Booking) => {
+        const isFixed = Boolean(record.isFixedSchedule || record.fixedScheduleId);
         if (record.status === 'PENDING') {
           return (
             <Space size="small" onClick={(event) => event.stopPropagation()}>
@@ -401,23 +422,33 @@ const StaffBookingsPage: React.FC = () => {
                   onClick={() => navigate(`/staff/bookings/${record.id}`)}
                 />
               </Tooltip>
-              <Tooltip title="Duyệt Check-in">
-                <Button
-                  type="primary"
-                  shape="circle"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => handleUpdateStatus(record.id, 'CONFIRMED')}
-                  className="bg-emerald-600 hover:bg-emerald-500 border-none"
-                />
-              </Tooltip>
-              <Tooltip title="Từ chối / Hủy">
-                <Button
-                  danger
-                  shape="circle"
-                  icon={<CloseCircleOutlined />}
-                  onClick={() => handleUpdateStatus(record.id, 'CANCELLED')}
-                />
-              </Tooltip>
+              {isFixed ? (
+                <Tooltip title="Lịch cố định — hệ thống tự quản lý, không cần duyệt">
+                  <Tag color="blue" className="border-none font-semibold px-2 py-0.5 rounded cursor-default">
+                    <CalendarOutlined /> Tự động
+                  </Tag>
+                </Tooltip>
+              ) : (
+                <>
+                  <Tooltip title="Duyệt Check-in">
+                    <Button
+                      type="primary"
+                      shape="circle"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => handleUpdateStatus(record.id, 'CONFIRMED')}
+                      className="bg-emerald-600 hover:bg-emerald-500 border-none"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Từ chối / Hủy">
+                    <Button
+                      danger
+                      shape="circle"
+                      icon={<CloseCircleOutlined />}
+                      onClick={() => handleUpdateStatus(record.id, 'CANCELLED')}
+                    />
+                  </Tooltip>
+                </>
+              )}
             </Space>
           );
         }

@@ -110,12 +110,12 @@ const resetPassword = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
+    const { otp, newPassword } = req.body;
+    if (!otp || !newPassword) {
       return sendError(
         res,
         400,
-        'Current password and new password are required',
+        'OTP and new password are required',
         'MISSING_FIELDS'
       );
     }
@@ -130,7 +130,7 @@ const changePassword = async (req, res) => {
 
     await userAuthService.changePassword(
       req.user.id,
-      currentPassword,
+      otp,
       newPassword
     );
     return sendSuccess(
@@ -141,7 +141,8 @@ const changePassword = async (req, res) => {
     );
   } catch (error) {
     const statusCode = [
-      'INVALID_CURRENT_PASSWORD',
+      'INVALID_OTP',
+      'EXPIRED_OTP',
       'PASSWORD_UNCHANGED'
     ].includes(error.code)
       ? 400

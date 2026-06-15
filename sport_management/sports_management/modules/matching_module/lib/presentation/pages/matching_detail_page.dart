@@ -79,6 +79,33 @@ class _MatchingDetailPageState extends State<MatchingDetailPage> {
     return '${hour.toString().padLeft(2, '0')}:${min.toString().padLeft(2, '0')}';
   }
 
+  bool _isSessionFull(MatchingSessionEntity session) {
+    if (session.status == 'FULL') return true;
+    if (session.teamMode != 'INDIVIDUAL') {
+      return session.teamSize > 0 &&
+          session.teamAOccupancy >= session.teamSize &&
+          session.teamBOccupancy >= session.teamSize;
+    }
+    return session.userJoinStatus == 'FULL' ||
+        (session.totalPlayersNeeded > 0 &&
+            session.approvedCount >= session.totalPlayersNeeded);
+  }
+
+  String _statusLabel(MatchingSessionEntity session) {
+    if (session.status == 'COMPLETED') {
+      return context.tr(vi: 'Đã hoàn thành', en: 'Completed');
+    }
+    if (session.status == 'CANCELLED') {
+      return context.tr(vi: 'Đã hủy', en: 'Cancelled');
+    }
+    if (_isSessionFull(session)) {
+      return session.isFixedSchedule
+          ? context.tr(vi: 'Đã đủ đội', en: 'Teams full')
+          : context.tr(vi: 'Phòng đã đủ người', en: 'Lobby is full');
+    }
+    return context.tr(vi: 'Đang ghép', en: 'Matching');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -154,7 +181,7 @@ class _MatchingDetailPageState extends State<MatchingDetailPage> {
                     .status
               : null;
           final isFull =
-              session.status == 'FULL' || session.status == 'COMPLETED';
+              _isSessionFull(session) || session.status == 'COMPLETED';
           final isCancelled = session.status == 'CANCELLED';
 
           return SingleChildScrollView(
@@ -289,17 +316,11 @@ class _MatchingDetailPageState extends State<MatchingDetailPage> {
                       ),
                     ),
                     Text(
-                      '${context.tr(vi: 'Trạng thái: ', en: 'Status: ')}${session.status == 'FULL'
-                          ? context.tr(vi: 'Đầy chỗ', en: 'Full')
-                          : session.status == 'COMPLETED'
-                          ? context.tr(vi: 'Đã hoàn thành', en: 'Completed')
-                          : session.status == 'CANCELLED'
-                          ? context.tr(vi: 'Đã hủy', en: 'Cancelled')
-                          : context.tr(vi: 'Đang chờ', en: 'Available')}',
+                      '${context.tr(vi: 'Trạng thái: ', en: 'Status: ')}${_statusLabel(session)}',
                       style: TextStyle(
                         color: isCancelled
                             ? Colors.red
-                            : session.status == 'FULL'
+                            : _isSessionFull(session)
                             ? Colors.blue
                             : Colors.green,
                         fontWeight: FontWeight.bold,
@@ -737,10 +758,7 @@ class _MatchingDetailPageState extends State<MatchingDetailPage> {
         height: 52,
         child: Center(
           child: Text(
-            context.tr(
-              vi: 'Phòng đã đủ số lượng người đăng ký!',
-              en: 'Lobby is full!',
-            ),
+            _statusLabel(session),
             style: const TextStyle(
               color: Colors.grey,
               fontWeight: FontWeight.bold,
@@ -757,10 +775,7 @@ class _MatchingDetailPageState extends State<MatchingDetailPage> {
         children: [
           if (session.isFixedSchedule) ...[
             Text(
-              context.tr(
-                vi: '',
-                en: '',
-              ),
+              context.tr(vi: '', en: ''),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).hintColor,

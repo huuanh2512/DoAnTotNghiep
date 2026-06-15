@@ -7,8 +7,34 @@ import { apiClient } from '../../../../core/network/api_client';
 
 const { Title, Text } = Typography;
 
+type CourtItem = MockCourt & {
+  id?: string;
+  facility?: { id?: string; _id?: string; name?: string };
+  sport?: { id?: string; _id?: string; name?: string };
+};
+
+const getRefId = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.id || value._id || '';
+};
+
+const getSportName = (sportId: string, record?: CourtItem, sports: MockSport[] = []) => {
+  if (record?.sport?.name) return record.sport.name;
+  const sport = sports.find((item: any) => item._id === sportId || item.id === sportId);
+  return sport?.name || 'Chưa gán';
+};
+
+const normalizeCourt = (court: any): CourtItem => ({
+  ...court,
+  _id: court._id || court.id || '',
+  facilityId: court.facilityId || court.facility_id || getRefId(court.facility),
+  sportId: court.sportId || court.sport_id || getRefId(court.sport),
+  pricePerHour: Number(court.pricePerHour ?? court.price_per_hour ?? 0),
+});
+
 const AdminCourtsPage: React.FC = () => {
-  const [courts, setCourts] = useState<MockCourt[]>([]);
+  const [courts, setCourts] = useState<CourtItem[]>([]);
   const [facilities, setFacilities] = useState<MockFacility[]>([]);
   const [sports, setSports] = useState<MockSport[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,7 +46,7 @@ const AdminCourtsPage: React.FC = () => {
     setLoading(true);
     try {
       const resCourts = await apiClient.get('/court');
-      setCourts(resCourts.data.items || []);
+      setCourts((resCourts.data.items || []).map(normalizeCourt));
 
       const resFac = await apiClient.get('/facility');
       setFacilities(resFac.data.items || []);
@@ -45,14 +71,14 @@ const AdminCourtsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (court: MockCourt) => {
+  const handleOpenEdit = (court: CourtItem) => {
     setEditingCourt(court);
     form.resetFields();
     form.setFieldsValue({
       name: court.name,
       code: court.code,
-      facilityId: court.facilityId,
-      sportId: court.sportId,
+      facilityId: court.facilityId || getRefId(court.facility),
+      sportId: court.sportId || getRefId(court.sport),
       pricePerHour: court.pricePerHour,
       status: court.status
     });
@@ -120,9 +146,9 @@ const AdminCourtsPage: React.FC = () => {
       title: 'Môn thể thao',
       dataIndex: 'sportId',
       key: 'sport',
-      render: (sid: string) => {
-        const sport = sports.find(s => s._id === sid);
-        return <Tag color="blue">{sport ? sport.name : sid}</Tag>;
+      render: (sid: string, record: CourtItem) => {
+        const name = getSportName(sid, record, sports);
+        return <Tag color={name === 'Chưa gán' ? 'default' : 'blue'}>{name}</Tag>;
       }
     },
     {
@@ -144,7 +170,7 @@ const AdminCourtsPage: React.FC = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      render: (_: any, record: MockCourt) => (
+      render: (_: any, record: CourtItem) => (
         <Space size="middle">
           <Button 
             type="text" 

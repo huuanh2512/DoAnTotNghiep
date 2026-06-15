@@ -27,14 +27,23 @@ interface Court {
   code: string;
   facilityId: string;
   sportId: string;
+  sport?: { id?: string; _id?: string; name?: string };
+  sportName?: string;
   status: string;
   pricePerHour: number;
   slots: CourtSlot[];
   slotDurationMinutes: number;
 }
 
+interface SportItem {
+  _id: string;
+  id?: string;
+  name: string;
+}
+
 interface BookingItem {
   _id: string;
+  id?: string;
   courtId: string;
   userId: string;
   bookingDate: string;
@@ -42,6 +51,13 @@ interface BookingItem {
   endMinutes: number;
   totalPrice: number;
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  fixedScheduleId?: string;
+  fixed_schedule_id?: string;
+  isFixedSchedule?: boolean;
+  is_fixed_schedule?: boolean;
+  isMatching?: boolean;
+  matchingSessionId?: string;
+  matching_session_id?: string;
 }
 
 const StaffOverviewPage: React.FC = () => {
@@ -55,6 +71,29 @@ const StaffOverviewPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const facilityId = user?.facilityId;
+
+  const getSportName = (court: Court, sports: SportItem[]) => {
+    if (court.sport?.name) return court.sport.name;
+    if (court.sportName) return court.sportName;
+    const sport = sports.find((item) => item._id === court.sportId || item.id === court.sportId);
+    return sport?.name || 'Chưa gán môn';
+  };
+
+  const getSlotBadge = (
+    label: string,
+    isPending: boolean,
+    isCompleted: boolean,
+    isFixedSchedule: boolean,
+    isMatching: boolean,
+  ) => {
+    const isFixedMatching = isFixedSchedule && isMatching;
+    if (isFixedMatching) return { color: 'purple', text: 'Ghép cố định' };
+    if (isFixedSchedule) return { color: 'blue', text: 'Lịch cố định' };
+    if (isMatching) return { color: 'magenta', text: 'Ghép trận' };
+    if (isPending) return { color: 'warning', text: label };
+    if (isCompleted) return { color: 'default', text: label };
+    return { color: 'processing', text: label };
+  };
 
   // 1. Kiểm tra quyền truy cập
   useEffect(() => {
@@ -72,10 +111,25 @@ const StaffOverviewPage: React.FC = () => {
     const fetchAllData = async () => {
       try {
         // Lấy danh sách sân
-        const resCourts = await apiClient.get('/court', { params: { facilityId } });
+        const [resCourts, resSports] = await Promise.all([
+          apiClient.get('/court', { params: { facilityId } }),
+          apiClient.get('/sport'),
+        ]);
+        const sports: SportItem[] = (resSports.data.items || []).map((sport: any) => ({
+          ...sport,
+          _id: sport._id || sport.id || '',
+        }));
         const courtItems: Court[] = (resCourts.data.items || []).map((c: any) => ({
           ...c,
           _id: c._id || c.id || '',
+          sportId: c.sportId || c.sport_id || c.sport?.id || c.sport?._id || '',
+          sportName: getSportName({
+            ...c,
+            _id: c._id || c.id || '',
+            sportId: c.sportId || c.sport_id || c.sport?.id || c.sport?._id || '',
+            slots: [],
+            slotDurationMinutes: 60,
+          }, sports),
           slots: [],
           slotDurationMinutes: 60,
         }));
@@ -116,7 +170,13 @@ const StaffOverviewPage: React.FC = () => {
         const resBookings = await apiClient.get('/booking', { params: { bookingDate: selectedDate } });
         const bookingItems: BookingItem[] = (resBookings.data.items || []).map((b: any) => ({
           ...b,
-          _id: b._id || b.id || ''
+          _id: b._id || b.id || '',
+          id: b.id || b._id || '',
+          courtId: b.courtId || b.court_id || b.court?.id || b.court?._id || '',
+          fixedScheduleId: b.fixedScheduleId || b.fixed_schedule_id || b.fixedSchedule?.id || b.fixedSchedule?._id || '',
+          isFixedSchedule: Boolean(b.isFixedSchedule || b.is_fixed_schedule || b.fixedScheduleId || b.fixed_schedule_id || b.fixedSchedule),
+          isMatching: Boolean(b.isMatching || b.is_matching || b.matchingSessionId || b.matching_session_id || b.source === 'MATCHING'),
+          matchingSessionId: b.matchingSessionId || b.matching_session_id || b.matchingSession?.id || b.matchingSession?._id || '',
         }));
 
         // Chỉ cập nhật state nếu component chưa bị hủy
@@ -204,8 +264,21 @@ const StaffOverviewPage: React.FC = () => {
     return { status: 'AVAILABLE', label: 'Còn trống', booking: null };
   };
 
-  const handleSlotClick = (courtId: string, slot: CourtSlot) => {
-    navigate(`/staff/bookings?courtId=${courtId}&startMinutes=${slot.startMinutes}&endMinutes=${slot.endMinutes}&date=${selectedDate}`);
+  const handleSlotClick = (courtId: string, slot: CourtSlot, status: string, booking: BookingItem | null) => {
+    const bookingId = booking?.id || booking?._id;
+    if (status === 'BOOKED' && booking?.matchingSessionId) {
+      navigate(`/staff/matching/${booking.matchingSessionId}`);
+      return;
+    }
+
+    if (status === 'BOOKED' && booking?.status === 'PENDING' && bookingId) {
+      navigate(`/staff/bookings/${bookingId}`);
+      return;
+    }
+
+    if (status === 'AVAILABLE') {
+      navigate(`/staff/bookings?courtId=${courtId}&startMinutes=${slot.startMinutes}&endMinutes=${slot.endMinutes}&date=${selectedDate}`);
+    }
   };
 
   // Màn hình báo lỗi nếu nhân viên chưa có cơ sở
@@ -301,7 +374,7 @@ const StaffOverviewPage: React.FC = () => {
                   {/* Left Column: Court Info */}
                   <div className="w-48 pr-4 flex-shrink-0">
                     <span className="block font-bold text-base dark:text-white">{court.name}</span>
-                    <span className="text-xs text-brand-orange font-semibold block mt-0.5">{court.code}</span>
+                    <span className="text-xs text-brand-orange font-semibold block mt-0.5">{court.sportName || 'Chưa gán môn'}</span>
                     <span className="text-xs text-ink-subtle dark:text-ink-darkSubtle block mt-1">
                       {formatVND(court.pricePerHour)}/giờ
                     </span>
@@ -323,17 +396,34 @@ const StaffOverviewPage: React.FC = () => {
                       } else if (status === 'BOOKED') {
                         const isPending = (booking as BookingItem)?.status === 'PENDING';
                         const isCompleted = (booking as BookingItem)?.status === 'COMPLETED';
+                        const isFixedSchedule = Boolean((booking as BookingItem)?.isFixedSchedule || (booking as BookingItem)?.fixedScheduleId);
+                        const isMatching = Boolean((booking as BookingItem)?.isMatching || (booking as BookingItem)?.matchingSessionId);
+                        const isFixedMatching = isFixedSchedule && isMatching;
 
                         cardClass = isPending
-                          ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 opacity-90'
+                          ? isFixedMatching
+                            ? 'bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800/40 opacity-95 hover:bg-violet-100 dark:hover:bg-violet-950/30 cursor-pointer'
+                            : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 opacity-90 hover:bg-amber-100 dark:hover:bg-amber-950/30 cursor-pointer'
                           : isCompleted
                             ? 'bg-gray-100 dark:bg-neutral-800/40 border border-neutral-300 dark:border-neutral-700/40 opacity-70'
                             : 'bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 opacity-90';
 
+                        const slotBadge = getSlotBadge(label, isPending, isCompleted, isFixedSchedule, isMatching);
                         badge = (
-                          <Tag color={isPending ? 'warning' : isCompleted ? 'default' : 'processing'} className="m-0 border-none px-2 rounded-md font-medium text-xs">
-                            {label}
-                          </Tag>
+                          <>
+                            <Tag color={slotBadge.color} className="m-0 border-none px-2 rounded-md font-medium text-xs max-w-full truncate">
+                              {isFixedMatching ? 'Ghép cố định' : isFixedSchedule ? 'Lịch cố định' : isMatching ? 'Ghép trận' : label}
+                            </Tag>
+                            {false ? (
+                              <Tag color="processing" className="m-0 border-none px-2 rounded-md font-medium text-xs">
+                                Đã có trận
+                              </Tag>
+                            ) : false && (
+                              <Tag color={isPending ? 'warning' : isCompleted ? 'default' : 'processing'} className="m-0 border-none px-2 rounded-md font-medium text-xs">
+                                {label}
+                              </Tag>
+                            )}
+                          </>
                         );
                       } else {
                         cardClass = 'bg-neutral-100 dark:bg-neutral-800/20 border border-neutral-200 dark:border-neutral-800/40 opacity-50 cursor-not-allowed';
@@ -343,8 +433,8 @@ const StaffOverviewPage: React.FC = () => {
                       return (
                         <div
                           key={slot.slotIndex}
-                          onClick={() => status === 'AVAILABLE' && handleSlotClick(court._id, slot)}
-                          className={`w-36 flex-shrink-0 p-3 rounded-lg flex flex-col justify-between h-24 transition-all shadow-sm ${cardClass}`}
+                          onClick={() => handleSlotClick(court._id, slot, status, booking as BookingItem | null)}
+                          className={`w-36 flex-shrink-0 p-3 rounded-lg flex flex-col justify-between h-24 transition-all shadow-sm overflow-hidden ${cardClass}`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-ink dark:text-white">

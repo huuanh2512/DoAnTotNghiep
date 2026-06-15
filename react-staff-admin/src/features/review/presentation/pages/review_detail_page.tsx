@@ -265,7 +265,7 @@ const ReviewDetailPage: React.FC = () => {
             <Descriptions column={1} bordered size="small">
               <Descriptions.Item label="Cơ sở">{valueText(review.facility?.name, review.facilityId)}</Descriptions.Item>
               <Descriptions.Item label="Sân">{valueText(review.court?.name, review.courtId)}</Descriptions.Item>
-              <Descriptions.Item label="Môn thể thao">{valueText(review.sport?.name, review.sportId)}</Descriptions.Item>
+              <Descriptions.Item label="Môn thể thao">{valueText(review.sport?.name)}</Descriptions.Item>
               <Descriptions.Item label="Court id">{valueText(review.courtId)}</Descriptions.Item>
               <Descriptions.Item label="Facility id">{valueText(review.facilityId)}</Descriptions.Item>
             </Descriptions>

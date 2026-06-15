@@ -334,7 +334,7 @@ const MatchingDetailPage: React.FC = () => {
               <Descriptions.Item label="Thanh toán">{policyLabel(session.paymentPolicy)}</Descriptions.Item>
               <Descriptions.Item label="Cơ sở">{valueText(session.facility?.name, session.facilityId)}</Descriptions.Item>
               <Descriptions.Item label="Sân">{valueText(session.court?.name, session.courtId)}</Descriptions.Item>
-              <Descriptions.Item label="Môn thể thao">{valueText(session.sport?.name, session.sportId)}</Descriptions.Item>
+              <Descriptions.Item label="Môn thể thao">{valueText(session.sport?.name)}</Descriptions.Item>
               <Descriptions.Item label="Ngày chơi">{formatDate(session.bookingDate)}</Descriptions.Item>
               <Descriptions.Item label="Giờ bắt đầu">{safeMinutes(session.startMinutes)}</Descriptions.Item>
               <Descriptions.Item label="Giờ kết thúc">{safeMinutes(session.endMinutes)}</Descriptions.Item>

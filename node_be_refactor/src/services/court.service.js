@@ -160,7 +160,7 @@ class CourtService {
       name: data.name,
       facility_id: data.facilityId,
       sport_id: data.sportId,
-      code: this._generateCourtCode(),
+      code: data.code || this._generateCourtCode(),
       status: data.status || 'ACTIVE',
       price_per_hour: data.pricePerHour || 0
     };
@@ -177,6 +177,7 @@ class CourtService {
     let warning = null;
     
     if (data.name !== undefined) updateData.name = data.name;
+    if (data.code !== undefined) updateData.code = data.code;
     if (data.facilityId !== undefined) updateData.facility_id = data.facilityId;
     if (data.sportId !== undefined) updateData.sport_id = data.sportId;
     if (data.status !== undefined) updateData.status = data.status;

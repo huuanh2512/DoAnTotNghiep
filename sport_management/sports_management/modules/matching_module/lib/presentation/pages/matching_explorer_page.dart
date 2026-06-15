@@ -90,6 +90,25 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
         '${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
+  bool _isSessionFull(MatchingSessionEntity session) {
+    if (session.status == 'FULL') return true;
+    if (session.teamMode != 'INDIVIDUAL') {
+      return session.teamSize > 0 &&
+          session.teamAOccupancy >= session.teamSize &&
+          session.teamBOccupancy >= session.teamSize;
+    }
+    return session.userJoinStatus == 'FULL' ||
+        (session.totalPlayersNeeded > 0 &&
+            session.approvedCount >= session.totalPlayersNeeded);
+  }
+
+  String _sessionStatusLabel(MatchingSessionEntity session) {
+    if (_isSessionFull(session)) {
+      return context.tr(vi: 'Full phòng', en: 'Full');
+    }
+    return context.tr(vi: 'Đang ghép', en: 'Matching');
+  }
+
   Future<void> _pickFilterDate(StateSetter setModalState) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -370,7 +389,7 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
 
   Widget _buildSessionCard(MatchingSessionEntity session) {
     final theme = Theme.of(context);
-    final isFull = session.status == 'FULL';
+    final isFull = _isSessionFull(session);
     final progress = session.totalPlayersNeeded > 0
         ? session.approvedCount / session.totalPlayersNeeded
         : 1.0;
@@ -474,7 +493,7 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            isFull ? 'FULL' : 'OPEN',
+                            _sessionStatusLabel(session),
                             style: TextStyle(
                               color: isFull ? Colors.red : Colors.green,
                               fontSize: 11,
@@ -578,10 +597,7 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
                 if (session.isFixedSchedule) ...[
                   const SizedBox(height: 6),
                   Text(
-                    context.tr(
-                      vi: '',
-                      en: '',
-                    ),
+                    context.tr(vi: '', en: ''),
                     style: TextStyle(
                       color: theme.hintColor,
                       fontSize: 11,

@@ -12,7 +12,7 @@ router.post('/reset-password', authController.resetPassword);
 router.post(
   '/change-password',
   authMiddleware.verifyToken,
-  authMiddleware.requireRole(['CUSTOMER']),
+  authMiddleware.requireRole(['CUSTOMER', 'STAFF', 'ADMIN']),
   authController.changePassword
 );
 

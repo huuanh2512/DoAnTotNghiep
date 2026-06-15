@@ -53,6 +53,7 @@ connectDB().then(() => {
     // Khởi chạy Cron Job sinh lịch cố định (Giờ chết) tự động
     require('./utils/cron-fixed-scheduler');
     require('./utils/cron-auto-cancel-bookings');
+    require('./utils/cron-auto-complete-bookings');
     });
 }).catch((error) => {
     console.error('Failed to start server:', error);

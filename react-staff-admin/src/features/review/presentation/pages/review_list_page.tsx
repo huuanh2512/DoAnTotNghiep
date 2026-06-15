@@ -143,7 +143,7 @@ const ReviewListPage: React.FC = () => {
     {
       title: 'Môn',
       key: 'sport',
-      render: (_: any, record: ReviewItem) => <span>{valueText(record.sport?.name, record.sportId)}</span>,
+      render: (_: any, record: ReviewItem) => <span>{valueText(record.sport?.name)}</span>,
     },
     {
       title: 'Booking',

@@ -4,6 +4,8 @@ const matchQueueRepository = require('../repositories/match-queue.repository');
 const notificationHelper = require('./notification.helper');
 const socketIOService = require('./socket-io.service');
 const paymentService = require('./payment.service');
+const userScheduleConflictService = require('./user-schedule-conflict.service');
+const paymentRepository = require('../repositories/payment.repository');
 const Booking = require('../models/booking.model');
 const MatchingSession = require('../models/matching.model');
 const MatchQueue = require('../models/match-queue.model');
@@ -441,11 +443,12 @@ class MatchingService {
           teamAOccupancy: 0,
           teamBOccupancy: 0
         };
+    const hostRepCount = Number(session.host_represented_count || 1);
     const approvedPlayerCount = isTeamMode
-      ? teamSummary.teamAOccupancy + teamSummary.teamBOccupancy
+      ? teamSummary.teamAOccupancy + teamSummary.teamBOccupancy - hostRepCount
       : approvedCount;
     const availableSpots = isTeamMode
-      ? Math.max(0, teamSummary.teamSize * 2 - approvedPlayerCount)
+      ? Math.max(0, session.total_players_needed - approvedPlayerCount)
       : Math.max(0, session.total_players_needed - approvedCount);
     const fixedScheduleId =
       session.fixed_schedule_id?._id?.toString()
@@ -509,7 +512,8 @@ class MatchingService {
       teamA: occurrenceSummary.teamA,
       teamB: occurrenceSummary.teamB,
       totalPlayersNeeded: session.total_players_needed,
-      approvedCount,
+      approvedCount: approvedPlayerCount,
+      approvedAccountCount: approvedCount,
       availableSpots,
       description: session.description || '',
       autoApprove: session.auto_approve,
@@ -621,6 +625,12 @@ class MatchingService {
         throw this._businessError('You already have an active matching session at this time', 409, 'DUPLICATE_MATCHING_SESSION');
       }
 
+      await userScheduleConflictService.assertNoUserScheduleConflict(hostId, {
+        bookingDate: data.bookingDate,
+        startMinutes,
+        endMinutes
+      }, { session: dbSession });
+
       const blockingBooking = await this._findBlockingBooking(court._id, data.bookingDate, startMinutes, endMinutes, { session: dbSession });
       if (blockingBooking) {
         throw this._businessError('Court already has a booking overlapping this time range', 409, 'COURT_ALREADY_BOOKED');
@@ -699,7 +709,7 @@ class MatchingService {
   }
 
   async querySessions(filters, skip = 0, limit = 20, viewerUserId = null) {
-    const query = { status: 'OPEN' };
+    const query = { status: { $in: ['OPEN', 'FULL'] } };
     if (filters.sportId) query.sport_id = filters.sportId;
     if (filters.facilityId) query.facility_id = filters.facilityId;
     if (filters.bookingDate) {
@@ -741,7 +751,10 @@ class MatchingService {
   async joinSession(id, userId, data = {}) {
     const session = await matchingRepository.findById(id);
     if (!session) throw this._businessError('Matching session not found', 404, 'NOT_FOUND');
-    if (session.status !== 'OPEN') throw this._businessError('This matching session is closed or full', 400, 'SESSION_NOT_OPEN');
+    if (session.status === 'FULL') {
+      throw this._businessError('Phòng đã đủ người, không thể đăng ký thêm.', 409, 'MATCHING_SESSION_FULL');
+    }
+    if (session.status !== 'OPEN') throw this._businessError('This matching session is closed', 400, 'SESSION_NOT_OPEN');
     if (session.host_id._id.toString() === userId) throw this._businessError('Host cannot join their own matching session', 400, 'HOST_CANNOT_JOIN');
     const now = this._getVietnamNow();
     if (
@@ -759,6 +772,12 @@ class MatchingService {
     if (isMemberExist) {
       throw this._businessError('You already joined this matching session', 409, 'MEMBER_EXISTS');
     }
+
+    await userScheduleConflictService.assertNoUserScheduleConflict(userId, {
+      bookingDate: session.booking_date,
+      startMinutes: session.start_minutes,
+      endMinutes: session.end_minutes
+    });
 
     const memberStatus = session.auto_approve ? 'APPROVED' : 'PENDING';
     if (this._isTeamMode(session)) {
@@ -859,6 +878,12 @@ class MatchingService {
           'MEMBER_COUNT_NOT_SUPPORTED'
         );
       }
+      const activeMemberCount = session.members.filter(member =>
+        ['APPROVED', 'PENDING'].includes(member.status)
+      ).length;
+      if (activeMemberCount >= session.total_players_needed) {
+        throw this._businessError('Phòng đã đủ người, không thể đăng ký thêm.', 409, 'MATCHING_SESSION_FULL');
+      }
       session.members.push({ user_id: userId, status: memberStatus, joined_at: new Date() });
     }
 
@@ -931,6 +956,14 @@ class MatchingService {
 
     const member = session.members.find(m => m.user_id._id.toString() === targetUserId);
     if (!member) throw this._businessError('Member not found in this matching session', 404, 'MEMBER_NOT_FOUND');
+
+    if (status === 'APPROVED') {
+      await userScheduleConflictService.assertNoUserScheduleConflict(targetUserId, {
+        bookingDate: session.booking_date,
+        startMinutes: session.start_minutes,
+        endMinutes: session.end_minutes
+      }, { excludeMatchingSessionId: session._id });
+    }
 
     if (status === 'APPROVED' && this._isTeamMode(session)) {
       const teamCode = member.team_code;
@@ -1116,8 +1149,9 @@ class MatchingService {
     const formatted = this._formatSessionResponse(await matchingRepository.findById(updatedSession._id));
     socketIOService.notifyMatchingUpdate(id, formatted);
 
+    let cancellationSummary = null;
     if (status === 'CANCELLED') {
-      await this._cancelMatchingBooking(session.booking_id, {
+      cancellationSummary = await this._cancelMatchingBooking(session.booking_id, {
         reason: 'MATCHING_SESSION_CANCELLED',
         cancelledBy: 'CUSTOMER'
       });
@@ -1137,7 +1171,13 @@ class MatchingService {
       }
     }
 
-    return { session: formatted };
+    return {
+      session: formatted,
+      cancellationSummary,
+      warning: cancellationSummary?.successPayments > 0
+        ? 'Có giao dịch đã thanh toán, cần xử lý hoàn tiền thủ công.'
+        : null
+    };
   }
 
   async _cancelMatchingBooking(bookingId, {
@@ -1145,7 +1185,32 @@ class MatchingService {
     cancelledBy = 'SYSTEM',
     now = new Date()
   }) {
-    if (!bookingId) return null;
+    const summary = {
+      bookingCancelled: false,
+      cancelledPendingPayments: 0,
+      successPayments: 0
+    };
+    if (!bookingId) return summary;
+
+    const payments = await paymentRepository.findManyRaw({ booking_id: bookingId });
+    const pendingPaymentIds = payments
+      .filter(payment => payment.status === 'PENDING')
+      .map(payment => payment._id);
+    summary.successPayments = payments.filter(payment => payment.status === 'SUCCESS').length;
+    if (summary.successPayments > 0) {
+      console.warn(
+        `[Matching Cancel] Booking ${bookingId} has ${summary.successPayments} SUCCESS payment(s); refund is not automated.`
+      );
+    }
+
+    if (pendingPaymentIds.length > 0) {
+      const paymentResult = await paymentRepository.updateMany(
+        { _id: { $in: pendingPaymentIds }, status: 'PENDING' },
+        { status: 'CANCELLED' }
+      );
+      summary.cancelledPendingPayments =
+        paymentResult.modifiedCount || paymentResult.nModified || pendingPaymentIds.length;
+    }
 
     const cancelledBooking = await Booking.findOneAndUpdate(
       { _id: bookingId, status: 'PENDING' },
@@ -1159,15 +1224,15 @@ class MatchingService {
     );
 
     if (cancelledBooking) {
-      await paymentService.syncPaymentOnBookingCancelled(cancelledBooking._id);
-      return cancelledBooking;
+      summary.bookingCancelled = true;
+      return summary;
     }
 
     const linkedBooking = await Booking.findById(bookingId).select('status');
     console.warn(
       `[Matching Cancel] Booking ${bookingId} was not auto-cancelled because status is ${linkedBooking?.status || 'UNKNOWN'}. Payment/refund requires manual policy handling if already confirmed or paid.`
     );
-    return null;
+    return summary;
   }
 
   async _notifyMatchingFailure(session) {
@@ -1347,6 +1412,12 @@ class MatchingService {
     if (active) {
       throw this._businessError('You are already in an active matching queue. Please leave it before joining another queue.', 409, 'ACTIVE_QUEUE_EXISTS');
     }
+
+    await userScheduleConflictService.assertNoUserScheduleConflict(userId, {
+      bookingDate: data.bookingDate,
+      startMinutes,
+      endMinutes
+    });
 
     const newQueue = await matchQueueRepository.create({
       user_id: userId,

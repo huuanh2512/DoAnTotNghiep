@@ -198,11 +198,17 @@ const leaveFixedMatchingSchedule = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await fixedScheduleService.leaveFixedMatchingSchedule(id, req.user);
+    const hasSuccessPayment = result.cancellationSummary?.successPayments > 0;
 
     return res.status(200).json({
       success: true,
       message: 'Rời lịch ghép cố định thành công',
-      schedule: result.schedule
+      schedule: result.schedule,
+      cancellationSummary: result.cancellationSummary,
+      readinessChanged: result.readinessChanged,
+      warning: hasSuccessPayment
+        ? 'Có giao dịch đã thanh toán, cần xử lý hoàn tiền thủ công.'
+        : null
     });
   } catch (error) {
     return sendError(

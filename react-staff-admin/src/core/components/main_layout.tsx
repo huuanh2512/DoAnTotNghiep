@@ -480,6 +480,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
         theme={isDarkMode ? 'dark' : 'light'}
         className="shadow-md border-r border-semantic-border/20 dark:border-semantic-borderDark/20"
         width={256}
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          height: '100vh',
+          overflow: 'hidden',
+          zIndex: 100,
+        }}
       >
         <div className="p-4 flex items-center justify-center border-b border-semantic-border/10 dark:border-semantic-borderDark/10">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -501,11 +510,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
           items={menuItems}
           className="border-none mt-2"
           theme={isDarkMode ? 'dark' : 'light'}
+          style={{
+            height: 'calc(100vh - 66px)',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
         />
       </Sider>
 
-      <Layout>
-        <AntHeader className="p-0 flex items-center justify-between shadow-sm bg-white dark:bg-surface-dark1 border-b border-semantic-border/20 dark:border-semantic-borderDark/20 pr-6">
+      <Layout
+        style={{
+          marginLeft: collapsed ? 80 : 256,
+          minHeight: '100vh',
+          transition: 'margin-left 0.2s',
+        }}
+      >
+        <AntHeader className="sticky top-0 z-40 p-0 flex items-center justify-between shadow-sm bg-white dark:bg-surface-dark1 border-b border-semantic-border/20 dark:border-semantic-borderDark/20 pr-6">
           <div className="flex items-center">
             <Button
               type="text"

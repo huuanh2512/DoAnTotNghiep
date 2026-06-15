@@ -308,7 +308,7 @@ const BookingDetailPage: React.FC = () => {
               <Descriptions.Item label="Trạng thái thanh toán">{paymentStatusTag(effectivePaymentStatus)}</Descriptions.Item>
               <Descriptions.Item label="Cơ sở">{pickFirst(facility?.name, booking.facilityName, booking.facilityId)}</Descriptions.Item>
               <Descriptions.Item label="Sân">{pickFirst(court?.name, booking.courtName, getObjectId(booking.courtId))}</Descriptions.Item>
-              <Descriptions.Item label="Môn thể thao">{pickFirst(sport?.name, booking.sportName, booking.sportId)}</Descriptions.Item>
+              <Descriptions.Item label="Môn thể thao">{pickFirst(sport?.name, booking.sportName)}</Descriptions.Item>
               <Descriptions.Item label="Ngày đặt">{formatDate(booking.bookingDate)}</Descriptions.Item>
               <Descriptions.Item label="Giờ bắt đầu">{booking.startMinutes !== undefined ? minutesToTimeStr(booking.startMinutes) : 'N/A'}</Descriptions.Item>
               <Descriptions.Item label="Giờ kết thúc">{booking.endMinutes !== undefined ? minutesToTimeStr(booking.endMinutes) : 'N/A'}</Descriptions.Item>

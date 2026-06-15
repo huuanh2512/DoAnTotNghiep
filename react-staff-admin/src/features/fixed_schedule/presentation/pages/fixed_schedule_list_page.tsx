@@ -130,7 +130,7 @@ const FixedScheduleListPage: React.FC = () => {
     {
       title: 'Môn',
       key: 'sport',
-      render: (_: any, record: FixedScheduleItem) => <span className="dark:text-white">{valueText(record.sport?.name, record.sportId)}</span>,
+      render: (_: any, record: FixedScheduleItem) => <span className="dark:text-white">{valueText(record.sport?.name)}</span>,
     },
     {
       title: 'Lặp',

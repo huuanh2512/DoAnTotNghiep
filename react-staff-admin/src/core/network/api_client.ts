@@ -2,7 +2,13 @@ import axios from 'axios';
 import { authStorage, UserSession } from '../utils/auth_storage';
 import { mockDB, MockBooking, MockPayment, createDefaultSlots } from './mock_db';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://sport-be.vanhuy2004h.io.vn/api/v1';
+const configuredApiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL =
+  typeof window !== 'undefined' &&
+  ['localhost', '127.0.0.1'].includes(window.location.hostname) &&
+  configuredApiUrl.includes('10.0.2.2')
+    ? configuredApiUrl.replace('10.0.2.2', 'localhost')
+    : configuredApiUrl;
 const USE_MOCK = false; // Set to false to use backend APIs
 
 export const apiClient = axios.create({

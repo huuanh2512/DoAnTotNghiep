@@ -15,7 +15,22 @@ interface CourtItem {
   facilityId: string;
   status: string;
   pricePerHour: number;
+  sportId?: string;
+  sport?: { id?: string; _id?: string; name?: string };
+  sportName?: string;
 }
+
+interface SportItem {
+  _id: string;
+  id?: string;
+  name: string;
+}
+
+const getRefId = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value.id || value._id || '';
+};
 
 const StaffSlotsPage: React.FC = () => {
   const user = useMemo(() => authStorage.getUser(), []);
@@ -35,10 +50,26 @@ const StaffSlotsPage: React.FC = () => {
   const loadCourts = useCallback(async () => {
     if (!user?.facilityId) return;
     try {
-      const resCourts = await apiClient.get('/court', { params: { facilityId: user.facilityId } });
+      const [resCourts, resSports] = await Promise.all([
+        apiClient.get('/court', { params: { facilityId: user.facilityId } }),
+        apiClient.get('/sport'),
+      ]);
+      const sports: SportItem[] = (resSports.data.items || []).map((sport: any) => ({
+        ...sport,
+        _id: sport.id || sport._id || '',
+      }));
       const courtItems: CourtItem[] = (resCourts.data.items || [])
         .filter((c: any) => c.status === 'ACTIVE')
-        .map((c: any) => ({ ...c, _id: c._id || c.id || '' }));
+        .map((c: any) => {
+          const sportId = c.sportId || c.sport_id || getRefId(c.sport);
+          const sport = sports.find(item => item._id === sportId || item.id === sportId);
+          return {
+            ...c,
+            _id: c._id || c.id || '',
+            sportId,
+            sportName: c.sport?.name || sport?.name || 'Chưa gán môn',
+          };
+        });
       setCourts(courtItems);
       if (courtItems.length > 0) {
         setSelectedCourtId(prev => prev || courtItems[0]._id);
@@ -270,9 +301,22 @@ const StaffSlotsPage: React.FC = () => {
                   <Select
                     onChange={setSelectedCourtId}
                     className="rounded-md"
+                    showSearch
+                    optionFilterProp="label"
+                    optionLabelProp="label"
                   >
                     {courts.map(c => (
-                      <Select.Option key={c._id} value={c._id}>{c.name} ({c.code})</Select.Option>
+                      <Select.Option
+                        key={c._id}
+                        value={c._id}
+                        label={`${c.name} - ${c.sportName || 'Chưa gán môn'}`}
+                        title={c.sportName || 'Chưa gán môn'}
+                      >
+                        <div className="flex flex-col leading-tight py-1">
+                          <span className="font-semibold">{c.name}</span>
+                          <span className="text-xs text-ink-muted dark:text-ink-darkMuted">{c.sportName || 'Chưa gán môn'}</span>
+                        </div>
+                      </Select.Option>
                     ))}
                   </Select>
                 </Form.Item>

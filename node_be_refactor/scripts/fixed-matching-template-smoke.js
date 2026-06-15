@@ -55,7 +55,8 @@ const checklist = [
   '37. Occurrence join INDIVIDUAL adds exactly one Team B member to one MatchingSession and never changes FixedSchedule.members.',
   '38. Occurrence join TEAM_REPRESENTATIVE stores Team B team name, representative, member count, and note only on that MatchingSession.',
   '39. Team B safe mode rejects mixing individual members with a team representative and rejects a second representative.',
-  '40. Joining occurrence date A does not change occurrence date B from the same FixedSchedule.'
+  '40. Joining occurrence date A does not change occurrence date B from the same FixedSchedule.',
+  '41. READY template with two future occurrences: Team B representative leave marks member LEFT, readiness becomes RECRUITING, future PENDING Booking/MatchingSession/Payment are CANCELLED, SUCCESS payments are kept with warning, and past/COMPLETED occurrences are unchanged.'
 ];
 
 for (const item of checklist) {

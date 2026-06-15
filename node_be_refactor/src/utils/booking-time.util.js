@@ -132,6 +132,40 @@ const getBookingStartAt = (booking) => {
   return new Date(utcTimestamp);
 };
 
+const getBookingEndAt = (booking) => {
+  const bookingDate = booking.booking_date || booking.bookingDate;
+  const endMinutes = booking.end_minutes ?? booking.endMinutes;
+
+  if (!bookingDate || endMinutes === undefined || endMinutes === null) {
+    return null;
+  }
+
+  const dateParts = getBookingDateParts(bookingDate);
+  const normalizedEndMinutes = Number(endMinutes);
+  if (
+    !dateParts ||
+    !Number.isFinite(normalizedEndMinutes) ||
+    !Number.isInteger(normalizedEndMinutes) ||
+    normalizedEndMinutes <= 0 ||
+    normalizedEndMinutes > 24 * 60
+  ) return null;
+
+  const vietnamMidnightAsUtc = Date.UTC(
+    dateParts.year,
+    dateParts.month - 1,
+    dateParts.day,
+    0,
+    0,
+    0,
+    0
+  );
+  const utcTimestamp = vietnamMidnightAsUtc
+    + normalizedEndMinutes * 60 * 1000
+    - VIETNAM_UTC_OFFSET_MINUTES * 60 * 1000;
+
+  return new Date(utcTimestamp);
+};
+
 const getBookingAutoCancelAt = (booking) => {
   const startAt = getBookingStartAt(booking);
   if (!startAt) return null;
@@ -158,6 +192,7 @@ module.exports = {
   CUSTOMER_RESCHEDULE_BLOCK_MESSAGE,
   CUSTOMER_BOOKING_LEAD_TIME_MESSAGE,
   getBookingAutoCancelAt,
+  getBookingEndAt,
   getBookingStartAt,
   getDayOfWeekFromDateString,
   isWithinHoursBeforeStart,

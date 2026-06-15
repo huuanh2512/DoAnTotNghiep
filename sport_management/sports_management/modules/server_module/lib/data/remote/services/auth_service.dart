@@ -90,13 +90,13 @@ class AuthService {
   }
 
   Future<BaseResponse<dynamic>> changePassword({
-    required String currentPassword,
+    required String otp,
     required String newPassword,
   }) async {
     try {
       final response = await _dioClient.dio.post(
         '/auth/change-password',
-        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+        data: {'otp': otp, 'newPassword': newPassword},
       );
       return BaseResponse.fromJson(response.data, (json) => json);
     } catch (error) {

@@ -18,12 +18,12 @@ const queryCourts = async (req, res) => {
 
 const createCourt = async (req, res) => {
   try {
-    const { name, facilityId, sportId, status, pricePerHour } = req.body;
+    const { name, code, facilityId, sportId, status, pricePerHour } = req.body;
     if (!name || !facilityId || !sportId) {
       return sendError(res, 400, 'Name, facilityId, and sportId are required', 'MISSING_FIELDS');
     }
 
-    const result = await courtService.createCourt({ name, facilityId, sportId, status, pricePerHour });
+    const result = await courtService.createCourt({ name, code, facilityId, sportId, status, pricePerHour });
     return res.status(200).json({
       success: true,
       message: 'Court created successfully',
@@ -37,9 +37,9 @@ const createCourt = async (req, res) => {
 const updateCourt = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, facilityId, sportId, status, pricePerHour } = req.body;
+    const { name, code, facilityId, sportId, status, pricePerHour } = req.body;
     
-    const result = await courtService.updateCourt(id, { name, facilityId, sportId, status, pricePerHour });
+    const result = await courtService.updateCourt(id, { name, code, facilityId, sportId, status, pricePerHour });
     return res.status(200).json({
       success: true,
       message: 'Court updated successfully',

@@ -10,6 +10,7 @@ const notificationHelper = require('./notification.helper');
 const paymentService = require('./payment.service');
 const courtAvailabilityService = require('./court-availability.service');
 const bookingPriceService = require('./booking-price.service');
+const userScheduleConflictService = require('./user-schedule-conflict.service');
 const {
   BOOKING_STATUSES,
   CANCEL_REASONS,
@@ -71,6 +72,46 @@ class FixedScheduleService {
 
   _objectIdValue(value) {
     return value?._id || value;
+  }
+
+  _fixedScheduleRecurrencePayload(schedule) {
+    return {
+      startDate: schedule.start_date,
+      endDate: schedule.end_date || null,
+      startMinutes: schedule.start_minutes,
+      endMinutes: schedule.end_minutes,
+      frequency: schedule.frequency,
+      daysOfWeek: schedule.days_of_week || []
+    };
+  }
+
+  _fixedScheduleParticipantIds(schedule) {
+    const ids = new Set();
+    const hostId = schedule.user_id?._id?.toString() || schedule.user_id?.toString();
+    if (hostId) ids.add(hostId);
+
+    for (const member of schedule.matching_config?.members || []) {
+      const memberStatus = member.status || 'APPROVED';
+      const memberId = member.user_id?._id?.toString() || member.user_id?.toString();
+      if (memberId && ['INVITED', 'APPROVED'].includes(memberStatus)) {
+        ids.add(memberId);
+      }
+    }
+    return [...ids];
+  }
+
+  async _assertFixedScheduleParticipantsAvailable(schedule, options = {}) {
+    const recurrence = this._fixedScheduleRecurrencePayload(schedule);
+    for (const userId of this._fixedScheduleParticipantIds(schedule)) {
+      await userScheduleConflictService.assertNoUserFixedScheduleConflict(
+        userId,
+        recurrence,
+        {
+          ...options,
+          excludeFixedScheduleId: options.excludeFixedScheduleId || schedule._id
+        }
+      );
+    }
   }
 
   _dateStringAddDays(dateStr, days) {
@@ -181,14 +222,10 @@ class FixedScheduleService {
       }
     }
 
-    const hostTeamCode = TEAM_CODES.includes(matchingConfig?.host_team_code)
-      ? matchingConfig.host_team_code
-      : 'A';
     const isReady = ['TEAM_FILL', 'TEAM_VS_TEAM'].includes(matchingConfig?.team_mode)
       && teamSize > 0
-      && occupancy[hostTeamCode] > 0
-      && occupancy.A <= teamSize
-      && occupancy.B <= teamSize;
+      && occupancy.A === teamSize
+      && occupancy.B === teamSize;
 
     return {
       teamAOccupancy: occupancy.A,
@@ -208,15 +245,27 @@ class FixedScheduleService {
   _formatMatchingConfigResponse(config) {
     if (!config) return null;
     const occupancy = this.calculateFixedMatchingOccupancy(config);
+    const teamSize = Number(config.team_size || 0);
+    const readiness = occupancy.isReady
+      ? MATCHING_READINESS.READY
+      : MATCHING_READINESS.RECRUITING;
+    const teamAFull = teamSize > 0 && occupancy.teamAOccupancy >= teamSize;
+    const teamBFull = teamSize > 0 && occupancy.teamBOccupancy >= teamSize;
+    const isFull = teamAFull && teamBFull;
+    const canJoin = !isFull && (!teamAFull || !teamBFull);
     return {
       teamMode: config.team_mode,
       teamSize: config.team_size,
       paymentPolicy: config.payment_policy,
       hostTeamCode: config.host_team_code,
       hostRepresentedCount: config.host_represented_count,
-      readiness: config.readiness || MATCHING_READINESS.RECRUITING,
+      readiness,
       teamAOccupancy: occupancy.teamAOccupancy,
       teamBOccupancy: occupancy.teamBOccupancy,
+      teamAFull,
+      teamBFull,
+      canJoin,
+      isJoinable: canJoin,
       teams: (config.teams || []).map(team => ({
         teamCode: team.team_code,
         maxPlayers: team.max_players,
@@ -240,6 +289,10 @@ class FixedScheduleService {
   }
 
   _formatScheduleResponse(schedule) {
+    const matchingConfig = this._formatMatchingConfigResponse(schedule.matching_config);
+    const isMatchingJoinable = schedule.type === 'MATCHING'
+      && schedule.status === 'ACTIVE'
+      && Boolean(matchingConfig?.canJoin);
     return {
       id: schedule._id.toString(),
       user: schedule.user_id ? {
@@ -275,8 +328,10 @@ class FixedScheduleService {
         reason: exception.reason || ''
       })),
       pausedAt: schedule.paused_at ? new Date(schedule.paused_at).toISOString() : null,
-      matchingConfig: this._formatMatchingConfigResponse(schedule.matching_config),
+      matchingConfig,
       readiness: schedule.matching_config?.readiness || null,
+      canJoin: isMatchingJoinable,
+      isJoinable: isMatchingJoinable,
       approvedBy: schedule.approved_by ? schedule.approved_by._id?.toString() || schedule.approved_by.toString() : null,
       approvedAt: schedule.approved_at ? new Date(schedule.approved_at).toISOString() : null,
       rejectedBy: schedule.rejected_by ? schedule.rejected_by._id?.toString() || schedule.rejected_by.toString() : null,
@@ -551,6 +606,17 @@ class FixedScheduleService {
       ? this._normalizeMatchingConfigInput(matchingConfig, userId)
       : null;
 
+    await this._assertFixedScheduleParticipantsAvailable({
+      user_id: userId,
+      start_minutes: startMinutes,
+      end_minutes: endMinutes,
+      frequency,
+      days_of_week: daysOfWeek,
+      start_date: startDate,
+      end_date: normalizedEndDate,
+      matching_config: normalizedMatchingConfig
+    });
+
     // 4. Tạo bản ghi
     const scheduleData = {
       user_id: userId,
@@ -657,9 +723,9 @@ class FixedScheduleService {
 
     if (current[teamCode] + memberCount > teamSize) {
       throw this._businessError(
-        `Team ${teamCode} không còn đủ chỗ trống`,
+        `Team ${teamCode} đã đủ chỗ.`,
         409,
-        'TEAM_CAPACITY_EXCEEDED'
+        'TEAM_CAPACITY_FULL'
       );
     }
 
@@ -693,6 +759,24 @@ class FixedScheduleService {
     if (activeMember) {
       throw this._businessError('Bạn đã tham gia lịch ghép cố định này', 409, 'FIXED_MATCHING_MEMBER_EXISTS');
     }
+
+    const occupancy = this.calculateFixedMatchingOccupancy(matchingConfig);
+    const teamSize = Number(matchingConfig.team_size || 0);
+    const isFull = teamSize > 0
+      && occupancy.teamAOccupancy >= teamSize
+      && occupancy.teamBOccupancy >= teamSize;
+    if (isFull) {
+      throw this._businessError(
+        'Lịch ghép này đã đủ đội, không thể đăng ký thêm.',
+        409,
+        'FIXED_MATCHING_FULL'
+      );
+    }
+
+    await userScheduleConflictService.assertNoUserFixedScheduleConflict(
+      actorId,
+      this._fixedScheduleRecurrencePayload(schedule)
+    );
 
     const teamCode = this._resolveFixedMatchingTeam(matchingConfig, body.preferredTeam || body.preferred_team, memberCount);
     matchingConfig.members = matchingConfig.members || [];
@@ -740,11 +824,35 @@ class FixedScheduleService {
       throw this._businessError('Bạn chưa tham gia lịch ghép cố định này', 404, 'FIXED_MATCHING_MEMBER_NOT_FOUND');
     }
 
+    const previousReadiness = matchingConfig.readiness || MATCHING_READINESS.RECRUITING;
     member.status = 'LEFT';
+    const team = (matchingConfig.teams || []).find(item =>
+      item.team_code === member.team_code
+      && this._sameObjectId(item.representative_user_id, actorId)
+    );
+    if (team) {
+      team.representative_user_id = null;
+    }
     this._syncMatchingReadiness(matchingConfig);
 
     const updated = await fixedScheduleRepository.updateById(id, { matching_config: matchingConfig });
-    return { schedule: this._formatScheduleResponse(updated) };
+    let cancellationSummary = this._emptyCancellationSummary();
+    if (
+      previousReadiness === MATCHING_READINESS.READY
+      && matchingConfig.readiness === MATCHING_READINESS.RECRUITING
+    ) {
+      cancellationSummary = await this._cancelPendingFutureMatchingOccurrencesForReadinessRollback(
+        updated,
+        actor?.role || CANCELLED_BY.SYSTEM
+      );
+    }
+
+    return {
+      schedule: this._formatScheduleResponse(updated),
+      cancellationSummary: this._formatCancellationSummary(cancellationSummary),
+      readinessChanged:
+        previousReadiness !== (matchingConfig.readiness || MATCHING_READINESS.RECRUITING)
+    };
   }
 
   async pauseFixedSchedule(id, actor) {
@@ -820,6 +928,10 @@ class FixedScheduleService {
         'FIXED_SCHEDULE_RESUME_CONFLICT'
       );
     }
+
+    await this._assertFixedScheduleParticipantsAvailable(schedule, {
+      excludeFixedScheduleId: schedule._id
+    });
 
     const updated = await fixedScheduleRepository.updateById(id, {
       status: 'ACTIVE',
@@ -1192,6 +1304,75 @@ class FixedScheduleService {
     return summary;
   }
 
+  async _cancelPendingFutureMatchingOccurrencesForReadinessRollback(schedule, userRole, now = new Date()) {
+    const scheduleId = this._scheduleId(schedule);
+    const summary = this._emptyCancellationSummary();
+    const cancelledBy = this._cancelledByForRole(userRole);
+    const todayStr = toLocalDateString(now);
+
+    const pendingBookings = await Booking.find({
+      fixed_schedule_id: scheduleId,
+      booking_date: { $gte: todayStr },
+      status: BOOKING_STATUSES.PENDING
+    });
+
+    const cancellableBookingIds = pendingBookings
+      .filter(booking => {
+        const startAt = getBookingStartAt(booking);
+        if (!startAt || now >= startAt) {
+          summary.skippedPastBookings += 1;
+          summary.skippedBookings += 1;
+          return false;
+        }
+        return true;
+      })
+      .map(booking => booking._id);
+
+    if (cancellableBookingIds.length === 0) {
+      return summary;
+    }
+
+    const payments = await paymentRepository.findManyRaw({
+      booking_id: { $in: cancellableBookingIds }
+    });
+    const successPayments = payments.filter(payment => payment.status === 'SUCCESS');
+    summary.successPayments = successPayments.length;
+    if (successPayments.length > 0) {
+      console.warn(
+        `[Fixed Matching Readiness Rollback] Schedule ${scheduleId} has ${successPayments.length} SUCCESS payment(s); refund is not automated.`
+      );
+    }
+
+    const pendingPaymentResult = await paymentRepository.updateMany(
+      { booking_id: { $in: cancellableBookingIds }, status: 'PENDING' },
+      { status: 'CANCELLED' }
+    );
+    summary.cancelledPendingPayments = pendingPaymentResult.modifiedCount || pendingPaymentResult.nModified || 0;
+
+    const bookingResult = await Booking.updateMany(
+      { _id: { $in: cancellableBookingIds }, status: BOOKING_STATUSES.PENDING },
+      {
+        status: BOOKING_STATUSES.CANCELLED,
+        cancel_reason: CANCEL_REASONS.FIXED_SCHEDULE_CANCELLED,
+        cancelled_by: cancelledBy,
+        cancelled_at: now
+      }
+    );
+    summary.cancelledBookings = bookingResult.modifiedCount || bookingResult.nModified || cancellableBookingIds.length;
+
+    const sessionResult = await MatchingSession.updateMany(
+      {
+        fixed_schedule_id: scheduleId,
+        booking_id: { $in: cancellableBookingIds },
+        status: { $in: ['OPEN', 'FULL'] }
+      },
+      { status: 'CANCELLED' }
+    );
+    summary.cancelledMatchingSessions = sessionResult.modifiedCount || sessionResult.nModified || 0;
+
+    return summary;
+  }
+
   async cancelFutureBookingsForSchedule(scheduleOrId, userRole, now = new Date()) {
     const schedule = typeof scheduleOrId === 'object' && scheduleOrId?._id
       ? scheduleOrId
@@ -1324,6 +1505,10 @@ class FixedScheduleService {
       );
     }
 
+    await this._assertFixedScheduleParticipantsAvailable(schedule, {
+      excludeFixedScheduleId: schedule._id
+    });
+
     const session = await mongoose.startSession();
     let updated;
     let generatedBookings = [];
@@ -1376,6 +1561,11 @@ class FixedScheduleService {
             'FIXED_SCHEDULE_APPROVAL_CONFLICT'
           );
         }
+
+        await this._assertFixedScheduleParticipantsAvailable(scheduleInTx, {
+          excludeFixedScheduleId: scheduleInTx._id,
+          session
+        });
 
         updated = await fixedScheduleRepository.updatePendingApprovalById(id, {
           status: 'ACTIVE',

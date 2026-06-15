@@ -10,6 +10,7 @@ const courtAvailabilityService = require('./court-availability.service');
 const bookingPriceService = require('./booking-price.service');
 const paymentService = require('./payment.service');
 const notificationHelper = require('./notification.helper');
+const userScheduleConflictService = require('./user-schedule-conflict.service');
 const {
   BOOKING_STATUSES,
   CANCEL_REASONS,
@@ -20,6 +21,7 @@ const {
   CUSTOMER_RESCHEDULE_BLOCK_MESSAGE,
   CUSTOMER_BOOKING_LEAD_TIME_MESSAGE,
   getBookingAutoCancelAt,
+  getBookingEndAt,
   getBookingStartAt,
   isWithinHoursBeforeStart,
   toLocalDateString
@@ -57,10 +59,10 @@ class BookingService {
       booking.cancel_reason === CANCEL_REASONS.AUTO_CANCEL_STAFF_NOT_APPROVED
         ? (booking.cancelled_at || getBookingAutoCancelAt(booking))
         : booking.cancelled_at;
-    const isStaffResponse = privacyMode === 'STAFF';
     const isReportResponse = privacyMode === 'STAFF_REPORT';
     const userPhone = booking.user_id?.profile?.phone || '';
     const userEmail = booking.user_id?.email || '';
+    const courtSport = booking.court_id?.sport_id;
 
     return {
       id: booking._id.toString(),
@@ -71,28 +73,32 @@ class BookingService {
           : booking.user_id.profile?.name || '',
         phone: isReportResponse
           ? ''
-          : isStaffResponse
-            ? this._maskPhone(userPhone)
-            : userPhone,
+          : userPhone,
         email: isReportResponse
           ? ''
-          : isStaffResponse
-            ? this._maskEmail(userEmail)
-            : userEmail
+          : userEmail
       } : null,
       guestName: isReportResponse
         ? this._maskName(booking.guest_name)
         : booking.guest_name || null,
       guestPhone: isReportResponse
         ? null
-        : isStaffResponse
-          ? this._maskPhone(booking.guest_phone)
-          : booking.guest_phone || null,
+        : booking.guest_phone || null,
       court: booking.court_id ? {
         id: booking.court_id._id?.toString() || booking.court_id.toString(),
         name: booking.court_id.name || '',
-        facilityName: booking.court_id.facility_id?.name || ''
+        facilityName: booking.court_id.facility_id?.name || '',
+        sport: courtSport ? {
+          id: courtSport._id?.toString() || courtSport.toString(),
+          name: courtSport.name || ''
+        } : null
       } : null,
+      sport: courtSport ? {
+        id: courtSport._id?.toString() || courtSport.toString(),
+        name: courtSport.name || ''
+      } : null,
+      sportName: courtSport?.name || '',
+      sportId: courtSport?._id?.toString() || courtSport?.toString() || null,
       bookingDate: booking.booking_date,
       startMinutes: booking.start_minutes,
       endMinutes: booking.end_minutes,
@@ -512,11 +518,30 @@ class BookingService {
       bookingRepository.count(query)
     ]);
     const privacyMode = this._privacyMode(actor, safeFilters);
+    const bookingIds = bookings.map(booking => booking._id).filter(Boolean);
+    const matchingSessions = bookingIds.length > 0
+      ? await MatchingSession.find({ booking_id: { $in: bookingIds } })
+        .select('_id booking_id host_id payment_policy fixed_schedule_id members')
+      : [];
+    const sessionByBookingId = new Map();
+    for (const session of matchingSessions) {
+      const bookingId = session.booking_id?._id?.toString()
+        || session.booking_id?.toString();
+      if (!bookingId) continue;
+      sessionByBookingId.set(bookingId, session);
+    }
 
     return {
-      items: bookings.map(b =>
-        this._formatBookingResponse(b, null, null, privacyMode)
-      ),
+      items: bookings.map(b => {
+        const matchingSession = sessionByBookingId.get(b._id.toString());
+        const matchingContext = matchingSession ? {
+          sessionId: matchingSession._id.toString(),
+          isHost: false,
+          paymentPolicy: matchingSession.payment_policy || 'HOST_PAY_ALL',
+          membersCount: matchingSession.members.filter(member => member.status === 'APPROVED').length
+        } : null;
+        return this._formatBookingResponse(b, null, matchingContext, privacyMode);
+      }),
       total: total
     };
   }
@@ -628,6 +653,14 @@ class BookingService {
     const court = await courtAvailabilityService.loadCourt(data.courtId);
     await this._assertCreateBookingScope(court, userId, actor);
 
+    if (userId) {
+      await userScheduleConflictService.assertNoUserScheduleConflict(userId, {
+        bookingDate: data.bookingDate,
+        startMinutes: data.startMinutes,
+        endMinutes: data.endMinutes
+      });
+    }
+
     await courtAvailabilityService.assertAvailable({
       courtId: data.courtId,
       bookingDate: data.bookingDate,
@@ -709,11 +742,22 @@ class BookingService {
     }
     await this._assertCanReadBooking(booking, actor);
     const payment = await paymentService.queryPaymentByBookingId(booking._id);
+    const matchingSession = await MatchingSession.findOne({ booking_id: booking._id })
+      .select('_id host_id payment_policy fixed_schedule_id members');
+    const actorId = actor?.id?.toString();
+    const hostId = matchingSession?.host_id?._id?.toString()
+      || matchingSession?.host_id?.toString();
+    const matchingContext = matchingSession ? {
+      sessionId: matchingSession._id.toString(),
+      isHost: actorId ? hostId === actorId : false,
+      paymentPolicy: matchingSession.payment_policy || 'HOST_PAY_ALL',
+      membersCount: matchingSession.members.filter(member => member.status === 'APPROVED').length
+    } : null;
     return {
       booking: this._formatBookingResponse(
         booking,
         payment,
-        null,
+        matchingContext,
         this._privacyMode(actor)
       )
     };
@@ -728,6 +772,23 @@ class BookingService {
     const existingBooking = await bookingRepository.findById(id);
     if (!existingBooking) throw new Error('Booking not found');
     await this._assertStaffFacilityScope(existingBooking, actor);
+    const linkedMatchingSession = await MatchingSession.findOne({ booking_id: existingBooking._id })
+      .select('_id');
+
+    if (status === BOOKING_STATUSES.CONFIRMED && existingBooking.user_id) {
+      await userScheduleConflictService.assertNoUserScheduleConflict(
+        existingBooking.user_id._id || existingBooking.user_id,
+        {
+          bookingDate: existingBooking.booking_date,
+          startMinutes: existingBooking.start_minutes,
+          endMinutes: existingBooking.end_minutes
+        },
+        {
+          excludeBookingId: existingBooking._id,
+          excludeMatchingSessionId: linkedMatchingSession?._id
+        }
+      );
+    }
 
     const updates = { status };
     if (status === BOOKING_STATUSES.CANCELLED) {
@@ -924,6 +985,47 @@ class BookingService {
     }
 
     return { scannedCount: pendingBookings.length, cancelledCount };
+  }
+
+  async autoCompleteFinishedBookings(now = new Date()) {
+    const todayStr = toLocalDateString(now);
+    const confirmedBookings = await Booking.find({
+      status: BOOKING_STATUSES.CONFIRMED,
+      booking_date: { $lte: todayStr }
+    }).select('_id booking_date end_minutes');
+
+    let completedBookingCount = 0;
+    let completedMatchingSessionCount = 0;
+
+    for (const booking of confirmedBookings) {
+      const endAt = getBookingEndAt(booking);
+      if (!endAt || now < endAt) continue;
+
+      const updatedBooking = await Booking.findOneAndUpdate(
+        { _id: booking._id, status: BOOKING_STATUSES.CONFIRMED },
+        { status: BOOKING_STATUSES.COMPLETED },
+        { new: true }
+      ).select('_id');
+
+      if (!updatedBooking) continue;
+      completedBookingCount += 1;
+
+      const matchingResult = await MatchingSession.updateMany(
+        {
+          booking_id: updatedBooking._id,
+          status: { $in: ['OPEN', 'FULL'] }
+        },
+        { status: 'COMPLETED' }
+      );
+
+      completedMatchingSessionCount += matchingResult.modifiedCount || 0;
+    }
+
+    return {
+      scannedCount: confirmedBookings.length,
+      completedBookingCount,
+      completedMatchingSessionCount
+    };
   }
 }
 

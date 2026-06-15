@@ -17,6 +17,7 @@ import '../cubit/staff_payment/staff_payment_state.dart';
 import '../cubit/theme_cubit.dart';
 import 'package:notification_module/notification_module.dart';
 import 'dart:async';
+import 'account/widgets/change_password_sheet.dart';
 import 'account/widgets/customer_support_sheet.dart';
 
 class StaffDashboardSection extends StatefulWidget {
@@ -973,6 +974,9 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
     final theme = Theme.of(context);
     final isPending = booking.status == 'PENDING';
     final isConfirmed = booking.status == 'CONFIRMED';
+    final isFixed = booking.isFixedSchedule == true || booking.fixedScheduleId != null;
+    final isMatching = booking.matchingSessionId != null;
+    final isFixedMatching = isFixed && isMatching;
     final code = booking.id.length > 4
         ? booking.id.substring(booking.id.length - 4).toUpperCase()
         : booking.id.toUpperCase();
@@ -1023,11 +1027,78 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${context.tr(vi: 'Mã Booking', en: 'Booking ID')} #$code',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Text(
+                        '${context.tr(vi: 'Mã Booking', en: 'Booking ID')} #$code',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (isFixedMatching) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.groups, size: 11, color: Colors.purple.shade700),
+                              const SizedBox(width: 3),
+                              Text(
+                                context.tr(vi: 'Ghép CĐ', en: 'Fixed Match'),
+                                style: TextStyle(color: Colors.purple.shade700, fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (isFixed) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.event_repeat, size: 11, color: Colors.blue.shade700),
+                              const SizedBox(width: 3),
+                              Text(
+                                context.tr(vi: 'Lịch CĐ', en: 'Fixed'),
+                                style: TextStyle(color: Colors.blue.shade700, fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (isMatching) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF5600).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.groups, size: 11, color: const Color(0xFFFF5600)),
+                              const SizedBox(width: 3),
+                              Text(
+                                context.tr(vi: 'Ghép trận', en: 'Match'),
+                                style: const TextStyle(color: Color(0xFFFF5600), fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 Container(
@@ -1120,7 +1191,27 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
                 ),
               ],
             ),
-            if (isPending || isConfirmed) ...[
+            if (isPending && isFixed) ...[
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(Icons.event_repeat, size: 14, color: Colors.blue.shade600),
+                  const SizedBox(width: 6),
+                  Text(
+                    context.tr(
+                      vi: 'Lịch cố định — hệ thống tự quản lý',
+                      en: 'Fixed schedule — auto-managed',
+                    ),
+                    style: TextStyle(
+                      color: Colors.blue.shade600,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (isPending || isConfirmed) ...[
               const Divider(height: 24),
               Wrap(
                 spacing: 8,
@@ -1625,6 +1716,13 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
             context.tr(vi: 'Cài đặt hệ thống', en: 'System Settings'),
             onTap: () {
               context.push('/settings');
+            },
+          ),
+          _buildMenuItem(
+            Icons.lock_outline_rounded,
+            context.tr(vi: 'Đổi mật khẩu', en: 'Change password'),
+            onTap: () {
+              ChangePasswordSheet.show(context);
             },
           ),
           _buildMenuItem(

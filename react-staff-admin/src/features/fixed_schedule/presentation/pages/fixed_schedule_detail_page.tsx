@@ -357,7 +357,7 @@ const FixedScheduleDetailPage: React.FC = () => {
           <Descriptions.Item label="Điện thoại / Email">{customer.phone} / {customer.email}</Descriptions.Item>
           <Descriptions.Item label="Cơ sở">{valueText(schedule.facility?.name, schedule.facilityId)}</Descriptions.Item>
           <Descriptions.Item label="Sân">{valueText(schedule.court?.name, schedule.courtId)}</Descriptions.Item>
-          <Descriptions.Item label="Môn thể thao">{valueText(schedule.sport?.name, schedule.sportId)}</Descriptions.Item>
+          <Descriptions.Item label="Môn thể thao">{valueText(schedule.sport?.name)}</Descriptions.Item>
           <Descriptions.Item label="Loại lịch">{schedule.type === 'MATCHING' || schedule.isMatching ? 'Lịch cố định matching' : 'Lịch cố định thường'}</Descriptions.Item>
           <Descriptions.Item label="Ngày bắt đầu">{formatDate(schedule.startDate)}</Descriptions.Item>
           <Descriptions.Item label="Ngày kết thúc">{schedule.endDate ? formatDate(schedule.endDate) : 'Không giới hạn'}</Descriptions.Item>

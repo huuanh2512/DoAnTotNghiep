@@ -96,6 +96,20 @@ const updateSessionStatus = async (req, res) => {
     }
 
     const result = await matchingService.updateSessionStatus(id, status, req.user.id);
+    if (status === 'CANCELLED') {
+      const hasSuccessPayment = result.cancellationSummary?.successPayments > 0;
+      return res.status(200).json({
+        success: true,
+        message: hasSuccessPayment
+          ? 'Hủy phòng ghép thành công. Có giao dịch đã thanh toán, cần xử lý hoàn tiền thủ công.'
+          : 'Hủy phòng ghép thành công',
+        code: 'UPDATE_SUCCESS',
+        data: result.session,
+        cancellationSummary: result.cancellationSummary,
+        warning: result.warning
+      });
+    }
+
     return sendSuccess(res, result.session, 'Cập nhật trạng thái phòng thành công');
   } catch (error) {
     return sendError(res, error.statusCode || 400, error.message, error.code || 'UPDATE_ERROR');

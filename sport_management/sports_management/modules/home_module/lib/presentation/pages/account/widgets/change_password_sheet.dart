@@ -1,4 +1,6 @@
+import 'package:authentication_module/data/datasources/local/authentication_local_data_source.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:notification_module/notification_module.dart';
 import 'package:server_module/server_module.dart';
@@ -24,21 +26,71 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
   static const _primaryColor = Color(0xFFFF5600);
 
   final _formKey = GlobalKey<FormState>();
-  final _currentPasswordController = TextEditingController();
+  final _otpController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _hideCurrentPassword = true;
   bool _hideNewPassword = true;
   bool _hideConfirmPassword = true;
+  bool _isSendingOtp = false;
   bool _isSubmitting = false;
+  bool _otpSent = false;
+  String? _email;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmail();
+  }
 
   @override
   void dispose() {
-    _currentPasswordController.dispose();
+    _otpController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadEmail() async {
+    final user = await GetIt.I<AuthenticationLocalDataSource>().getUser();
+    if (!mounted) return;
+    setState(() => _email = user?.email?.trim());
+  }
+
+  Future<void> _sendOtp() async {
+    if (_isSendingOtp) return;
+
+    final email = _email;
+    if (email == null || email.isEmpty) {
+      _showSnackBar(
+        context.tr(
+          vi: 'Không tìm thấy email tài khoản để gửi OTP',
+          en: 'Could not find your account email to send OTP',
+        ),
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isSendingOtp = true);
+    final response = await GetIt.I<AuthService>().forgotPassword(email: email);
+
+    if (!mounted) return;
+    setState(() {
+      _isSendingOtp = false;
+      _otpSent = response.success;
+    });
+
+    _showSnackBar(
+      response.success
+          ? context.tr(
+              vi: 'Mã OTP đã được gửi đến email của bạn',
+              en: 'OTP has been sent to your email',
+            )
+          : response.message ??
+                context.tr(vi: 'Không thể gửi OTP', en: 'Unable to send OTP'),
+      isError: !response.success,
+    );
   }
 
   Future<void> _submit() async {
@@ -46,7 +98,7 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
 
     setState(() => _isSubmitting = true);
     final response = await GetIt.I<AuthService>().changePassword(
-      currentPassword: _currentPasswordController.text,
+      otp: _otpController.text.trim(),
       newPassword: _newPasswordController.text,
     );
 
@@ -54,33 +106,33 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
     setState(() => _isSubmitting = false);
 
     if (!response.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            response.message ??
-                context.tr(
-                  vi: 'Không thể đổi mật khẩu',
-                  en: 'Unable to change password',
-                ),
-          ),
-          backgroundColor: Colors.red,
-        ),
+      _showSnackBar(
+        response.message ??
+            context.tr(
+              vi: 'Không thể đổi mật khẩu',
+              en: 'Unable to change password',
+            ),
+        isError: true,
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.tr(
-            vi: 'Đổi mật khẩu thành công',
-            en: 'Password changed successfully',
-          ),
-        ),
-        backgroundColor: Colors.green,
+    _showSnackBar(
+      context.tr(
+        vi: 'Đổi mật khẩu thành công',
+        en: 'Password changed successfully',
       ),
     );
     Navigator.of(context).pop();
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 
   @override
@@ -118,25 +170,30 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
                       ),
                     ),
                     IconButton(
-                      onPressed: _isSubmitting
+                      onPressed: _isSubmitting || _isSendingOtp
                           ? null
                           : () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                _passwordField(
-                  controller: _currentPasswordController,
-                  label: context.tr(
-                    vi: 'Mật khẩu hiện tại',
-                    en: 'Current password',
-                  ),
-                  obscureText: _hideCurrentPassword,
-                  onToggleVisibility: () => setState(
-                    () => _hideCurrentPassword = !_hideCurrentPassword,
+                const SizedBox(height: 12),
+                Text(
+                  _email == null || _email!.isEmpty
+                      ? context.tr(
+                          vi: 'OTP sẽ được gửi đến email tài khoản của bạn.',
+                          en: 'OTP will be sent to your account email.',
+                        )
+                      : context.tr(
+                          vi: 'OTP sẽ được gửi đến $_email',
+                          en: 'OTP will be sent to $_email',
+                        ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                const SizedBox(height: 20),
+                _otpField(),
                 const SizedBox(height: 14),
                 _passwordField(
                   controller: _newPasswordController,
@@ -149,12 +206,6 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
                       return context.tr(
                         vi: 'Mật khẩu mới phải có ít nhất 8 ký tự',
                         en: 'New password must contain at least 8 characters',
-                      );
-                    }
-                    if (value == _currentPasswordController.text) {
-                      return context.tr(
-                        vi: 'Mật khẩu mới phải khác mật khẩu hiện tại',
-                        en: 'New password must differ from current password',
                       );
                     }
                     return null;
@@ -182,35 +233,86 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
                   },
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSubmitting || _isSendingOtp
+                            ? null
+                            : _sendOtp,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _primaryColor,
+                          side: const BorderSide(color: _primaryColor),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                        child: _isSendingOtp
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                context.tr(
+                                  vi: _otpSent ? 'Gửi lại OTP' : 'Gửi OTP',
+                                  en: _otpSent ? 'Resend OTP' : 'Send OTP',
+                                ),
+                              ),
+                      ),
                     ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            context.tr(
-                              vi: 'Xác nhận đổi mật khẩu',
-                              en: 'Change password',
-                            ),
-                          ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _isSubmitting || !_otpSent ? null : _submit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(context.tr(vi: 'Xác nhận', en: 'Confirm')),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _otpField() {
+    return TextFormField(
+      controller: _otpController,
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.next,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      validator: (value) {
+        if (value == null || value.trim().length != 6) {
+          return context.tr(
+            vi: 'Vui lòng nhập OTP gồm 6 chữ số',
+            en: 'Please enter the 6-digit OTP',
+          );
+        }
+        return null;
+      },
+      decoration: InputDecoration(
+        labelText: context.tr(vi: 'Mã OTP', en: 'OTP code'),
+        prefixIcon: const Icon(Icons.password_rounded),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

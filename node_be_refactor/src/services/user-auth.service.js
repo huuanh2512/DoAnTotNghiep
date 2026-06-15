@@ -192,7 +192,7 @@ class UserAuthService {
     return true;
   }
 
-  async changePassword(userId, currentPassword, newPassword) {
+  async changePassword(userId, otp, newPassword) {
     const user = await userRepository.findById(userId);
     if (!user) {
       const error = new Error('User not found');
@@ -200,13 +200,18 @@ class UserAuthService {
       throw error;
     }
 
-    const isCurrentPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password
-    );
-    if (!isCurrentPasswordValid) {
-      const error = new Error('Current password is incorrect');
-      error.code = 'INVALID_CURRENT_PASSWORD';
+    if (!user.resetPasswordOtp || user.resetPasswordOtp !== otp) {
+      const error = new Error('Invalid verification code');
+      error.code = 'INVALID_OTP';
+      throw error;
+    }
+
+    if (
+      user.resetPasswordOtpExpires &&
+      new Date() > user.resetPasswordOtpExpires
+    ) {
+      const error = new Error('Verification code has expired');
+      error.code = 'EXPIRED_OTP';
       throw error;
     }
 
@@ -221,7 +226,18 @@ class UserAuthService {
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
-    await userRepository.updateById(userId, { password: hashedPassword });
+    await userRepository.updateById(userId, {
+      password: hashedPassword,
+      resetPasswordOtp: null,
+      resetPasswordOtpExpires: null
+    });
+
+    try {
+      await mailService.sendPasswordChangedEmail(user.email);
+    } catch (error) {
+      console.error('Failed to send password changed email:', error);
+    }
+
     return true;
   }
 }
