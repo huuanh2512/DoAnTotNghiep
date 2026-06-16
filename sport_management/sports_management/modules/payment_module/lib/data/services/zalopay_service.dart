@@ -36,9 +36,11 @@ class ZaloPayService {
 
       if (data['success'] == true) {
         return {
-          'order_url':    data['order_url'],
-          'app_trans_id': data['app_trans_id'],
-          'qr_code':      data['qr_code'],
+          'order_url':      data['order_url'],
+          'deeplink_url':   data['deeplink_url'],     // deeplink zalopay:// cho app
+          'zp_trans_token': data['zp_trans_token'],   // token mở ZaloPay app
+          'app_trans_id':   data['app_trans_id'],
+          'qr_code':        data['qr_code'],
         };
       }
 

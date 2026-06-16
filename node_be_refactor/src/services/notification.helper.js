@@ -425,14 +425,13 @@ class NotificationHelper {
       const customerId = payment.customerId
         || (payment.booking_id ? bookingCustomerId : paymentUserId);
       if (!customerId) return { success: true };
-      if (!customerId) return { success: true };
+
       const bookingId = payment.bookingId || payment.booking_id?._id?.toString() || payment.booking_id?.toString() || payment.booking_id;
-      const bookingDate = payment.bookingDate || payment.booking_id?.booking_date || 'ngày được xác định';
       const paymentId = payment._id?.toString() || payment.id;
       const amount = payment.amount;
 
-      const title = 'Thanh toán thành công';
-      const content = `Thanh toán ${amount || '...'} VNĐ cho lịch đặt sân đã được xác nhận. Lịch đặt sân của bạn sẽ bắt đầu vào ${bookingDate}.`;
+      const title = 'Thanh toán thành công 🎉';
+      const content = `Thanh toán ${amount ? Number(amount).toLocaleString('vi-VN') : '...'} VNĐ cho lịch đặt sân đã được xác nhận thành công. Cảm ơn bạn đã sử dụng dịch vụ!`;
 
       await this.notifyUser({
         userId: customerId,
@@ -471,7 +470,7 @@ class NotificationHelper {
       const amount = payment.amount;
 
       const title = 'Thanh toán thất bại';
-      const content = `Thanh toán ${amount || '...'} VNĐ cho lịch đặt sân không thành công. Lý do: ${reason}. Vui lòng thử lại.`;
+      const content = `Thanh toán ${amount ? Number(amount).toLocaleString('vi-VN') : '...'} VNĐ cho lịch đặt sân không thành công. Lý do: ${reason}. Vui lòng thử lại.`;
 
       await this.notifyUser({
         userId: customerId,

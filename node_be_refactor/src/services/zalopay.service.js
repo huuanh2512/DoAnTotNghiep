@@ -127,10 +127,19 @@ class ZaloPayService {
       console.log(`[ZaloPay] Create order response: return_code=${res.return_code}, msg=${res.return_message}`);
 
       if (res.return_code === 1) {
+        // Tạo deeplink để mở thẳng ZaloPay sandbox app (scheme: zalopay://)
+        const zpTransToken = res.zp_trans_token || null;
+        // deeplink format: zalopay://zalopay.vn/v2/order?zptoken=<token>
+        const deeplinkUrl = zpTransToken
+          ? `zalopay://zalopay.vn/v2/order?zptoken=${zpTransToken}`
+          : res.order_url; // fallback về web nếu không có token
+
         return {
-          order_url:    res.order_url,
-          app_trans_id: appTransId,
-          qr_code:      res.qr_code || null,
+          order_url:      res.order_url,
+          deeplink_url:   deeplinkUrl,
+          zp_trans_token: zpTransToken,
+          app_trans_id:   appTransId,
+          qr_code:        res.qr_code || null,
         };
       }
 

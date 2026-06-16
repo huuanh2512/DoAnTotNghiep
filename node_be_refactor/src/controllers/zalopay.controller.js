@@ -57,11 +57,13 @@ const createOrder = async (req, res) => {
     });
 
     return res.status(200).json({
-      success:      true,
-      message:      'ZaloPay order created successfully',
-      order_url:    result.order_url,
-      app_trans_id: result.app_trans_id,
-      qr_code:      result.qr_code,
+      success:        true,
+      message:        'ZaloPay order created successfully',
+      order_url:      result.order_url,
+      deeplink_url:   result.deeplink_url,
+      zp_trans_token: result.zp_trans_token,
+      app_trans_id:   result.app_trans_id,
+      qr_code:        result.qr_code,
     });
   } catch (error) {
     console.error('[ZaloPay] createOrder controller error:', error);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -30,8 +31,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   UserEntity? _bookingUser;
   String _selectedMethod = 'BANK_TRANSFER';
   bool _isZaloPayWaiting = false;
+  bool _paymentSuccess = false;
   String? _zaloPayTransId;
   String? _zaloPayQrCode;
+  Timer? _pollingTimer;
 
   MatchingSessionEntity? _matchingSession;
   String _splitMode =
@@ -99,6 +102,12 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -430,10 +439,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       );
 
       if (response != null &&
-          response['order_url'] != null &&
           response['app_trans_id'] != null) {
-        final orderUrl = response['order_url'] as String;
         final transId = response['app_trans_id'] as String;
+        final deeplinkUrl = response['deeplink_url'] as String?;
+        final orderUrl = response['order_url'] as String;
 
         setState(() {
           _isZaloPayWaiting = true;
@@ -441,19 +450,40 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
           _zaloPayQrCode = response['qr_code'] as String?;
         });
 
-        final uri = Uri.parse(orderUrl);
-        final launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
+        // Ưu tiên deeplink zalopay:// để mở thẳng ZaloPay sandbox app
+        bool launched = false;
+        if (deeplinkUrl != null) {
+          try {
+            final deepUri = Uri.parse(deeplinkUrl);
+            launched = await launchUrl(
+              deepUri,
+              mode: LaunchMode.externalApplication,
+            );
+          } catch (_) {
+            launched = false;
+          }
+        }
+
+        // Fallback: mở order_url qua browser nếu deeplink thất bại
+        if (!launched) {
+          final webUri = Uri.parse(orderUrl);
+          launched = await launchUrl(
+            webUri,
+            mode: LaunchMode.externalApplication,
+          );
+        }
+
         if (!launched) {
           throw Exception(
             translate(
-              'Không thể mở liên kết ZaloPay',
-              'Cannot open ZaloPay link',
+              'Không thể mở ứng dụng ZaloPay. Vui lòng cài đặt ZaloPay Sandbox.',
+              'Cannot open ZaloPay app. Please install ZaloPay Sandbox.',
             ),
           );
         }
+
+        // Bắt đầu polling tự động sau khi mở app (mỗi 3 giây, tối đa 2 phút)
+        _startPollingZaloPayStatus(translate);
       } else {
         throw Exception(
           translate(
@@ -476,6 +506,54 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         });
       }
     }
+  }
+
+  /// Polling tự động kiểm tra trạng thái ZaloPay mỗi 3 giây (tối đa 40 lần = 2 phút)
+  void _startPollingZaloPayStatus(String Function(String, String) translate) {
+    _pollingTimer?.cancel();
+    int attempts = 0;
+    const maxAttempts = 40;
+
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!mounted || _zaloPayTransId == null) {
+        timer.cancel();
+        return;
+      }
+      attempts++;
+      if (attempts > maxAttempts) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        final isPaid = await GetIt.I<ZaloPayService>().checkOrderStatus(
+          _zaloPayTransId!,
+          paymentId: _invoice?.id,
+        );
+        if (isPaid && mounted) {
+          timer.cancel();
+          // Cập nhật payment SUCCESS và hiển thị màn thành công
+          final updateStatus = GetIt.I<UpdatePaymentStatusUseCase>();
+          final resp = await updateStatus(_invoice!.id, 'SUCCESS');
+          if (resp.success && resp.data != null && mounted) {
+            try {
+              GetIt.I<AppNotificationEventBus>().emit(
+                const AppNotificationEvent(
+                  type: AppNotificationEventType.paymentOnlineSuccess,
+                ),
+              );
+            } catch (_) {}
+            setState(() {
+              _invoice = resp.data;
+              _isZaloPayWaiting = false;
+              _paymentSuccess = true;
+            });
+          }
+        }
+      } catch (_) {
+        // Bỏ qua lỗi polling, thử lại lần sau
+      }
+    });
   }
 
   void _showSnackBar(String message, {required bool isError}) {
@@ -517,6 +595,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: _primaryColor)),
       );
+    }
+
+    // Màn hình thanh toán thành công – hiển thị sau khi ZaloPay xác nhận
+    if (_paymentSuccess && _invoice != null) {
+      return _buildPaymentSuccessScreen(context);
     }
 
     if (_invoice == null) {
@@ -1322,6 +1405,232 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                 ],
               ),
             ),
+    );
+  }
+
+  /// Màn hình hiển thị thanh toán ZaloPay thành công
+  Widget _buildPaymentSuccessScreen(BuildContext context) {
+    final amount = _invoice?.amount;
+    final formattedAmount = _formatPrice(context, amount);
+    final bookingId = _invoice?.bookingId ?? _invoice?.id ?? '';
+    final shortId = bookingId.length > 6
+        ? bookingId.substring(0, 6).toUpperCase()
+        : bookingId.toUpperCase();
+
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF00C853), Color(0xFF009624)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              // Icon thành công với hiệu ứng nền tròn
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Container(
+                  margin: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    color: Color(0xFF00C853),
+                    size: 64,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              Text(
+                context.tr(
+                  vi: 'Thanh toán thành công!',
+                  en: 'Payment Successful!',
+                ),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                context.tr(
+                  vi: 'Giao dịch của bạn đã được xác nhận',
+                  en: 'Your transaction has been confirmed',
+                ),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+              const SizedBox(height: 32),
+              // Card thông tin giao dịch
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              context.tr(vi: 'Số tiền', en: 'Amount'),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              formattedAmount,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00C853),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              context.tr(vi: 'Mã hóa đơn', en: 'Invoice ID'),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              '#$shortId',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              context.tr(vi: 'Phương thức', en: 'Method'),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const Row(
+                              children: [
+                                Icon(Icons.wallet, size: 16, color: Color(0xFF0070BA)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'ZaloPay',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Color(0xFF0070BA),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              context.tr(vi: 'Trạng thái', en: 'Status'),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00C853).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                context.tr(vi: 'Thành công', en: 'Success'),
+                                style: const TextStyle(
+                                  color: Color(0xFF00C853),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF00C853),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      context.tr(vi: 'Về trang chủ', en: 'Back to Home'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
