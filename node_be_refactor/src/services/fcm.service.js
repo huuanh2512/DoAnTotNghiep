@@ -3,21 +3,47 @@ const path = require('path');
 const fs = require('fs');
 const User = require('../models/user.model');
 
-// Đường dẫn tới file cấu hình serviceAccountKey.json
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
 const serviceAccountPath = path.join(__dirname, '../config/serviceAccountKey.json');
 
 let firebaseAdminInitialized = false;
 
-try {
+function getFirebaseServiceAccount() {
+  const base64Credentials = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+
+  if (base64Credentials && base64Credentials.trim()) {
+    const decodedCredentials = Buffer.from(base64Credentials.trim(), 'base64').toString('utf8');
+    return {
+      serviceAccount: JSON.parse(decodedCredentials),
+      source: 'FIREBASE_SERVICE_ACCOUNT_BASE64'
+    };
+  }
+
   if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+    return {
+      serviceAccount: require(serviceAccountPath),
+      source: 'src/config/serviceAccountKey.json'
+    };
+  }
+
+  return null;
+}
+
+try {
+  const credentials = getFirebaseServiceAccount();
+
+  if (credentials) {
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(credentials.serviceAccount)
+      });
+    }
+
     firebaseAdminInitialized = true;
-    console.log('[FCM] Firebase Admin SDK initialized successfully.');
+    console.log(`[FCM] Firebase Admin SDK initialized successfully using ${credentials.source}.`);
   } else {
-    console.warn('[FCM] Warning: serviceAccountKey.json not found in src/config/. Push notifications will be mocked.');
+    console.warn('[FCM] Warning: Firebase credentials not configured. Set FIREBASE_SERVICE_ACCOUNT_BASE64 or place serviceAccountKey.json in src/config/. Push notifications will be mocked.');
   }
 } catch (error) {
   console.error('[FCM] Error initializing Firebase Admin SDK:', error);
@@ -119,7 +145,7 @@ class FCMService {
       return { 
         success: true, 
         message: 'Push notification simulated (Firebase Admin SDK not initialized)',
-        note: 'Place serviceAccountKey.json in src/config/ to enable real push notifications.'
+        note: 'Set FIREBASE_SERVICE_ACCOUNT_BASE64 or place serviceAccountKey.json in src/config/ to enable real push notifications.'
       };
     }
 
