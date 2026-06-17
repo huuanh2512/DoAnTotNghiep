@@ -18,6 +18,8 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
+  final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -26,6 +28,8 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   void dispose() {
+    _fullNameController.dispose();
+    _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -35,13 +39,15 @@ class _SignUpPageState extends State<SignUpPage> {
   void _onSignUp() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
-            AuthSignUpRequested(
-              SignUpRequest(
-                email: _emailController.text.trim(),
-                password: _passwordController.text,
-              ),
-            ),
-          );
+        AuthSignUpRequested(
+          SignUpRequest(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            fullName: _fullNameController.text.trim(),
+            phone: _phoneController.text.trim(),
+          ),
+        ),
+      );
     }
   }
 
@@ -54,7 +60,12 @@ class _SignUpPageState extends State<SignUpPage> {
         if (state is AuthSuccess) {
           AppPopup.show(
             context,
-            message: state.message ?? context.tr(vi: 'Đăng ký thành công! Hãy xác thực email của bạn.', en: 'Registration successful! Please verify your email.'),
+            message:
+                state.message ??
+                context.tr(
+                  vi: 'Đăng ký thành công! Hãy xác thực email của bạn.',
+                  en: 'Registration successful! Please verify your email.',
+                ),
             tone: AppPopupTone.success,
           );
           // Điều hướng sang trang xác thực email truyền kèm email và password
@@ -80,14 +91,15 @@ class _SignUpPageState extends State<SignUpPage> {
           children: [
             // Background decorations
             Positioned.fill(
-              child: CustomPaint(
-                painter: AuthBackgroundPainter(theme: theme),
-              ),
+              child: CustomPaint(painter: AuthBackgroundPainter(theme: theme)),
             ),
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   child: BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
                       final isLoading = state is AuthLoading;
@@ -119,7 +131,10 @@ class _SignUpPageState extends State<SignUpPage> {
                               Row(
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                                    icon: const Icon(
+                                      Icons.arrow_back_ios_new_rounded,
+                                      size: 20,
+                                    ),
                                     onPressed: isLoading
                                         ? null
                                         : () {
@@ -173,12 +188,77 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                context.tr(vi: 'Tạo tài khoản mới để bắt đầu hành trình của bạn.', en: 'Create a new account to start your journey.'),
+                                context.tr(
+                                  vi: 'Tạo tài khoản mới để bắt đầu hành trình của bạn.',
+                                  en: 'Create a new account to start your journey.',
+                                ),
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
                                 ),
                               ),
                               const SizedBox(height: 32),
+
+                              // Full Name Field
+                              _EnergyTextField(
+                                controller: _fullNameController,
+                                labelText: context.tr(
+                                  vi: 'Họ và tên',
+                                  en: 'Full name',
+                                ),
+                                hintText: 'Nguyễn Văn A',
+                                prefixIcon: Icons.person_outline,
+                                enabled: !isLoading,
+                                keyboardType: TextInputType.name,
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) {
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập họ tên',
+                                      en: 'Please enter full name',
+                                    );
+                                  }
+                                  if (val.trim().length < 2) {
+                                    return context.tr(
+                                      vi: 'Họ tên quá ngắn',
+                                      en: 'Full name is too short',
+                                    );
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Phone Field
+                              _EnergyTextField(
+                                controller: _phoneController,
+                                labelText: context.tr(
+                                  vi: 'Số điện thoại',
+                                  en: 'Phone number',
+                                ),
+                                hintText: '0912345678',
+                                prefixIcon: Icons.phone_outlined,
+                                enabled: !isLoading,
+                                keyboardType: TextInputType.phone,
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) {
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập số điện thoại',
+                                      en: 'Please enter phone number',
+                                    );
+                                  }
+                                  final phoneRegex = RegExp(
+                                    r'^(0[35789])[0-9]{8}$',
+                                  );
+                                  if (!phoneRegex.hasMatch(val.trim())) {
+                                    return context.tr(
+                                      vi: 'Số điện thoại 10 số không hợp lệ',
+                                      en: 'Invalid 10-digit phone number',
+                                    );
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
 
                               // Email Field
                               _EnergyTextField(
@@ -190,11 +270,19 @@ class _SignUpPageState extends State<SignUpPage> {
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (val) {
                                   if (val == null || val.trim().isEmpty) {
-                                    return context.tr(vi: 'Vui lòng nhập Email', en: 'Please enter Email');
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập Email',
+                                      en: 'Please enter Email',
+                                    );
                                   }
-                                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                                  final emailRegex = RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                  );
                                   if (!emailRegex.hasMatch(val.trim())) {
-                                    return context.tr(vi: 'Định dạng Email không hợp lệ', en: 'Invalid email format');
+                                    return context.tr(
+                                      vi: 'Định dạng Email không hợp lệ',
+                                      en: 'Invalid email format',
+                                    );
                                   }
                                   return null;
                                 },
@@ -204,7 +292,10 @@ class _SignUpPageState extends State<SignUpPage> {
                               // Password Field
                               _EnergyTextField(
                                 controller: _passwordController,
-                                labelText: context.tr(vi: 'Mật khẩu', en: 'Password'),
+                                labelText: context.tr(
+                                  vi: 'Mật khẩu',
+                                  en: 'Password',
+                                ),
                                 hintText: '••••••••',
                                 prefixIcon: Icons.lock_outline,
                                 obscureText: _obscurePassword,
@@ -214,7 +305,8 @@ class _SignUpPageState extends State<SignUpPage> {
                                     _obscurePassword
                                         ? Icons.visibility_off_outlined
                                         : Icons.visibility_outlined,
-                                    color: theme.colorScheme.primary.withOpacity(0.5),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.5),
                                   ),
                                   onPressed: () => setState(
                                     () => _obscurePassword = !_obscurePassword,
@@ -222,10 +314,16 @@ class _SignUpPageState extends State<SignUpPage> {
                                 ),
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
-                                    return context.tr(vi: 'Vui lòng nhập Mật khẩu', en: 'Please enter Password');
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập Mật khẩu',
+                                      en: 'Please enter Password',
+                                    );
                                   }
                                   if (val.length < 6) {
-                                    return context.tr(vi: 'Mật khẩu phải chứa ít nhất 6 ký tự', en: 'Password must be at least 6 characters');
+                                    return context.tr(
+                                      vi: 'Mật khẩu phải chứa ít nhất 6 ký tự',
+                                      en: 'Password must be at least 6 characters',
+                                    );
                                   }
                                   return null;
                                 },
@@ -235,7 +333,10 @@ class _SignUpPageState extends State<SignUpPage> {
                               // Confirm Password Field
                               _EnergyTextField(
                                 controller: _confirmPasswordController,
-                                labelText: context.tr(vi: 'Xác nhận mật khẩu', en: 'Confirm Password'),
+                                labelText: context.tr(
+                                  vi: 'Xác nhận mật khẩu',
+                                  en: 'Confirm Password',
+                                ),
                                 hintText: '••••••••',
                                 prefixIcon: Icons.lock_reset_outlined,
                                 obscureText: _obscureConfirmPassword,
@@ -245,7 +346,8 @@ class _SignUpPageState extends State<SignUpPage> {
                                     _obscureConfirmPassword
                                         ? Icons.visibility_off_outlined
                                         : Icons.visibility_outlined,
-                                    color: theme.colorScheme.primary.withOpacity(0.5),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.5),
                                   ),
                                   onPressed: () => setState(
                                     () => _obscureConfirmPassword =
@@ -254,10 +356,16 @@ class _SignUpPageState extends State<SignUpPage> {
                                 ),
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
-                                    return context.tr(vi: 'Vui lòng nhập xác nhận Mật khẩu', en: 'Please enter Password confirmation');
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập xác nhận Mật khẩu',
+                                      en: 'Please enter Password confirmation',
+                                    );
                                   }
                                   if (val != _passwordController.text) {
-                                    return context.tr(vi: 'Mật khẩu xác nhận không trùng khớp', en: 'Confirm password does not match');
+                                    return context.tr(
+                                      vi: 'Mật khẩu xác nhận không trùng khớp',
+                                      en: 'Confirm password does not match',
+                                    );
                                   }
                                   return null;
                                 },
@@ -285,7 +393,10 @@ class _SignUpPageState extends State<SignUpPage> {
                                           ),
                                         )
                                       : Text(
-                                          context.tr(vi: 'Đăng ký tài khoản', en: 'Register Account'),
+                                          context.tr(
+                                            vi: 'Đăng ký tài khoản',
+                                            en: 'Register Account',
+                                          ),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
@@ -299,10 +410,13 @@ class _SignUpPageState extends State<SignUpPage> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.03),
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.03,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: theme.colorScheme.primary.withOpacity(0.06),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.06),
                                     width: 1,
                                   ),
                                 ),
@@ -316,12 +430,17 @@ class _SignUpPageState extends State<SignUpPage> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        context.tr(vi: 'Tài khoản đăng ký thành công có thể sử dụng cho cả 3 vai trò: Người chơi, Chủ sân hoặc Admin.', en: 'Registered account can be used for all 3 roles: Player, Owner, or Admin.'),
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                          fontSize: 11,
-                                          height: 1.4,
+                                        context.tr(
+                                          vi: 'Tài khoản đăng ký thành công có thể sử dụng cho cả 3 vai trò: Người chơi, Chủ sân hoặc Admin.',
+                                          en: 'Registered account can be used for all 3 roles: Player, Owner, or Admin.',
                                         ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withOpacity(0.7),
+                                              fontSize: 11,
+                                              height: 1.4,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -332,7 +451,10 @@ class _SignUpPageState extends State<SignUpPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    context.tr(vi: 'Đã có tài khoản?', en: 'Already have an account?'),
+                                    context.tr(
+                                      vi: 'Đã có tài khoản?',
+                                      en: 'Already have an account?',
+                                    ),
                                     style: theme.textTheme.bodyMedium,
                                   ),
                                   TextButton(
@@ -348,7 +470,12 @@ class _SignUpPageState extends State<SignUpPage> {
                                     style: TextButton.styleFrom(
                                       foregroundColor: const Color(0xFFFF5600),
                                     ),
-                                    child: Text(context.tr(vi: 'Đăng nhập', en: 'Sign In')),
+                                    child: Text(
+                                      context.tr(
+                                        vi: 'Đăng nhập',
+                                        en: 'Sign In',
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -404,13 +531,18 @@ class _EnergyTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
-        prefixIcon: Icon(prefixIcon, color: theme.colorScheme.primary.withOpacity(0.6)),
+        prefixIcon: Icon(
+          prefixIcon,
+          color: theme.colorScheme.primary.withOpacity(0.6),
+        ),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: theme.cardColor.withOpacity(0.7),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.outline.withOpacity(0.15)),
+          borderSide: BorderSide(
+            color: theme.colorScheme.outline.withOpacity(0.15),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -442,7 +574,8 @@ class AuthBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     final accentPaint = Paint()
-      ..color = const Color(0xFFFF5600).withOpacity(0.025) // finOrange opacity
+      ..color = const Color(0xFFFF5600)
+          .withOpacity(0.025) // finOrange opacity
       ..style = PaintingStyle.fill;
 
     // Diagonal decorative shapes
@@ -461,10 +594,22 @@ class AuthBackgroundPainter extends CustomPainter {
     canvas.drawPath(path2, accentPaint);
 
     // Track lines
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15), 140, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.85, size.height * 0.15),
+      140,
+      paint,
+    );
     canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15), 90, paint);
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.85), 180, paint);
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.85), 130, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.15, size.height * 0.85),
+      180,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.15, size.height * 0.85),
+      130,
+      paint,
+    );
   }
 
   @override

@@ -73,7 +73,9 @@ const AdminUsersPage: React.FC = () => {
       // Step 1: POST /auth/register (mật khẩu mặc định 123456)
       const regResponse = await apiClient.post('/auth/register', {
         email: values.email,
-        password: '123456'
+        password: '123456',
+        fullName: values.fullName,
+        phone: values.phone
       });
       const newUserId = regResponse.data.userId || regResponse.data.data?.userId || regResponse.data.user?._id || regResponse.data.user?.id;
 

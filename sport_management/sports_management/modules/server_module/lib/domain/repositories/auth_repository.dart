@@ -4,6 +4,8 @@ abstract class AuthRepository {
   Future<BaseResponse<dynamic>> register({
     required String email,
     required String password,
+    String? fullName,
+    String? phone,
   });
 
   Future<BaseResponse<dynamic>> signIn({
@@ -11,17 +13,11 @@ abstract class AuthRepository {
     required String password,
   });
 
-  Future<BaseResponse<dynamic>> refreshToken({
-    required String refreshToken,
-  });
+  Future<BaseResponse<dynamic>> refreshToken({required String refreshToken});
 
-  Future<BaseResponse<dynamic>> signOut({
-    required String userId,
-  });
+  Future<BaseResponse<dynamic>> signOut({required String userId});
 
-  Future<BaseResponse<dynamic>> forgotPassword({
-    required String email,
-  });
+  Future<BaseResponse<dynamic>> forgotPassword({required String email});
 
   Future<BaseResponse<dynamic>> resetPassword({
     required String email,

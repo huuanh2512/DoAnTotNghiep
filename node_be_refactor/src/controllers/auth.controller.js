@@ -3,12 +3,12 @@ const { sendSuccess, sendError } = require('../utils/response.util');
 
 const register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, fullName, phone } = req.body;
     if (!email || !password) {
       return sendError(res, 400, 'Email and password are required', 'MISSING_FIELDS');
     }
 
-    const result = await userAuthService.register(email, password);
+    const result = await userAuthService.register(email, password, { fullName, phone });
     // Custom trả về để lồng success/message vào trong
     return res.status(200).json(result);
   } catch (error) {

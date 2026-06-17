@@ -12,7 +12,14 @@ class AuthService {
     try {
       final response = await _dioClient.dio.post(
         '/auth/register',
-        data: {'email': request.email, 'password': request.password},
+        data: {
+          'email': request.email,
+          'password': request.password,
+          if (request.fullName != null && request.fullName!.trim().isNotEmpty)
+            'fullName': request.fullName!.trim(),
+          if (request.phone != null && request.phone!.trim().isNotEmpty)
+            'phone': request.phone!.trim(),
+        },
       );
       return BaseResponse.fromJson(response.data, (json) => json);
     } catch (error) {

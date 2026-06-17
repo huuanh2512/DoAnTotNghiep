@@ -23,7 +23,7 @@ class UserAuthService {
     };
   }
 
-  async register(email, password) {
+  async register(email, password, profile = {}) {
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
       throw new Error('Email already exists');
@@ -34,7 +34,11 @@ class UserAuthService {
 
     const createdUser = await userRepository.create({
       email: email,
-      password: hashedPassword
+      password: hashedPassword,
+      profile: {
+        name: profile.fullName || profile.name || '',
+        phone: profile.phone || ''
+      }
     });
 
     return {
@@ -47,7 +51,11 @@ class UserAuthService {
           id: createdUser._id.toString(),
           email: createdUser.email,
           role: createdUser.role,
-          status: createdUser.status
+          status: createdUser.status,
+          profile: {
+            name: createdUser.profile?.name || '',
+            phone: createdUser.profile?.phone || ''
+          }
         }
       }
     };

@@ -2,8 +2,7 @@ import '../../data/datasources/local/authentication_local_data_source.dart';
 import '../../data/datasources/remote/authentication_remote_data_source.dart';
 import '../../data/datasources/remote/user_remote_data_source.dart';
 import '../../data/repositories/user_repository_impl.dart';
-import '../../domain/repositories/user_repository.dart'
-    as auth_domain;
+import '../../domain/repositories/user_repository.dart' as auth_domain;
 import '../../domain/usecases/get_user_data_usecase.dart';
 import '../../domain/usecases/refresh_session_usecase.dart';
 import '../../domain/usecases/reset_password_usecase.dart';
@@ -18,13 +17,11 @@ import '../../presentation/blocs/auth/auth_bloc.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
-import 'package:server_module/server_module.dart'
-    as server_module;
+import 'package:server_module/server_module.dart' as server_module;
 
 final sl = GetIt.instance;
 
-class _ServerAuthRepositoryAdapter
-    implements server_module.AuthRepository {
+class _ServerAuthRepositoryAdapter implements server_module.AuthRepository {
   _ServerAuthRepositoryAdapter(this._authService);
 
   final server_module.AuthService _authService;
@@ -33,11 +30,15 @@ class _ServerAuthRepositoryAdapter
   Future<server_module.BaseResponse<dynamic>> register({
     required String email,
     required String password,
+    String? fullName,
+    String? phone,
   }) {
     return _authService.register(
       server_module.AuthRegisterRequest(
         email: email,
         password: password,
+        fullName: fullName,
+        phone: phone,
       ),
     );
   }
@@ -47,37 +48,28 @@ class _ServerAuthRepositoryAdapter
     required String email,
     required String password,
   }) {
-    return _authService.signIn(
-      email: email,
-      password: password,
-    );
+    return _authService.signIn(email: email, password: password);
   }
 
   @override
   Future<server_module.BaseResponse<dynamic>> refreshToken({
     required String refreshToken,
   }) {
-    return _authService.refreshToken(
-      refreshToken: refreshToken,
-    );
+    return _authService.refreshToken(refreshToken: refreshToken);
   }
 
   @override
   Future<server_module.BaseResponse<dynamic>> signOut({
     required String userId,
   }) {
-    return _authService.signOut(
-      userId: userId,
-    );
+    return _authService.signOut(userId: userId);
   }
 
   @override
   Future<server_module.BaseResponse<dynamic>> forgotPassword({
     required String email,
   }) {
-    return _authService.forgotPassword(
-      email: email,
-    );
+    return _authService.forgotPassword(email: email);
   }
 
   @override
@@ -94,8 +86,7 @@ class _ServerAuthRepositoryAdapter
   }
 }
 
-class _ServerUserRepositoryAdapter
-    implements server_module.UserRepository {
+class _ServerUserRepositoryAdapter implements server_module.UserRepository {
   _ServerUserRepositoryAdapter(this._userService);
 
   final server_module.UserService _userService;
@@ -119,8 +110,14 @@ class _ServerUserRepositoryAdapter
       final userEntity = server_module.UserEntity(
         id: userMap['id']?.toString() ?? userMap['_id']?.toString() ?? '',
         email: userMap['email']?.toString(),
-        name: profileMap?['name']?.toString() ?? profileMap?['fullName']?.toString() ?? userMap['name']?.toString(),
-        avatar: profileMap?['avatarUrl']?.toString() ?? profileMap?['avatar']?.toString() ?? userMap['avatar']?.toString(),
+        name:
+            profileMap?['name']?.toString() ??
+            profileMap?['fullName']?.toString() ??
+            userMap['name']?.toString(),
+        avatar:
+            profileMap?['avatarUrl']?.toString() ??
+            profileMap?['avatar']?.toString() ??
+            userMap['avatar']?.toString(),
         role: userMap['role']?.toString(),
         status: userMap['status']?.toString(),
         createdAt: userMap['createdAt'] != null
@@ -142,9 +139,8 @@ class _ServerUserRepositoryAdapter
     }
   }
 
-  server_module.BaseResponse<List<server_module.UserEntity>> _mapToUserEntityListResponse(
-    server_module.BaseResponse<dynamic> response,
-  ) {
+  server_module.BaseResponse<List<server_module.UserEntity>>
+  _mapToUserEntityListResponse(server_module.BaseResponse<dynamic> response) {
     if (!response.success || response.data == null) {
       return server_module.BaseResponse<List<server_module.UserEntity>>(
         success: response.success,
@@ -166,8 +162,14 @@ class _ServerUserRepositoryAdapter
               server_module.UserEntity(
                 id: item['id']?.toString() ?? item['_id']?.toString() ?? '',
                 email: item['email']?.toString(),
-                name: profileMap?['name']?.toString() ?? profileMap?['fullName']?.toString() ?? item['name']?.toString(),
-                avatar: profileMap?['avatarUrl']?.toString() ?? profileMap?['avatar']?.toString() ?? item['avatar']?.toString(),
+                name:
+                    profileMap?['name']?.toString() ??
+                    profileMap?['fullName']?.toString() ??
+                    item['name']?.toString(),
+                avatar:
+                    profileMap?['avatarUrl']?.toString() ??
+                    profileMap?['avatar']?.toString() ??
+                    item['avatar']?.toString(),
                 role: item['role']?.toString(),
                 status: item['status']?.toString(),
                 createdAt: item['createdAt'] != null
@@ -195,19 +197,19 @@ class _ServerUserRepositoryAdapter
 
   @override
   Future<server_module.BaseResponse<List<server_module.UserEntity>>>
-      getUsers() {
+  getUsers() {
     return _userService.getUsers().then(_mapToUserEntityListResponse);
   }
 
   @override
-  Future<server_module.BaseResponse<server_module.UserEntity>>
-      getUserById(String id) {
+  Future<server_module.BaseResponse<server_module.UserEntity>> getUserById(
+    String id,
+  ) {
     return _userService.getUserById(id).then(_mapToUserEntityResponse);
   }
 
   @override
-  Future<server_module.BaseResponse<server_module.UserEntity>>
-      updateUser(
+  Future<server_module.BaseResponse<server_module.UserEntity>> updateUser(
     String id,
     Map<String, dynamic> data,
   ) {
@@ -215,8 +217,7 @@ class _ServerUserRepositoryAdapter
   }
 
   @override
-  Future<server_module.BaseResponse<server_module.UserEntity>>
-      updateUserRole(
+  Future<server_module.BaseResponse<server_module.UserEntity>> updateUserRole(
     String id,
     String role,
   ) {
@@ -224,21 +225,23 @@ class _ServerUserRepositoryAdapter
   }
 
   @override
-  Future<server_module.BaseResponse<server_module.UserEntity>>
-      updateUserStatus(
+  Future<server_module.BaseResponse<server_module.UserEntity>> updateUserStatus(
     String id,
     String status,
   ) {
-    return _userService.updateUserStatus(id, status).then(_mapToUserEntityResponse);
+    return _userService
+        .updateUserStatus(id, status)
+        .then(_mapToUserEntityResponse);
   }
 
   @override
-  Future<server_module.BaseResponse<server_module.UserEntity>>
-      assignFacility(
+  Future<server_module.BaseResponse<server_module.UserEntity>> assignFacility(
     String id,
     String facilityId,
   ) {
-    return _userService.assignFacility(id, facilityId).then(_mapToUserEntityResponse);
+    return _userService
+        .assignFacility(id, facilityId)
+        .then(_mapToUserEntityResponse);
   }
 }
 
@@ -267,15 +270,11 @@ Future<void> initInjection() async {
 
   // Server Adapters
   sl.registerLazySingleton<server_module.AuthRepository>(
-    () => _ServerAuthRepositoryAdapter(
-      sl<server_module.AuthService>(),
-    ),
+    () => _ServerAuthRepositoryAdapter(sl<server_module.AuthService>()),
   );
 
   sl.registerLazySingleton<server_module.UserRepository>(
-    () => _ServerUserRepositoryAdapter(
-      sl<server_module.UserService>(),
-    ),
+    () => _ServerUserRepositoryAdapter(sl<server_module.UserService>()),
   );
 
   // Remote Data Sources
@@ -288,76 +287,54 @@ Future<void> initInjection() async {
   sl.registerLazySingleton<UserRemoteDataSource>(
     () => UserRemoteDataSourceImpl(
       userRepository: sl<server_module.UserRepository>(),
-      authenticationLocalDataSource:
-          sl<AuthenticationLocalDataSource>(),
+      authenticationLocalDataSource: sl<AuthenticationLocalDataSource>(),
     ),
   );
 
   // Repository
   sl.registerLazySingleton<auth_domain.UserRepository>(
     () => UserRepositoryImpl(
-      authenticationLocalDataSource:
-          sl<AuthenticationLocalDataSource>(),
-      authenticationRemoteDataSource:
-          sl<AuthenticationRemoteDataSource>(),
-      userRemoteDataSource:
-          sl<UserRemoteDataSource>(),
+      authenticationLocalDataSource: sl<AuthenticationLocalDataSource>(),
+      authenticationRemoteDataSource: sl<AuthenticationRemoteDataSource>(),
+      userRemoteDataSource: sl<UserRemoteDataSource>(),
     ),
   );
 
   // UseCases
   sl.registerLazySingleton<SignInUseCase>(
-    () => SignInUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => SignInUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<SignUpUseCase>(
-    () => SignUpUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => SignUpUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<SignOutUseCase>(
-    () => SignOutUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => SignOutUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<RefreshSessionUseCase>(
-    () => RefreshSessionUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => RefreshSessionUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<ResetPasswordUseCase>(
-    () => ResetPasswordUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => ResetPasswordUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<UpdateProfileUseCase>(
-    () => UpdateProfileUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => UpdateProfileUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<GetUserDataUseCase>(
-    () => GetUserDataUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => GetUserDataUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<GetLocalUserUseCase>(
-    () => GetLocalUserUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => GetLocalUserUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<ClearLocalSessionUseCase>(
-    () => ClearLocalSessionUseCase(
-      sl<auth_domain.UserRepository>(),
-    ),
+    () => ClearLocalSessionUseCase(sl<auth_domain.UserRepository>()),
   );
 
   // Session Manager
@@ -375,10 +352,8 @@ Future<void> initInjection() async {
       signInUseCase: sl<SignInUseCase>(),
       signUpUseCase: sl<SignUpUseCase>(),
       signOutUseCase: sl<SignOutUseCase>(),
-      refreshSessionUseCase:
-          sl<RefreshSessionUseCase>(),
-      resetPasswordUseCase:
-          sl<ResetPasswordUseCase>(),
+      refreshSessionUseCase: sl<RefreshSessionUseCase>(),
+      resetPasswordUseCase: sl<ResetPasswordUseCase>(),
     ),
   );
 }

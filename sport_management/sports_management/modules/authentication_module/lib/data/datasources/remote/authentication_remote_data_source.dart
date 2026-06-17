@@ -20,9 +20,7 @@ abstract class AuthenticationRemoteDataSource {
 
 class AuthenticationRemoteDataSourceImpl
     implements AuthenticationRemoteDataSource {
-  AuthenticationRemoteDataSourceImpl({
-    required this._authRepository,
-  });
+  AuthenticationRemoteDataSourceImpl({required this._authRepository});
 
   final AuthRepository _authRepository;
 
@@ -32,6 +30,8 @@ class AuthenticationRemoteDataSourceImpl
       final result = await _authRepository.register(
         email: request.email.trim().toLowerCase(),
         password: request.password.trim(),
+        fullName: request.fullName?.trim(),
+        phone: request.phone?.trim(),
       );
 
       if (!result.success) {
@@ -43,10 +43,7 @@ class AuthenticationRemoteDataSourceImpl
       debugPrint('${result.data}');
       return _mapAuthDataToUserResult(result.data);
     } catch (error) {
-      return UserResult(
-        isSuccess: false,
-        error: error.toString(),
-      );
+      return UserResult(isSuccess: false, error: error.toString());
     }
   }
 
@@ -67,29 +64,21 @@ class AuthenticationRemoteDataSourceImpl
       debugPrint('${result.data}');
       return _mapAuthDataToUserResult(result.data);
     } catch (error) {
-      return UserResult(
-        isSuccess: false,
-        error: error.toString(),
-      );
+      return UserResult(isSuccess: false, error: error.toString());
     }
   }
 
   @override
   Future<UserResult> signOut(SignOutRequest request) async {
     try {
-      final result = await _authRepository.signOut(
-        userId: request.token,
-      );
+      final result = await _authRepository.signOut(userId: request.token);
 
       return UserResult(
         isSuccess: result.success,
         error: result.success ? null : result.message,
       );
     } catch (error) {
-      return UserResult(
-        isSuccess: false,
-        error: error.toString(),
-      );
+      return UserResult(isSuccess: false, error: error.toString());
     }
   }
 
@@ -109,17 +98,12 @@ class AuthenticationRemoteDataSourceImpl
       debugPrint('${result.data}');
       return _mapAuthDataToUserResult(result.data);
     } catch (error) {
-      return UserResult(
-        isSuccess: false,
-        error: error.toString(),
-      );
+      return UserResult(isSuccess: false, error: error.toString());
     }
   }
 
   @override
-  Future<UserResult> resetPassword(
-    ResetPasswordRequest request,
-  ) async {
+  Future<UserResult> resetPassword(ResetPasswordRequest request) async {
     try {
       final result = await _authRepository.resetPassword(
         email: request.email.trim().toLowerCase(),
@@ -132,52 +116,43 @@ class AuthenticationRemoteDataSourceImpl
         error: result.success ? null : result.message,
       );
     } catch (error) {
-      return UserResult(
-        isSuccess: false,
-        error: error.toString(),
-      );
+      return UserResult(isSuccess: false, error: error.toString());
     }
   }
 
   UserResult _mapAuthDataToUserResult(dynamic rawData) {
-  final Map<String, dynamic>? data =
-      rawData as Map<String, dynamic>?;
+    final Map<String, dynamic>? data = rawData as Map<String, dynamic>?;
 
-  final Map<String, dynamic>? result =
-      data?['result'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? result =
+        data?['result'] as Map<String, dynamic>?;
 
-  final bool success =
-      result?['success'] == true;
+    final bool success = result?['success'] == true;
 
-  if (!success) {
+    if (!success) {
+      return UserResult(
+        isSuccess: false,
+        error: result?['message']?.toString() ?? 'Có lỗi xảy ra.',
+      );
+    }
+
+    final Map<String, dynamic>? user = data?['user'] as Map<String, dynamic>?;
+
+    final Map<String, dynamic>? profile =
+        user?['profile'] as Map<String, dynamic>?;
+
     return UserResult(
-      isSuccess: false,
-      error: result?['message']?.toString() ??
-          'Có lỗi xảy ra.',
+      isSuccess: true,
+      userId: user?['id']?.toString(),
+      email: user?['email']?.toString(),
+      name: profile?['name']?.toString(),
+      avatarUrl: profile?['avatarUrl']?.toString(),
+      role: user?['role']?.toString(),
+      status: user?['status']?.toString(),
+      accessToken: data?['accessToken']?.toString(),
+      refreshToken: data?['refreshToken']?.toString(),
+      expiresAt: data?['expiresAt'] != null
+          ? DateTime.tryParse(data!['expiresAt'].toString())?.toLocal()
+          : null,
     );
   }
-
-  final Map<String, dynamic>? user =
-      data?['user'] as Map<String, dynamic>?;
-
-  final Map<String, dynamic>? profile =
-      user?['profile'] as Map<String, dynamic>?;
-
-  return UserResult(
-    isSuccess: true,
-    userId: user?['id']?.toString(),
-    email: user?['email']?.toString(),
-    name: profile?['name']?.toString(),
-    avatarUrl: profile?['avatarUrl']?.toString(),
-    role: user?['role']?.toString(),
-    status: user?['status']?.toString(),
-    accessToken: data?['accessToken']?.toString(),
-    refreshToken: data?['refreshToken']?.toString(),
-    expiresAt: data?['expiresAt'] != null
-        ? DateTime.tryParse(
-            data!['expiresAt'].toString(),
-          )?.toLocal()
-        : null,
-  );
-}
 }
