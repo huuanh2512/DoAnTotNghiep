@@ -1,6 +1,7 @@
 const ACCESS_TOKEN_KEY = 'sport_energy_access_token';
 const REFRESH_TOKEN_KEY = 'sport_energy_refresh_token';
 const USER_KEY = 'sport_energy_user';
+export const AUTH_USER_UPDATED_EVENT = 'auth:user-updated';
 
 export interface UserSession {
   _id?: string;
@@ -32,7 +33,10 @@ export const authStorage = {
       return null;
     }
   },
-  setUser: (user: UserSession): void => localStorage.setItem(USER_KEY, JSON.stringify(user)),
+  setUser: (user: UserSession): void => {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    window.dispatchEvent(new CustomEvent(AUTH_USER_UPDATED_EVENT, { detail: user }));
+  },
   
   clear: (): void => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);

@@ -13,6 +13,7 @@ const LoginPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const brandLogoSrc = `${process.env.PUBLIC_URL}/sport-energy-logo.png`;
 
   const handleLogin = async (values: any) => {
     console.log('[DEBUG LOGIN] Form submitted values:', values);
@@ -81,11 +82,13 @@ const LoginPage: React.FC = () => {
         style={{ borderRadius: '24px' }}
       >
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 rounded-xl bg-brand-orange flex items-center justify-center font-bold text-white text-2xl shadow-lg shadow-brand-orange/30 mb-4 animate-pulse">
-            SE
-          </div>
+          <img
+            src={brandLogoSrc}
+            alt="Sport Energy logo"
+            className="w-20 h-20 rounded-2xl object-contain shadow-lg shadow-brand-orange/20 mb-4"
+          />
           <Title level={2} className="m-0 dark:text-white" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-            Sport Energy CRM
+            Sport Energy
           </Title>
           <Text className="text-ink-muted dark:text-ink-darkMuted mt-1">
             Hệ thống quản lý dành cho Admin & Nhân viên

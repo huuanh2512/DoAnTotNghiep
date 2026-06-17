@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'zalopay_webview_page.dart';
 
 import 'package:server_module/server_module.dart';
 import 'package:authentication_module/authentication_module.dart';
@@ -23,7 +23,8 @@ class InvoiceDetailPage extends StatefulWidget {
   State<InvoiceDetailPage> createState() => _InvoiceDetailPageState();
 }
 
-class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
+class _InvoiceDetailPageState extends State<InvoiceDetailPage>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isProcessing = false;
   PaymentDetailEntity? _invoice;
@@ -101,13 +102,88 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Lắng nghe app lifecycle
     _loadData();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollingTimer?.cancel();
     super.dispose();
+  }
+
+  /// Khi app resume từ nền (ví dụ: user quay về từ ZaloPay Sandbox),
+  /// ngầy lập tức kiểm tra trạng thái thanh toán nếu đang ở trong trạng thái chờ ZaloPay
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isZaloPayWaiting && _zaloPayTransId != null) {
+      debugPrint('[ZaloPay] App resumed — kiểm tra trạng thái thanh toán ngay lập tức');
+      _checkZaloPayStatusNow();
+    }
+  }
+
+  /// Kiểm tra trạng thái ZaloPay ngay khi app resume — không đợi timer
+  /// Query trực tiếp backend DB (webhook đã cập nhật) thay vì ZaloPay API
+  Future<void> _checkZaloPayStatusNow() async {
+    if (!mounted || _invoice == null) return;
+    try {
+      debugPrint('[ZaloPay] Resume check: query backend DB...');
+
+      // ── Bước 1: Kiểm tra từ backend DB (webhook đã cập nhật status này)
+      final getPayments = GetIt.I<GetPaymentsUseCase>();
+      final response = await getPayments();
+      if (response.success && response.data != null) {
+        final updated = response.data!.where((p) => p.id == _invoice!.id).firstOrNull;
+        if (updated != null && updated.status == 'SUCCESS' && mounted) {
+          _pollingTimer?.cancel();
+          try {
+            GetIt.I<AppNotificationEventBus>().emit(
+              const AppNotificationEvent(
+                type: AppNotificationEventType.paymentOnlineSuccess,
+              ),
+            );
+          } catch (_) {}
+          setState(() {
+            _invoice = updated;
+            _isZaloPayWaiting = false;
+            _paymentSuccess = true;
+          });
+          debugPrint('[ZaloPay] ✅ Backend DB xác nhận SUCCESS sau khi app resume!');
+          return;
+        }
+      }
+
+      // ── Bước 2: Fallback — vẫn query ZaloPay API (dự phòng)
+      if (_zaloPayTransId != null) {
+        final isPaid = await GetIt.I<ZaloPayService>().checkOrderStatus(
+          _zaloPayTransId!,
+          paymentId: _invoice?.id,
+        );
+        if (isPaid && mounted) {
+          _pollingTimer?.cancel();
+          final updateStatus = GetIt.I<UpdatePaymentStatusUseCase>();
+          final resp = await updateStatus(_invoice!.id, 'SUCCESS');
+          if (resp.success && resp.data != null && mounted) {
+            try {
+              GetIt.I<AppNotificationEventBus>().emit(
+                const AppNotificationEvent(
+                  type: AppNotificationEventType.paymentOnlineSuccess,
+                ),
+              );
+            } catch (_) {}
+            setState(() {
+              _invoice = resp.data;
+              _isZaloPayWaiting = false;
+              _paymentSuccess = true;
+            });
+            debugPrint('[ZaloPay] ✅ ZaloPay API xác nhận SUCCESS sau khi resume!');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[ZaloPay] ❌ Resume check lỗi: $e');
+    }
   }
 
   Future<void> _loadData() async {
@@ -419,6 +495,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     }
   }
 
+
+
+
   Future<void> _startZaloPayPayment() async {
     if (_invoice == null) return;
 
@@ -428,61 +507,37 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     } catch (_) {}
     String translate(String vi, String en) => lang == 'vi' ? vi : en;
 
-    setState(() {
-      _isProcessing = true;
-    });
+    setState(() => _isProcessing = true);
 
     try {
-      // Gọi backend để tạo đơn ZaloPay — backend ký HMAC với key1 server-side
       final response = await GetIt.I<ZaloPayService>().createOrder(
         paymentId: _invoice!.id,
       );
 
-      if (response != null &&
-          response['app_trans_id'] != null) {
-        final transId = response['app_trans_id'] as String;
-        final deeplinkUrl = response['deeplink_url'] as String?;
-        final orderUrl = response['order_url'] as String;
+      if (response != null && response['app_trans_id'] != null) {
+        final transId  = response['app_trans_id'] as String;
+        final orderUrl = response['order_url']    as String? ?? '';
 
         setState(() {
           _isZaloPayWaiting = true;
           _zaloPayTransId = transId;
-          _zaloPayQrCode = response['qr_code'] as String?;
+          _zaloPayQrCode  = response['qr_code'] as String?;
         });
 
-        // Ưu tiên deeplink zalopay:// để mở thẳng ZaloPay sandbox app
-        bool launched = false;
-        if (deeplinkUrl != null) {
-          try {
-            final deepUri = Uri.parse(deeplinkUrl);
-            launched = await launchUrl(
-              deepUri,
-              mode: LaunchMode.externalApplication,
-            );
-          } catch (_) {
-            launched = false;
-          }
-        }
+        debugPrint('[ZaloPay] order_url: $orderUrl');
 
-        // Fallback: mở order_url qua browser nếu deeplink thất bại
-        if (!launched) {
-          final webUri = Uri.parse(orderUrl);
-          launched = await launchUrl(
-            webUri,
-            mode: LaunchMode.externalApplication,
-          );
-        }
-
-        if (!launched) {
-          throw Exception(
-            translate(
-              'Không thể mở ứng dụng ZaloPay. Vui lòng cài đặt ZaloPay Sandbox.',
-              'Cannot open ZaloPay app. Please install ZaloPay Sandbox.',
+        // Mở in-app WebView — hiển thị ZaloPay gateway ngay trong app
+        // WebView sẽ intercept zalopay:// deeplink và mở ZaloPay Sandbox
+        if (mounted && orderUrl.isNotEmpty) {
+          await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => ZaloPayWebViewPage(orderUrl: orderUrl),
+              fullscreenDialog: true,
             ),
           );
         }
 
-        // Bắt đầu polling tự động sau khi mở app (mỗi 3 giây, tối đa 2 phút)
+        // Bắt đầu polling tự động (mỗi 3 giây, tối đa 2 phút)
         _startPollingZaloPayStatus(translate);
       } else {
         throw Exception(
@@ -500,22 +555,20 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
+
   /// Polling tự động kiểm tra trạng thái ZaloPay mỗi 3 giây (tối đa 40 lần = 2 phút)
+  /// Ưu tiên query backend DB (webhook sẽ đã cập nhật) thay vì chỉ dựa vào ZaloPay API
   void _startPollingZaloPayStatus(String Function(String, String) translate) {
     _pollingTimer?.cancel();
     int attempts = 0;
     const maxAttempts = 40;
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      if (!mounted || _zaloPayTransId == null) {
+      if (!mounted || _invoice == null) {
         timer.cancel();
         return;
       }
@@ -526,16 +579,13 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       }
 
       try {
-        final isPaid = await GetIt.I<ZaloPayService>().checkOrderStatus(
-          _zaloPayTransId!,
-          paymentId: _invoice?.id,
-        );
-        if (isPaid && mounted) {
-          timer.cancel();
-          // Cập nhật payment SUCCESS và hiển thị màn thành công
-          final updateStatus = GetIt.I<UpdatePaymentStatusUseCase>();
-          final resp = await updateStatus(_invoice!.id, 'SUCCESS');
-          if (resp.success && resp.data != null && mounted) {
+        // ── Bước 1: Query backend DB trước — webhook đã cập nhật status
+        final getPayments = GetIt.I<GetPaymentsUseCase>();
+        final response = await getPayments();
+        if (response.success && response.data != null) {
+          final updated = response.data!.where((p) => p.id == _invoice!.id).firstOrNull;
+          if (updated != null && updated.status == 'SUCCESS' && mounted) {
+            timer.cancel();
             try {
               GetIt.I<AppNotificationEventBus>().emit(
                 const AppNotificationEvent(
@@ -544,10 +594,40 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
               );
             } catch (_) {}
             setState(() {
-              _invoice = resp.data;
+              _invoice = updated;
               _isZaloPayWaiting = false;
               _paymentSuccess = true;
             });
+            debugPrint('[ZaloPay] ✅ Backend DB polling phát hiện SUCCESS (lần thử $attempts)');
+            return;
+          }
+        }
+
+        // ── Bước 2: Fallback query ZaloPay API
+        if (_zaloPayTransId != null) {
+          final isPaid = await GetIt.I<ZaloPayService>().checkOrderStatus(
+            _zaloPayTransId!,
+            paymentId: _invoice?.id,
+          );
+          if (isPaid && mounted) {
+            timer.cancel();
+            final updateStatus = GetIt.I<UpdatePaymentStatusUseCase>();
+            final resp = await updateStatus(_invoice!.id, 'SUCCESS');
+            if (resp.success && resp.data != null && mounted) {
+              try {
+                GetIt.I<AppNotificationEventBus>().emit(
+                  const AppNotificationEvent(
+                    type: AppNotificationEventType.paymentOnlineSuccess,
+                  ),
+                );
+              } catch (_) {}
+              setState(() {
+                _invoice = resp.data;
+                _isZaloPayWaiting = false;
+                _paymentSuccess = true;
+              });
+              debugPrint('[ZaloPay] ✅ ZaloPay API polling phát hiện SUCCESS (lần thử $attempts)');
+            }
           }
         }
       } catch (_) {

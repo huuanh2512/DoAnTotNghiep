@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ConfigProvider, theme, Button } from 'antd';
 import { getAntdTheme } from '../theme/theme';
-import { authStorage, UserSession } from '../utils/auth_storage';
+import { AUTH_USER_UPDATED_EVENT, authStorage, UserSession } from '../utils/auth_storage';
 import { MainLayout } from '../components/main_layout';
 
 // Stub page imports
@@ -123,6 +123,7 @@ export const AppRoutes: React.FC = () => {
       setUser(authStorage.getUser());
     };
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(AUTH_USER_UPDATED_EVENT, handleStorageChange);
     // Poll localstorage locally as well for in-app state changes
     const interval = setInterval(() => {
       const stored = authStorage.getUser();
@@ -133,6 +134,7 @@ export const AppRoutes: React.FC = () => {
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(AUTH_USER_UPDATED_EVENT, handleStorageChange);
       clearInterval(interval);
     };
   }, [user]);

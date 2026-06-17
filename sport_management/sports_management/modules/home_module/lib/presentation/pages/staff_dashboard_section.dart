@@ -19,6 +19,7 @@ import 'package:notification_module/notification_module.dart';
 import 'dart:async';
 import 'account/widgets/change_password_sheet.dart';
 import 'account/widgets/customer_support_sheet.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class StaffDashboardSection extends StatefulWidget {
   const StaffDashboardSection({super.key});
@@ -28,6 +29,8 @@ class StaffDashboardSection extends StatefulWidget {
 }
 
 class _StaffDashboardSectionState extends State<StaffDashboardSection> {
+  static const String _brandLogoAsset = 'assets/images/sport_energy_logo.png';
+
   int _currentIndex = 0;
   UserResult? _user;
   final bool _isDarkMode = false;
@@ -202,16 +205,14 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFF5600),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.sports_soccer,
-                size: 16,
-                color: Colors.white,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                _brandLogoAsset,
+                width: 30,
+                height: 30,
+                semanticLabel: 'Sport Energy logo',
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(width: 8),
@@ -290,41 +291,37 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
         ],
       ),
       body: _buildBody(),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: AppBottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        selectedItemColor: const Color(0xFFFF5600),
-        unselectedItemColor: Colors.grey.shade500,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
         items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.analytics_outlined),
-            activeIcon: const Icon(Icons.analytics),
+          AppNavItem(
+            icon: Icons.analytics_outlined,
+            activeIcon: Icons.analytics,
             label: context.tr(vi: 'Tổng quan', en: 'Overview'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.construction_outlined),
-            activeIcon: const Icon(Icons.construction),
+          AppNavItem(
+            icon: Icons.construction_outlined,
+            activeIcon: Icons.construction,
             label: context.tr(vi: 'Vận hành', en: 'Operations'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.book_online_outlined),
-            activeIcon: const Icon(Icons.book_online),
+          AppNavItem(
+            icon: Icons.book_online_outlined,
+            activeIcon: Icons.book_online,
             label: context.tr(vi: 'Đặt lịch', en: 'Schedule'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.point_of_sale_outlined),
-            activeIcon: const Icon(Icons.point_of_sale),
+          AppNavItem(
+            icon: Icons.point_of_sale_outlined,
+            activeIcon: Icons.point_of_sale,
             label: context.tr(vi: 'Thu ngân', en: 'Cashier'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_outline),
-            activeIcon: const Icon(Icons.person),
+          AppNavItem(
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
             label: context.tr(vi: 'Tài khoản', en: 'Account'),
           ),
         ],
@@ -974,7 +971,8 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
     final theme = Theme.of(context);
     final isPending = booking.status == 'PENDING';
     final isConfirmed = booking.status == 'CONFIRMED';
-    final isFixed = booking.isFixedSchedule == true || booking.fixedScheduleId != null;
+    final isFixed =
+        booking.isFixedSchedule == true || booking.fixedScheduleId != null;
     final isMatching = booking.matchingSessionId != null;
     final isFixedMatching = isFixed && isMatching;
     final code = booking.id.length > 4
@@ -1040,7 +1038,10 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
                       if (isFixedMatching) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.purple.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -1048,11 +1049,19 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.groups, size: 11, color: Colors.purple.shade700),
+                              Icon(
+                                Icons.groups,
+                                size: 11,
+                                color: Colors.purple.shade700,
+                              ),
                               const SizedBox(width: 3),
                               Text(
                                 context.tr(vi: 'Ghép CĐ', en: 'Fixed Match'),
-                                style: TextStyle(color: Colors.purple.shade700, fontSize: 9, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.purple.shade700,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -1060,7 +1069,10 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
                       ] else if (isFixed) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -1068,11 +1080,19 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.event_repeat, size: 11, color: Colors.blue.shade700),
+                              Icon(
+                                Icons.event_repeat,
+                                size: 11,
+                                color: Colors.blue.shade700,
+                              ),
                               const SizedBox(width: 3),
                               Text(
                                 context.tr(vi: 'Lịch CĐ', en: 'Fixed'),
-                                style: TextStyle(color: Colors.blue.shade700, fontSize: 9, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -1080,19 +1100,32 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
                       ] else if (isMatching) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF5600).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFFFF5600,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.groups, size: 11, color: const Color(0xFFFF5600)),
+                              Icon(
+                                Icons.groups,
+                                size: 11,
+                                color: const Color(0xFFFF5600),
+                              ),
                               const SizedBox(width: 3),
                               Text(
                                 context.tr(vi: 'Ghép trận', en: 'Match'),
-                                style: const TextStyle(color: Color(0xFFFF5600), fontSize: 9, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Color(0xFFFF5600),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -1196,7 +1229,11 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(Icons.event_repeat, size: 14, color: Colors.blue.shade600),
+                  Icon(
+                    Icons.event_repeat,
+                    size: 14,
+                    color: Colors.blue.shade600,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     context.tr(

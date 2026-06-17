@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { App, Avatar, Button, Card, Descriptions, Form, Input, Modal, Space, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Descriptions, Form, Input, Modal, Space, Tag, Typography, Upload } from 'antd';
 import {
+  DeleteOutlined,
   EnvironmentOutlined,
   LockOutlined,
   MailOutlined,
   PhoneOutlined,
   SafetyCertificateOutlined,
+  UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { authStorage, UserSession } from '../../../../core/utils/auth_storage';
@@ -32,6 +34,8 @@ const ProfilePage: React.FC = () => {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingFacility, setSavingFacility] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [facilityForm] = Form.useForm();
@@ -66,6 +70,28 @@ const ProfilePage: React.FC = () => {
   if (!user) return <div>Không tìm thấy thông tin phiên đăng nhập.</div>;
 
   const userId = user._id || user.id || '';
+  const fallbackAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+  const avatarSrc = user.profile?.avatar || fallbackAvatar;
+
+  const persistUserProfile = (
+    profile: any,
+    fallback: { fullName?: string; phone?: string; avatar?: string },
+  ) => {
+    const updatedUser: UserSession = {
+      ...user,
+      profile: {
+        fullName: profile?.fullName || profile?.name || fallback.fullName || user.profile?.fullName,
+        phone: profile?.phone || fallback.phone || user.profile?.phone,
+        avatar:
+          fallback.avatar !== undefined
+            ? fallback.avatar
+            : profile?.avatar || profile?.avatarUrl || user.profile?.avatar,
+      },
+    };
+    authStorage.setUser(updatedUser);
+    setUser(updatedUser);
+    return updatedUser;
+  };
 
   const handleUpdateProfile = async (values: any) => {
     try {
@@ -83,21 +109,107 @@ const ProfilePage: React.FC = () => {
         phone: values.phone,
         avatar: user.profile?.avatar,
       };
-      const updatedUser: UserSession = {
-        ...user,
-        profile: {
-          fullName: profile.fullName || profile.name || values.fullName,
-          phone: profile.phone || values.phone,
-          avatar: profile.avatar || profile.avatarUrl || user.profile?.avatar,
-        },
-      };
-      authStorage.setUser(updatedUser);
-      setUser(updatedUser);
+      persistUserProfile(profile, {
+        fullName: values.fullName,
+        phone: values.phone,
+        avatar: user.profile?.avatar,
+      });
       message.success('Cập nhật thông tin cá nhân thành công.');
       setEditingProfile(false);
     } catch (e: any) {
       message.error(e.response?.data?.message || 'Không thể cập nhật thông tin cá nhân.');
     }
+  };
+
+  const extractUploadedUrl = (data: any) =>
+    data?.data?.url ||
+    data?.url ||
+    data?.file?.url ||
+    data?.data?.file?.url ||
+    '';
+
+  const beforeAvatarUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      message.error('Vui lòng chọn file hình ảnh.');
+      return Upload.LIST_IGNORE;
+    }
+
+    if (file.size / 1024 / 1024 >= 5) {
+      message.error('Kích thước ảnh phải nhỏ hơn 5MB.');
+      return Upload.LIST_IGNORE;
+    }
+
+    return true;
+  };
+
+  const handleAvatarUpload = async (options: any) => {
+    const { file, onError, onSuccess } = options;
+    const formData = new FormData();
+    formData.append('file', file as File);
+    setUploadingAvatar(true);
+    setSavingAvatar(true);
+
+    try {
+      const uploadResponse = await apiClient.post('/upload/single', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const uploadedUrl = extractUploadedUrl(uploadResponse.data);
+
+      if (!uploadedUrl) {
+        throw new Error('Missing uploaded avatar URL');
+      }
+
+      const response = await apiClient.put(`/user/${userId}`, {
+        profile: {
+          fullName: user.profile?.fullName,
+          name: user.profile?.fullName,
+          phone: user.profile?.phone,
+          avatar: uploadedUrl,
+          avatarUrl: uploadedUrl,
+        },
+      });
+      persistUserProfile(response.data.user?.profile, { avatar: uploadedUrl });
+      message.success('Cập nhật ảnh đại diện thành công.');
+      onSuccess?.(uploadResponse.data);
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Không thể cập nhật ảnh đại diện.');
+      onError?.(error);
+    } finally {
+      setUploadingAvatar(false);
+      setSavingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    if (!user.profile?.avatar) return;
+
+    Modal.confirm({
+      title: 'Xóa ảnh đại diện?',
+      content: 'Hồ sơ sẽ quay về ảnh mặc định của tài khoản.',
+      okText: 'Xóa',
+      cancelText: 'Hủy',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        setSavingAvatar(true);
+        try {
+          const response = await apiClient.put(`/user/${userId}`, {
+            profile: {
+              fullName: user.profile?.fullName,
+              name: user.profile?.fullName,
+              phone: user.profile?.phone,
+              avatar: '',
+              avatarUrl: '',
+            },
+          });
+          persistUserProfile(response.data.user?.profile, { avatar: '' });
+          message.success('Đã xóa ảnh đại diện.');
+        } catch (e: any) {
+          message.error(e.response?.data?.message || 'Không thể xóa ảnh đại diện.');
+        } finally {
+          setSavingAvatar(false);
+        }
+      },
+    });
   };
 
   const handleSendOtp = async () => {
@@ -173,10 +285,32 @@ const ProfilePage: React.FC = () => {
           <div className="flex flex-col items-center py-4">
             <Avatar
               size={120}
-              src={user.profile?.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`}
+              src={avatarSrc}
               icon={<UserOutlined />}
               className="bg-brand-orange border-4 border-brand-orange/20 shadow-md mb-4"
             />
+            <Space wrap className="mb-4 justify-center">
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                customRequest={handleAvatarUpload}
+                beforeUpload={beforeAvatarUpload}
+              >
+                <Button icon={<UploadOutlined />} loading={uploadingAvatar} className="rounded-md">
+                  {user.profile?.avatar ? 'Sửa ảnh' : 'Thêm ảnh'}
+                </Button>
+              </Upload>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={handleRemoveAvatar}
+                disabled={!user.profile?.avatar || uploadingAvatar}
+                loading={savingAvatar && !uploadingAvatar}
+                className="rounded-md"
+              >
+                Xóa ảnh
+              </Button>
+            </Space>
             <Title level={3} className="m-0 dark:text-white" style={{ fontWeight: 600 }}>
               {user.profile?.fullName || 'Người dùng'}
             </Title>

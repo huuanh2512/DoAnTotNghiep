@@ -40,6 +40,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
   const [facilityName, setFacilityName] = useState<string>('');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const brandLogoSrc = `${process.env.PUBLIC_URL}/sport-energy-logo.png`;
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -492,12 +493,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
       >
         <div className="p-4 flex items-center justify-center border-b border-semantic-border/10 dark:border-semantic-borderDark/10">
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-8 h-8 rounded-md bg-brand-orange flex items-center justify-center font-bold text-white shrink-0">
-              SE
-            </div>
+            <img
+              src={brandLogoSrc}
+              alt="Sport Energy logo"
+              className="w-9 h-9 rounded-lg object-contain shrink-0 shadow-sm"
+            />
             {!collapsed && (
               <span className="font-sans font-bold text-lg tracking-tight truncate dark:text-white">
-                SPORT ENERGY
+                Sport Energy
               </span>
             )}
           </div>

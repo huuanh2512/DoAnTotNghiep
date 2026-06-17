@@ -27,6 +27,8 @@ dependencies:
   url_launcher: ^6.3.0
   intl: ^0.19.0
   dio: ^5.7.0
+  android_intent_plus: ^5.1.0  # Explicit Android Intent (mở thẳng ZaloPay Sandbox)
+  webview_flutter: ^4.10.0     # In-app WebView để hiển thị ZaloPay gateway
 
 dev_dependencies:
   flutter_test:

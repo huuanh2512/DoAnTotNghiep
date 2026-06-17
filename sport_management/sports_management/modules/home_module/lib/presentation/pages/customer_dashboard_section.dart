@@ -13,6 +13,7 @@ import 'package:notification_module/notification_module.dart';
 import 'account/widgets/profile_edit_sheet.dart';
 import 'account/widgets/customer_support_sheet.dart';
 import 'account/widgets/change_password_sheet.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class CustomerDashboardSection extends StatefulWidget {
   final String? initialTab;
@@ -25,6 +26,8 @@ class CustomerDashboardSection extends StatefulWidget {
 }
 
 class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
+  static const String _brandLogoAsset = 'assets/images/sport_energy_logo.png';
+
   int _currentIndex = 0;
   UserResult? _user;
   final bool _isDarkMode = false;
@@ -253,16 +256,14 @@ class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
               automaticallyImplyLeading: false,
               title: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF5600),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.sports_soccer,
-                      size: 16,
-                      color: Colors.white,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      _brandLogoAsset,
+                      width: 30,
+                      height: 30,
+                      semanticLabel: 'Sport Energy logo',
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -324,36 +325,32 @@ class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
               ],
             ),
       body: _buildBody(),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: AppBottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        selectedItemColor: const Color(0xFFFF5600),
-        unselectedItemColor: Colors.grey.shade500,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
         items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.sports_soccer_outlined),
-            activeIcon: const Icon(Icons.sports_soccer),
+          AppNavItem(
+            icon: Icons.sports_soccer_outlined,
+            activeIcon: Icons.sports_soccer,
             label: context.tr(vi: 'Đặt sân', en: 'Book Court'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.payment_outlined),
-            activeIcon: const Icon(Icons.payment),
+          AppNavItem(
+            icon: Icons.payment_outlined,
+            activeIcon: Icons.payment,
             label: context.tr(vi: 'Thanh toán', en: 'Payment'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.history_outlined),
-            activeIcon: const Icon(Icons.history),
+          AppNavItem(
+            icon: Icons.history_outlined,
+            activeIcon: Icons.history,
             label: context.tr(vi: 'Lịch sử', en: 'History'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_outline),
-            activeIcon: const Icon(Icons.person),
+          AppNavItem(
+            icon: Icons.person_outline,
+            activeIcon: Icons.person,
             label: context.tr(vi: 'Tài khoản', en: 'Account'),
           ),
         ],

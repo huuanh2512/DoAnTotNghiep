@@ -18,6 +18,8 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
+  static const String _brandLogoAsset = 'assets/images/sport_energy_logo.png';
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -32,22 +34,34 @@ class _SignInPageState extends State<SignInPage> {
 
   String _localizeAuthErrorMessage(BuildContext context, String error) {
     final lower = error.toLowerCase();
-    if (lower.contains('wrong-password') || 
-        lower.contains('invalid-credential') || 
+    if (lower.contains('wrong-password') ||
+        lower.contains('invalid-credential') ||
         lower.contains('sai mật khẩu') ||
         lower.contains('mật khẩu không đúng')) {
-      return context.tr(vi: 'Mật khẩu nhập không chính xác.', en: 'Incorrect password.');
+      return context.tr(
+        vi: 'Mật khẩu nhập không chính xác.',
+        en: 'Incorrect password.',
+      );
     }
-    if (lower.contains('user-not-found') || 
+    if (lower.contains('user-not-found') ||
         lower.contains('no user found') ||
         lower.contains('không tìm thấy người dùng')) {
-      return context.tr(vi: 'Tài khoản Email không tồn tại.', en: 'Email account does not exist.');
+      return context.tr(
+        vi: 'Tài khoản Email không tồn tại.',
+        en: 'Email account does not exist.',
+      );
     }
     if (lower.contains('invalid-email')) {
-      return context.tr(vi: 'Địa chỉ email không đúng định dạng.', en: 'Invalid email address format.');
+      return context.tr(
+        vi: 'Địa chỉ email không đúng định dạng.',
+        en: 'Invalid email address format.',
+      );
     }
     if (lower.contains('email-already-in-use')) {
-      return context.tr(vi: 'Địa chỉ email này đã được đăng ký.', en: 'This email address is already registered.');
+      return context.tr(
+        vi: 'Địa chỉ email này đã được đăng ký.',
+        en: 'This email address is already registered.',
+      );
     }
     return error;
   }
@@ -55,13 +69,13 @@ class _SignInPageState extends State<SignInPage> {
   void _submitSignIn() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
-            AuthSignInRequested(
-              SignInRequest(
-                username: _emailController.text.trim(),
-                password: _passwordController.text,
-              ),
-            ),
-          );
+        AuthSignInRequested(
+          SignInRequest(
+            username: _emailController.text.trim(),
+            password: _passwordController.text,
+          ),
+        ),
+      );
     }
   }
 
@@ -74,17 +88,21 @@ class _SignInPageState extends State<SignInPage> {
         if (state is AuthAuthenticated) {
           AppPopup.show(
             context,
-            message: context.tr(vi: 'Đăng nhập thành công', en: 'Logged in successfully'),
+            message: context.tr(
+              vi: 'Đăng nhập thành công',
+              en: 'Logged in successfully',
+            ),
             tone: AppPopupTone.success,
           );
           context.goNamed(RoutePaths.homeName);
         }
 
         if (state is AuthFailureState) {
-          final isUnverified = state.message.toLowerCase().contains('email chưa xác thực') ||
-                               state.message.toLowerCase().contains('verify email') ||
-                               state.message.toLowerCase().contains('not verified') ||
-                               state.message.toLowerCase().contains('xác thực email');
+          final isUnverified =
+              state.message.toLowerCase().contains('email chưa xác thực') ||
+              state.message.toLowerCase().contains('verify email') ||
+              state.message.toLowerCase().contains('not verified') ||
+              state.message.toLowerCase().contains('xác thực email');
           if (isUnverified) {
             context.go(
               '/verify-email',
@@ -108,18 +126,19 @@ class _SignInPageState extends State<SignInPage> {
           children: [
             // Background decorations
             Positioned.fill(
-              child: CustomPaint(
-                painter: AuthBackgroundPainter(theme: theme),
-              ),
+              child: CustomPaint(painter: AuthBackgroundPainter(theme: theme)),
             ),
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   child: BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
                       final isLoading = state is AuthLoading;
-                      
+
                       return Form(
                         key: _formKey,
                         child: Container(
@@ -147,16 +166,14 @@ class _SignInPageState extends State<SignInPage> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFF5600), // finOrange
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.sports_soccer_rounded,
-                                      size: 20,
-                                      color: Colors.white,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.asset(
+                                      _brandLogoAsset,
+                                      width: 36,
+                                      height: 36,
+                                      semanticLabel: 'Sport Energy logo',
+                                      fit: BoxFit.contain,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -183,13 +200,17 @@ class _SignInPageState extends State<SignInPage> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                context.tr(vi: 'Chào mừng trở lại. Sẵn sàng bứt phá giới hạn.', en: 'Welcome back. Ready to push the limits.'),
+                                context.tr(
+                                  vi: 'Chào mừng trở lại. Sẵn sàng bứt phá giới hạn.',
+                                  en: 'Welcome back. Ready to push the limits.',
+                                ),
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
                                 ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Email Field
                               _EnergyTextField(
                                 controller: _emailController,
@@ -200,21 +221,32 @@ class _SignInPageState extends State<SignInPage> {
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (val) {
                                   if (val == null || val.trim().isEmpty) {
-                                    return context.tr(vi: 'Vui lòng nhập Email', en: 'Please enter Email');
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập Email',
+                                      en: 'Please enter Email',
+                                    );
                                   }
-                                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                                  final emailRegex = RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                  );
                                   if (!emailRegex.hasMatch(val.trim())) {
-                                    return context.tr(vi: 'Định dạng Email không hợp lệ', en: 'Invalid email format');
+                                    return context.tr(
+                                      vi: 'Định dạng Email không hợp lệ',
+                                      en: 'Invalid email format',
+                                    );
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 16),
-                              
+
                               // Password Field
                               _EnergyTextField(
                                 controller: _passwordController,
-                                labelText: context.tr(vi: 'Mật khẩu', en: 'Password'),
+                                labelText: context.tr(
+                                  vi: 'Mật khẩu',
+                                  en: 'Password',
+                                ),
                                 hintText: '••••••••',
                                 prefixIcon: Icons.lock_outline,
                                 obscureText: _obscurePassword,
@@ -224,7 +256,8 @@ class _SignInPageState extends State<SignInPage> {
                                     _obscurePassword
                                         ? Icons.visibility_off_outlined
                                         : Icons.visibility_outlined,
-                                    color: theme.colorScheme.primary.withOpacity(0.5),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.5),
                                   ),
                                   onPressed: () => setState(
                                     () => _obscurePassword = !_obscurePassword,
@@ -232,29 +265,42 @@ class _SignInPageState extends State<SignInPage> {
                                 ),
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
-                                    return context.tr(vi: 'Vui lòng nhập Mật khẩu', en: 'Please enter Password');
+                                    return context.tr(
+                                      vi: 'Vui lòng nhập Mật khẩu',
+                                      en: 'Please enter Password',
+                                    );
                                   }
                                   if (val.length < 6) {
-                                    return context.tr(vi: 'Mật khẩu phải chứa ít nhất 6 ký tự', en: 'Password must be at least 6 characters');
+                                    return context.tr(
+                                      vi: 'Mật khẩu phải chứa ít nhất 6 ký tự',
+                                      en: 'Password must be at least 6 characters',
+                                    );
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 8),
-                              
+
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
-                                  onPressed: isLoading ? null : () => context.push('/reset-password'),
+                                  onPressed: isLoading
+                                      ? null
+                                      : () => context.push('/reset-password'),
                                   style: TextButton.styleFrom(
                                     foregroundColor: const Color(0xFFFF5600),
                                     padding: EdgeInsets.zero,
                                   ),
-                                  child: Text(context.tr(vi: 'Quên mật khẩu?', en: 'Forgot password?')),
+                                  child: Text(
+                                    context.tr(
+                                      vi: 'Quên mật khẩu?',
+                                      en: 'Forgot password?',
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // Sign In Button
                               SizedBox(
                                 width: double.infinity,
@@ -276,7 +322,10 @@ class _SignInPageState extends State<SignInPage> {
                                           ),
                                         )
                                       : Text(
-                                          context.tr(vi: 'Đăng nhập ngay', en: 'Sign In Now'),
+                                          context.tr(
+                                            vi: 'Đăng nhập ngay',
+                                            en: 'Sign In Now',
+                                          ),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
@@ -285,15 +334,18 @@ class _SignInPageState extends State<SignInPage> {
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              
+
                               // 3-Role Info Card
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.03),
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.03,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: theme.colorScheme.primary.withOpacity(0.06),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.06),
                                     width: 1,
                                   ),
                                 ),
@@ -307,12 +359,17 @@ class _SignInPageState extends State<SignInPage> {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        context.tr(vi: 'Hệ sinh thái đa vai trò: Tài khoản có thể đăng nhập với vai trò Người chơi, Chủ sân hoặc Admin.', en: 'Multi-role ecosystem: Account can log in as Player, Owner, or Admin.'),
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                          fontSize: 11,
-                                          height: 1.4,
+                                        context.tr(
+                                          vi: 'Hệ sinh thái đa vai trò: Tài khoản có thể đăng nhập với vai trò Người chơi, Chủ sân hoặc Admin.',
+                                          en: 'Multi-role ecosystem: Account can log in as Player, Owner, or Admin.',
                                         ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withOpacity(0.7),
+                                              fontSize: 11,
+                                              height: 1.4,
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -323,15 +380,22 @@ class _SignInPageState extends State<SignInPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    context.tr(vi: 'Chưa có tài khoản?', en: 'Don\'t have an account?'),
+                                    context.tr(
+                                      vi: 'Chưa có tài khoản?',
+                                      en: 'Don\'t have an account?',
+                                    ),
                                     style: theme.textTheme.bodyMedium,
                                   ),
                                   TextButton(
-                                    onPressed: isLoading ? null : () => context.push('/sign-up'),
+                                    onPressed: isLoading
+                                        ? null
+                                        : () => context.push('/sign-up'),
                                     style: TextButton.styleFrom(
                                       foregroundColor: const Color(0xFFFF5600),
                                     ),
-                                    child: Text(context.tr(vi: 'Đăng ký', en: 'Sign Up')),
+                                    child: Text(
+                                      context.tr(vi: 'Đăng ký', en: 'Sign Up'),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -387,13 +451,18 @@ class _EnergyTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
-        prefixIcon: Icon(prefixIcon, color: theme.colorScheme.primary.withOpacity(0.6)),
+        prefixIcon: Icon(
+          prefixIcon,
+          color: theme.colorScheme.primary.withOpacity(0.6),
+        ),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: theme.cardColor.withOpacity(0.7),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.outline.withOpacity(0.15)),
+          borderSide: BorderSide(
+            color: theme.colorScheme.outline.withOpacity(0.15),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -425,7 +494,8 @@ class AuthBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5;
 
     final accentPaint = Paint()
-      ..color = const Color(0xFFFF5600).withOpacity(0.025) // finOrange opacity
+      ..color = const Color(0xFFFF5600)
+          .withOpacity(0.025) // finOrange opacity
       ..style = PaintingStyle.fill;
 
     // Diagonal decorative shapes
@@ -444,10 +514,22 @@ class AuthBackgroundPainter extends CustomPainter {
     canvas.drawPath(path2, accentPaint);
 
     // Track lines
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15), 140, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.85, size.height * 0.15),
+      140,
+      paint,
+    );
     canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.15), 90, paint);
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.85), 180, paint);
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.85), 130, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.15, size.height * 0.85),
+      180,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.15, size.height * 0.85),
+      130,
+      paint,
+    );
   }
 
   @override

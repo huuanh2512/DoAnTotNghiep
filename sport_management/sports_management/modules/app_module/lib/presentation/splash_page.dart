@@ -13,6 +13,8 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
+  static const String _brandLogoAsset = 'assets/images/sport_energy_logo.png';
+
   late AnimationController _entranceController;
   late AnimationController _rotationController;
   late Animation<double> _fadeAnimation;
@@ -123,7 +125,11 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               gradient: LinearGradient(
                 colors: [
                   theme.colorScheme.surface,
-                  Color.lerp(theme.colorScheme.surface, theme.colorScheme.primary, isDark ? 0.15 : 0.07)!,
+                  Color.lerp(
+                    theme.colorScheme.surface,
+                    theme.colorScheme.primary,
+                    isDark ? 0.15 : 0.07,
+                  )!,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -132,25 +138,33 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           ),
           // 2. Custom Painter for Sports Pitch & Speed Lines
           Positioned.fill(
-            child: CustomPaint(
-              painter: SportBackgroundPainter(theme),
-            ),
+            child: CustomPaint(painter: SportBackgroundPainter(theme)),
           ),
           // 3. Main Content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 16.0,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 20),
                       // 3D Spherical Rotating Soccer Ball with Levitation
                       AnimatedBuilder(
-                        animation: Listenable.merge([_entranceController, _rotationController]),
+                        animation: Listenable.merge([
+                          _entranceController,
+                          _rotationController,
+                        ]),
                         builder: (context, child) {
-                          final levitation = math.sin(_rotationController.value * 2 * math.pi) * 8; // Lơ lửng lên xuống 8 pixel
+                          final levitation =
+                              math.sin(
+                                _rotationController.value * 2 * math.pi,
+                              ) *
+                              8; // Lơ lửng lên xuống 8 pixel
 
                           return Transform.translate(
                             offset: Offset(0, levitation),
@@ -160,18 +174,27 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                 width: 140,
                                 height: 140,
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                                  borderRadius: BorderRadius.circular(34),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: (isDark ? 0.25 : 0.12) - (levitation / 150)), // Bóng đổ tối màu chân thực
+                                      color: Colors.black.withValues(
+                                        alpha:
+                                            (isDark ? 0.25 : 0.12) -
+                                            (levitation / 150),
+                                      ), // Bóng đổ tối màu chân thực
                                       blurRadius: 20 - (levitation / 2),
                                       spreadRadius: 3 - (levitation / 4),
-                                      offset: Offset(0, 30 - levitation), // Đẩy bóng xuống phía dưới chân quả cầu
+                                      offset: Offset(
+                                        0,
+                                        30 - levitation,
+                                      ), // Đẩy bóng xuống phía dưới chân quả cầu
                                     ),
                                   ],
                                 ),
-                                child: CustomPaint(
-                                  painter: ThreeDSoccerBallPainter(_rotationController.value, theme),
+                                child: Image.asset(
+                                  _brandLogoAsset,
+                                  semanticLabel: 'Sport Energy logo',
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
@@ -193,7 +216,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                                 letterSpacing: 3.0,
                                 shadows: [
                                   Shadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+                                    color: Colors.black.withValues(
+                                      alpha: isDark ? 0.3 : 0.1,
+                                    ),
                                     offset: const Offset(2, 2),
                                     blurRadius: 4,
                                   ),
@@ -204,7 +229,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                             Text(
                               'Năng lượng bứt phá • Kết nối đa vai trò',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.5,
                               ),
@@ -232,7 +259,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                             Text(
                               _subStatusText,
                               style: TextStyle(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                                 fontSize: 12,
                                 fontWeight: FontWeight.normal,
                               ),
@@ -272,7 +301,9 @@ class SportBackgroundPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final isDark = theme.brightness == Brightness.dark;
     final paint = Paint()
-      ..color = theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.03 : 0.06)
+      ..color = theme.colorScheme.onSurface.withValues(
+        alpha: isDark ? 0.03 : 0.06,
+      )
       ..style = PaintingStyle.fill;
 
     // Diagonal stripes
@@ -294,17 +325,28 @@ class SportBackgroundPainter extends CustomPainter {
 
     // Dynamic field line
     final fieldPaint = Paint()
-      ..color = theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.04 : 0.08)
+      ..color = theme.colorScheme.onSurface.withValues(
+        alpha: isDark ? 0.04 : 0.08,
+      )
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
     // Draw field elements (center circle and center line)
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width * 0.35, fieldPaint);
-    canvas.drawLine(Offset(0, size.height / 2), Offset(size.width, size.height / 2), fieldPaint);
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width * 0.35,
+      fieldPaint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      fieldPaint,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant SportBackgroundPainter oldDelegate) => oldDelegate.theme != theme;
+  bool shouldRepaint(covariant SportBackgroundPainter oldDelegate) =>
+      oldDelegate.theme != theme;
 }
 
 class ThreeDSoccerBallPainter extends CustomPainter {
@@ -337,7 +379,10 @@ class ThreeDSoccerBallPainter extends CustomPainter {
     ].map((p) => p.normalized()).toList();
 
     final int n = vertices.length;
-    final List<List<bool>> isNeighbor = List.generate(n, (_) => List.filled(n, false));
+    final List<List<bool>> isNeighbor = List.generate(
+      n,
+      (_) => List.filled(n, false),
+    );
 
     // Determine neighbor connections based on icosahedron edge distance
     double minDistance = double.infinity;
@@ -379,11 +424,13 @@ class ThreeDSoccerBallPainter extends CustomPainter {
 
       final sortedVertices = sortPointsAroundCenter(center, pentagonVertices);
 
-      patches.add(SoccerPatch(
-        center: center,
-        isPentagon: true,
-        outlinePoints: sortedVertices,
-      ));
+      patches.add(
+        SoccerPatch(
+          center: center,
+          isPentagon: true,
+          outlinePoints: sortedVertices,
+        ),
+      );
     }
 
     // 2. Generate 20 Hexagon patches at the centers of the icosahedron faces
@@ -420,19 +467,27 @@ class ThreeDSoccerBallPainter extends CustomPainter {
         ((vA * 2.0 + vC) / 3.0).normalized(),
       ];
 
-      final sortedVertices = sortPointsAroundCenter(faceCenter, hexagonVertices);
+      final sortedVertices = sortPointsAroundCenter(
+        faceCenter,
+        hexagonVertices,
+      );
 
-      patches.add(SoccerPatch(
-        center: faceCenter,
-        isPentagon: false,
-        outlinePoints: sortedVertices,
-      ));
+      patches.add(
+        SoccerPatch(
+          center: faceCenter,
+          isPentagon: false,
+          outlinePoints: sortedVertices,
+        ),
+      );
     }
 
     return patches;
   }
 
-  static List<Point3D> sortPointsAroundCenter(Point3D center, List<Point3D> points) {
+  static List<Point3D> sortPointsAroundCenter(
+    Point3D center,
+    List<Point3D> points,
+  ) {
     final normal = center.normalized();
     Point3D u;
     if (normal.x.abs() < 0.9) {
@@ -474,40 +529,84 @@ class ThreeDSoccerBallPainter extends CustomPainter {
 
     if (isDark) {
       // Dark theme ball colors (subtly tinted with primary color)
-      sphereStartColor = Color.lerp(const Color(0xFF444444), theme.colorScheme.primary, 0.12)!;
-      sphereMidColor = Color.lerp(const Color(0xFF1E1E1E), theme.colorScheme.primary, 0.06)!;
+      sphereStartColor = Color.lerp(
+        const Color(0xFF444444),
+        theme.colorScheme.primary,
+        0.12,
+      )!;
+      sphereMidColor = Color.lerp(
+        const Color(0xFF1E1E1E),
+        theme.colorScheme.primary,
+        0.06,
+      )!;
       sphereEndColor = const Color(0xFF000000);
 
-      pentagonStartColor = Color.lerp(const Color(0xFF2D2D2D), theme.colorScheme.primary, 0.2)!;
-      pentagonEndColor = Color.lerp(const Color(0xFF080808), theme.colorScheme.primary, 0.08)!;
+      pentagonStartColor = Color.lerp(
+        const Color(0xFF2D2D2D),
+        theme.colorScheme.primary,
+        0.2,
+      )!;
+      pentagonEndColor = Color.lerp(
+        const Color(0xFF080808),
+        theme.colorScheme.primary,
+        0.08,
+      )!;
 
       hexagonStartColor = Colors.white;
-      hexagonEndColor = Color.lerp(const Color(0xFFCCCCCC), theme.colorScheme.primary, 0.05)!;
+      hexagonEndColor = Color.lerp(
+        const Color(0xFFCCCCCC),
+        theme.colorScheme.primary,
+        0.05,
+      )!;
 
-      seamStrokeColor = Color.lerp(const Color(0xFF151515), theme.colorScheme.primary, 0.15)!;
+      seamStrokeColor = Color.lerp(
+        const Color(0xFF151515),
+        theme.colorScheme.primary,
+        0.15,
+      )!;
     } else {
       // Light theme ball colors (subtly tinted with primary/surface colors)
-      sphereStartColor = Color.lerp(const Color(0xFF3A3A3A), theme.colorScheme.primary, 0.08)!;
-      sphereMidColor = Color.lerp(const Color(0xFF1F1F1F), theme.colorScheme.primary, 0.04)!;
+      sphereStartColor = Color.lerp(
+        const Color(0xFF3A3A3A),
+        theme.colorScheme.primary,
+        0.08,
+      )!;
+      sphereMidColor = Color.lerp(
+        const Color(0xFF1F1F1F),
+        theme.colorScheme.primary,
+        0.04,
+      )!;
       sphereEndColor = const Color(0xFF050505);
 
-      pentagonStartColor = Color.lerp(const Color(0xFF333333), theme.colorScheme.primary, 0.25)!;
-      pentagonEndColor = Color.lerp(const Color(0xFF0C0C0C), theme.colorScheme.primary, 0.12)!;
+      pentagonStartColor = Color.lerp(
+        const Color(0xFF333333),
+        theme.colorScheme.primary,
+        0.25,
+      )!;
+      pentagonEndColor = Color.lerp(
+        const Color(0xFF0C0C0C),
+        theme.colorScheme.primary,
+        0.12,
+      )!;
 
       hexagonStartColor = Colors.white;
-      hexagonEndColor = Color.lerp(const Color(0xFFDCDCDC), theme.colorScheme.primary, 0.06)!;
+      hexagonEndColor = Color.lerp(
+        const Color(0xFFDCDCDC),
+        theme.colorScheme.primary,
+        0.06,
+      )!;
 
-      seamStrokeColor = Color.lerp(const Color(0xFF1A1A1A), theme.colorScheme.primary, 0.2)!;
+      seamStrokeColor = Color.lerp(
+        const Color(0xFF1A1A1A),
+        theme.colorScheme.primary,
+        0.2,
+      )!;
     }
 
     // 1. Draw background sphere representing the seams
     final Paint spherePaint = Paint()
       ..shader = RadialGradient(
-        colors: [
-          sphereStartColor,
-          sphereMidColor,
-          sphereEndColor,
-        ],
+        colors: [sphereStartColor, sphereMidColor, sphereEndColor],
         center: const Alignment(-0.3, -0.3),
         radius: 1.0,
       ).createShader(Rect.fromCircle(center: center, radius: radius));
@@ -587,30 +686,54 @@ class ThreeDSoccerBallPainter extends CustomPainter {
 
       if (patch.isPentagon) {
         // Pentagons are shiny black
-        patchPaint.shader = RadialGradient(
-          colors: [
-            Color.lerp(pentagonEndColor, pentagonStartColor, intensity)!,
-            Color.lerp(const Color(0xFF020202), pentagonEndColor, intensity)!,
-          ],
-          center: const Alignment(-0.25, -0.25),
-          radius: 0.85,
-        ).createShader(Rect.fromCircle(
-          center: Offset(center.dx + cx2 * radius, center.dy + cy2 * radius),
-          radius: radius * 0.28,
-        ));
+        patchPaint.shader =
+            RadialGradient(
+              colors: [
+                Color.lerp(pentagonEndColor, pentagonStartColor, intensity)!,
+                Color.lerp(
+                  const Color(0xFF020202),
+                  pentagonEndColor,
+                  intensity,
+                )!,
+              ],
+              center: const Alignment(-0.25, -0.25),
+              radius: 0.85,
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(
+                  center.dx + cx2 * radius,
+                  center.dy + cy2 * radius,
+                ),
+                radius: radius * 0.28,
+              ),
+            );
       } else {
         // Hexagons are shiny white
-        patchPaint.shader = RadialGradient(
-          colors: [
-            Color.lerp(hexagonEndColor, hexagonStartColor, intensity)!,
-            Color.lerp(Color.lerp(const Color(0xFF666666), theme.colorScheme.primary, 0.1)!, hexagonEndColor, intensity)!,
-          ],
-          center: const Alignment(-0.25, -0.25),
-          radius: 0.85,
-        ).createShader(Rect.fromCircle(
-          center: Offset(center.dx + cx2 * radius, center.dy + cy2 * radius),
-          radius: radius * 0.28,
-        ));
+        patchPaint.shader =
+            RadialGradient(
+              colors: [
+                Color.lerp(hexagonEndColor, hexagonStartColor, intensity)!,
+                Color.lerp(
+                  Color.lerp(
+                    const Color(0xFF666666),
+                    theme.colorScheme.primary,
+                    0.1,
+                  )!,
+                  hexagonEndColor,
+                  intensity,
+                )!,
+              ],
+              center: const Alignment(-0.25, -0.25),
+              radius: 0.85,
+            ).createShader(
+              Rect.fromCircle(
+                center: Offset(
+                  center.dx + cx2 * radius,
+                  center.dy + cy2 * radius,
+                ),
+                radius: radius * 0.28,
+              ),
+            );
       }
 
       canvas.drawPath(path, patchPaint);
@@ -620,7 +743,8 @@ class ThreeDSoccerBallPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant ThreeDSoccerBallPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue || oldDelegate.theme != theme;
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.theme != theme;
   }
 }
 
@@ -643,8 +767,10 @@ class Point3D {
 
   Point3D(this.x, this.y, this.z);
 
-  Point3D operator +(Point3D other) => Point3D(x + other.x, y + other.y, z + other.z);
-  Point3D operator -(Point3D other) => Point3D(x - other.x, y - other.y, z - other.z);
+  Point3D operator +(Point3D other) =>
+      Point3D(x + other.x, y + other.y, z + other.z);
+  Point3D operator -(Point3D other) =>
+      Point3D(x - other.x, y - other.y, z - other.z);
   Point3D operator *(double scale) => Point3D(x * scale, y * scale, z * scale);
   Point3D operator /(double scale) => Point3D(x / scale, y / scale, z / scale);
 

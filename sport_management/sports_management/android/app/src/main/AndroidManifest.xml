@@ -1,8 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="sports_management"
+        android:label="Sport Energy"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/sport_energy_launcher"
+        android:roundIcon="@drawable/sport_energy_launcher"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"

@@ -93,7 +93,7 @@ class _AppState extends State<App> {
               }
             },
             child: MaterialApp.router(
-              title: 'Sports Management',
+              title: 'Sport Energy',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,

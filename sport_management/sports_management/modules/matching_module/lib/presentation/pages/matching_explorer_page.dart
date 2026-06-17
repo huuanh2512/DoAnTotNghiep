@@ -427,81 +427,94 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFFF5600,
-                            ).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFFF5600,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: SportIconImage(
+                              imageUrl: session.sportIconUrl,
+                              fallbackIcon: Icons.sports_soccer,
+                              fallbackColor: const Color(0xFFFF5600),
+                              size: 20,
+                            ),
                           ),
-                          child: SportIconImage(
-                            imageUrl: session.sportIconUrl,
-                            fallbackIcon: Icons.sports_soccer,
-                            fallbackColor: const Color(0xFFFF5600),
-                            size: 20,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              session.sportName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          session.sportName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      alignment: WrapAlignment.end,
-                      children: [
-                        if (session.isFixedSchedule)
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          if (session.isFixedSchedule)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                context.tr(
+                                  vi: 'Lịch cố định',
+                                  en: 'Fixed schedule',
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: 10,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
+                              color: isFull
+                                  ? Colors.red.withValues(alpha: 0.1)
+                                  : Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              context.tr(
-                                vi: 'Lịch cố định',
-                                en: 'Fixed schedule',
-                              ),
-                              style: const TextStyle(
-                                color: Colors.blue,
+                              _sessionStatusLabel(session),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isFull ? Colors.red : Colors.green,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isFull
-                                ? Colors.red.withValues(alpha: 0.1)
-                                : Colors.green.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _sessionStatusLabel(session),
-                            style: TextStyle(
-                              color: isFull ? Colors.red : Colors.green,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),

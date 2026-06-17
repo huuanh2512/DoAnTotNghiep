@@ -216,8 +216,10 @@ const AdminOverviewPage: React.FC = () => {
     loadReport();
   }, [loadReport]);
 
-  const topFacility = report.facilityStats[0]?.facilityName
-    ? `${report.facilityStats[0].facilityName} (${formatVND(report.facilityStats[0].paidRevenue)})`
+  const topFacilityName = report.facilityStats[0]?.facilityName || '';
+  const topFacilityRevenue = numberValue(report.facilityStats[0]?.paidRevenue);
+  const topFacilityText = topFacilityName
+    ? `${topFacilityName} (${formatVND(topFacilityRevenue)})`
     : 'Chưa có dữ liệu';
 
   const sportPieData = report.sportStats.map((item: any) => ({
@@ -312,8 +314,19 @@ const AdminOverviewPage: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} sm={6}>
-          <Card className="rounded-xl border border-semantic-border/20 bg-white dark:bg-surface-dark1 shadow-sm">
-            <Statistic title="Cơ sở doanh thu cao nhất" value={topFacility} formatter={(val) => <span className="font-bold text-xs dark:text-white block truncate">{val}</span>} prefix={<EnvironmentOutlined className="text-emerald-500" />} />
+          <Card className="rounded-xl border border-semantic-border/20 bg-white dark:bg-surface-dark1 shadow-sm h-full overflow-hidden">
+            <div className="text-ink-muted dark:text-ink-darkMuted text-sm mb-3 truncate">
+              Cơ sở doanh thu cao nhất
+            </div>
+            <div className="flex items-center gap-3 min-w-0">
+              <EnvironmentOutlined className="text-emerald-500 text-2xl shrink-0" />
+              <span
+                className="font-bold text-sm leading-5 dark:text-white min-w-0 flex-1 truncate"
+                title={topFacilityText}
+              >
+                {topFacilityText}
+              </span>
+            </div>
           </Card>
         </Col>
         <Col xs={24} sm={6}>
