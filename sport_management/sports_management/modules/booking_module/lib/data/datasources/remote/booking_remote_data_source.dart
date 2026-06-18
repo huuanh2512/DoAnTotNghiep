@@ -27,6 +27,10 @@ abstract class BookingRemoteDataSource {
   });
   Future<BaseResponse<dynamic>> getBookingById(String id);
   Future<BaseResponse<dynamic>> createBooking(Map<String, dynamic> data);
+  Future<BaseResponse<dynamic>> updateBooking(
+    String id,
+    Map<String, dynamic> data,
+  );
   Future<BaseResponse<dynamic>> updateBookingStatus(String id, String status);
   Future<BaseResponse<dynamic>> cancelBooking(String id);
   Future<BaseResponse<dynamic>> createFixedSchedule(Map<String, dynamic> data);
@@ -143,6 +147,14 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   @override
   Future<BaseResponse<dynamic>> createBooking(Map<String, dynamic> data) {
     return _bookingService.createBooking(data);
+  }
+
+  @override
+  Future<BaseResponse<dynamic>> updateBooking(
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    return _bookingService.updateBooking(id, data);
   }
 
   @override

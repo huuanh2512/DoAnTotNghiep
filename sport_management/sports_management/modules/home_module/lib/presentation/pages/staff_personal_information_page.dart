@@ -1,7 +1,9 @@
 import 'package:authentication_module/authentication_module.dart';
+import 'package:dio/dio.dart';
 import 'package:facility_module/facility_module.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:notification_module/notification_module.dart';
 import 'package:server_module/server_module.dart';
 
@@ -25,9 +27,11 @@ class _StaffPersonalInformationPageState
 
   UserResult? _user;
   FacilityEntity? _facility;
+  String? _avatarUrl;
   bool _isLoading = true;
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isAvatarBusy = false;
 
   @override
   void initState() {
@@ -71,6 +75,11 @@ class _StaffPersonalInformationPageState
               profile['phone']?.toString() ??
               userMap['phone']?.toString() ??
               '';
+          _avatarUrl =
+              profile['avatarUrl']?.toString() ??
+              profile['avatar']?.toString() ??
+              userMap['avatarUrl']?.toString() ??
+              userMap['avatar']?.toString();
         }
       } catch (error) {
         debugPrint('Error loading staff profile: $error');
@@ -80,6 +89,7 @@ class _StaffPersonalInformationPageState
     if (_nameController.text.isEmpty) {
       _nameController.text = localUser?.name ?? '';
     }
+    _avatarUrl ??= localUser?.avatarUrl;
 
     try {
       final response = await GetIt.I<GetFacilitiesUseCase>()();
@@ -103,9 +113,7 @@ class _StaffPersonalInformationPageState
   }
 
   Future<void> _updateInformation() async {
-    if (!_formKey.currentState!.validate() ||
-        _user?.userId == null ||
-        _facility == null) {
+    if (!_formKey.currentState!.validate() || _user?.userId == null) {
       return;
     }
 
@@ -129,33 +137,39 @@ class _StaffPersonalInformationPageState
           userId: _user!.userId!,
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
+          avatar: _avatarUrl,
         ),
       );
 
-      final profileFailure = profileResult.fold(
-        (failure) => failure.message,
-        (_) => null,
-      );
+      final profileFailure = profileResult.fold((failure) => failure.message, (
+        user,
+      ) {
+        _user = user;
+        _avatarUrl = user.avatarUrl ?? _avatarUrl;
+        return null;
+      });
       if (profileFailure != null) {
         _showMessage(profileFailure, isError: true);
         return;
       }
 
-      final facilityResponse = await GetIt.I<UpdateFacilityUseCase>()(
-        id: _facility!.id,
-        name: _facilityNameController.text.trim(),
-        address: _facilityAddressController.text.trim(),
-      );
-      if (!mounted) return;
-      if (!facilityResponse.success || facilityResponse.data == null) {
-        _showMessage(
-          facilityResponse.message ?? facilityUpdateError,
-          isError: true,
+      if (_facility != null) {
+        final facilityResponse = await GetIt.I<UpdateFacilityUseCase>()(
+          id: _facility!.id,
+          name: _facilityNameController.text.trim(),
+          address: _facilityAddressController.text.trim(),
         );
-        return;
+        if (!mounted) return;
+        if (!facilityResponse.success || facilityResponse.data == null) {
+          _showMessage(
+            facilityResponse.message ?? facilityUpdateError,
+            isError: true,
+          );
+          return;
+        }
+        _facility = facilityResponse.data;
       }
 
-      _facility = facilityResponse.data;
       setState(() => _isEditing = false);
       _showMessage(updateSuccess);
     } catch (error) {
@@ -163,6 +177,183 @@ class _StaffPersonalInformationPageState
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _chooseAvatarSource() async {
+    if (_user?.userId == null || _isAvatarBusy) return;
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: Text(context.tr(vi: 'Chụp ảnh mới', en: 'Take photo')),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: Text(
+                  context.tr(vi: 'Chọn từ thư viện', en: 'Choose from library'),
+                ),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (source == null) return;
+    await _pickUploadAndSaveAvatar(source);
+  }
+
+  Future<void> _pickUploadAndSaveAvatar(ImageSource source) async {
+    final userId = _user?.userId;
+    if (userId == null) return;
+    final uploadFailedMessage = context.tr(
+      vi: 'Tải ảnh đại diện thất bại.',
+      en: 'Unable to upload avatar.',
+    );
+    final missingUrlMessage = context.tr(
+      vi: 'Không tìm thấy đường dẫn ảnh từ máy chủ.',
+      en: 'Image URL was not returned by server.',
+    );
+    final avatarUpdatedMessage = context.tr(
+      vi: 'Đã cập nhật ảnh đại diện.',
+      en: 'Avatar updated.',
+    );
+    final errorPrefix = context.tr(
+      vi: 'Có lỗi xảy ra: ',
+      en: 'An error occurred: ',
+    );
+
+    setState(() => _isAvatarBusy = true);
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 900,
+        maxHeight: 900,
+      );
+      if (image == null) return;
+
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          await image.readAsBytes(),
+          filename: image.name,
+        ),
+      });
+      final uploadResponse = await GetIt.I<UploadService>().uploadSingle(
+        formData,
+      );
+      if (!uploadResponse.success || uploadResponse.data == null) {
+        _showMessage(
+          uploadResponse.message ?? uploadFailedMessage,
+          isError: true,
+        );
+        return;
+      }
+
+      final rawData = uploadResponse.data as Map<String, dynamic>;
+      final nestedData = rawData['data'];
+      final avatarUrl =
+          rawData['url']?.toString() ??
+          (nestedData is Map ? nestedData['url']?.toString() : null) ??
+          (nestedData is Map ? nestedData['path']?.toString() : null);
+      if (avatarUrl == null || avatarUrl.isEmpty) {
+        _showMessage(missingUrlMessage, isError: true);
+        return;
+      }
+
+      final result = await GetIt.I<UpdateProfileUseCase>()(
+        UpdateProfileRequest(
+          userId: userId,
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          avatar: avatarUrl,
+        ),
+      );
+      if (!mounted) return;
+      result.fold((failure) => _showMessage(failure.message, isError: true), (
+        user,
+      ) {
+        setState(() {
+          _user = user;
+          _avatarUrl = avatarUrl;
+          _isEditing = true;
+        });
+        _showMessage(avatarUpdatedMessage);
+      });
+    } catch (error) {
+      _showMessage('$errorPrefix$error', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isAvatarBusy = false);
+      }
+    }
+  }
+
+  Future<void> _deleteAvatar() async {
+    final userId = _user?.userId;
+    if (userId == null || _isAvatarBusy) return;
+    final avatarDeletedMessage = context.tr(
+      vi: 'Đã xóa ảnh đại diện.',
+      en: 'Avatar deleted.',
+    );
+    final errorPrefix = context.tr(
+      vi: 'Có lỗi xảy ra: ',
+      en: 'An error occurred: ',
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr(vi: 'Xóa ảnh đại diện?', en: 'Delete avatar?')),
+        content: Text(
+          context.tr(
+            vi: 'Ảnh đại diện hiện tại sẽ được gỡ khỏi tài khoản nhân viên.',
+            en: 'The current avatar will be removed from this staff account.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(context.tr(vi: 'Hủy', en: 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(context.tr(vi: 'Xóa ảnh', en: 'Delete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isAvatarBusy = true);
+    try {
+      final result = await GetIt.I<DeleteUserAvatarUseCase>()(userId);
+      if (!mounted) return;
+      result.fold((failure) => _showMessage(failure.message, isError: true), (
+        user,
+      ) {
+        setState(() {
+          _user = user;
+          _avatarUrl = null;
+          _isEditing = true;
+        });
+        _showMessage(avatarDeletedMessage);
+      });
+    } catch (error) {
+      _showMessage('$errorPrefix$error', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isAvatarBusy = false);
       }
     }
   }
@@ -203,14 +394,76 @@ class _StaffPersonalInformationPageState
                 padding: const EdgeInsets.all(16),
                 children: [
                   Center(
-                    child: CircleAvatar(
-                      radius: 48,
-                      backgroundImage: _user?.avatarUrl?.isNotEmpty == true
-                          ? NetworkImage(_user!.avatarUrl!)
-                          : null,
-                      child: _user?.avatarUrl?.isNotEmpty == true
-                          ? null
-                          : const Icon(Icons.person, size: 48),
+                    child: Column(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 48,
+                              backgroundColor: Colors.orange.shade50,
+                              backgroundImage:
+                                  _avatarUrl != null && _avatarUrl!.isNotEmpty
+                                  ? NetworkImage(_avatarUrl!)
+                                  : null,
+                              child: _avatarUrl == null || _avatarUrl!.isEmpty
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 48,
+                                      color: Colors.orange.shade900,
+                                    )
+                                  : null,
+                            ),
+                            if (_isEditing)
+                              Positioned(
+                                right: -2,
+                                bottom: -2,
+                                child: Material(
+                                  color: theme.colorScheme.primary,
+                                  shape: const CircleBorder(),
+                                  child: IconButton(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 38,
+                                      minHeight: 38,
+                                    ),
+                                    icon: _isAvatarBusy
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.camera_alt_outlined,
+                                            size: 18,
+                                            color: Colors.white,
+                                          ),
+                                    onPressed: _isAvatarBusy
+                                        ? null
+                                        : _chooseAvatarSource,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (_isEditing &&
+                            _avatarUrl != null &&
+                            _avatarUrl!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _isAvatarBusy ? null : _deleteAvatar,
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            label: Text(
+                              context.tr(
+                                vi: 'Xóa ảnh đại diện',
+                                en: 'Delete avatar',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -281,7 +534,7 @@ class _StaffPersonalInformationPageState
                             ),
                           ],
                   ),
-                  if (_isEditing && _facility != null) ...[
+                  if (_isEditing) ...[
                     const SizedBox(height: 24),
                     SizedBox(
                       height: 50,

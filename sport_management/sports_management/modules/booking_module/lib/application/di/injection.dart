@@ -8,6 +8,7 @@ import '../../data/repositories/booking_repository_impl.dart';
 import '../../domain/usecases/get_courts_usecase.dart';
 import '../../domain/usecases/get_slot_config_usecase.dart';
 import '../../domain/usecases/create_booking_usecase.dart';
+import '../../domain/usecases/update_booking_usecase.dart';
 import '../../domain/usecases/get_booking_history_usecase.dart';
 import '../../domain/usecases/get_booking_detail_usecase.dart';
 import '../../domain/usecases/update_booking_status_usecase.dart';
@@ -77,6 +78,12 @@ Future<void> initInjection() async {
   if (!sl.isRegistered<CreateBookingUseCase>()) {
     sl.registerLazySingleton<CreateBookingUseCase>(
       () => CreateBookingUseCase(sl<BookingRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<UpdateBookingUseCase>()) {
+    sl.registerLazySingleton<UpdateBookingUseCase>(
+      () => UpdateBookingUseCase(sl<BookingRepository>()),
     );
   }
 

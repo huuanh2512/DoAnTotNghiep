@@ -34,7 +34,22 @@ class BookingService {
     }
   }
 
-  Future<BaseResponse<dynamic>> updateBookingStatus(String id, String status) async {
+  Future<BaseResponse<dynamic>> updateBooking(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _dioClient.dio.put('/booking/$id', data: data);
+      return BaseResponse.fromJson(response.data, (json) => json);
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
+  }
+
+  Future<BaseResponse<dynamic>> updateBookingStatus(
+    String id,
+    String status,
+  ) async {
     try {
       final response = await _dioClient.dio.put(
         '/booking/$id/status',

@@ -390,6 +390,11 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
   Widget _buildSessionCard(MatchingSessionEntity session) {
     final theme = Theme.of(context);
     final isFull = _isSessionFull(session);
+    final description = session.description.trim();
+    final visibleDescription =
+        description == 'Fixed matching schedule occurrence snapshot.'
+        ? ''
+        : description;
     final progress = session.totalPlayersNeeded > 0
         ? session.approvedCount / session.totalPlayersNeeded
         : 1.0;
@@ -621,9 +626,9 @@ class _MatchingExplorerPageState extends State<MatchingExplorerPage> {
                 const SizedBox(height: 12),
 
                 // Description snippet
-                if (session.description.isNotEmpty) ...[
+                if (visibleDescription.isNotEmpty) ...[
                   Text(
-                    session.description,
+                    visibleDescription,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

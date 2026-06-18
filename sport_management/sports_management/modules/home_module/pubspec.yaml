@@ -25,6 +25,8 @@ dependencies:
     path: ../authentication_module
   booking_module:
     path: ../booking_module
+  app_module:
+    path: ../app_module
   facility_module:
     path: ../facility_module
   payment_module:

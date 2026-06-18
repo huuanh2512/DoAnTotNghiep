@@ -151,6 +151,15 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   ]),
                   const SizedBox(height: 24),
                   _buildSectionTitle(
+                    context.tr(
+                      vi: 'THÔNG TIN NGƯỜI ĐẶT',
+                      en: 'BOOKER INFORMATION',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildBookerInfoCard(booking),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle(
                     context.tr(vi: 'THÔNG TIN SÂN', en: 'COURT INFORMATION'),
                   ),
                   const SizedBox(height: 12),
@@ -327,6 +336,39 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     return booking.status == 'CANCELLED' &&
         (BookingUiHelper.cancellationMessageVi(booking) != null ||
             booking.cancelledAt != null);
+  }
+
+  String? _textOrNull(String? value) {
+    final text = value?.trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  Widget _buildBookerInfoCard(BookingDetailEntity booking) {
+    final guestName = _textOrNull(booking.guestName);
+    final guestPhone = _textOrNull(booking.guestPhone);
+    final user = booking.user;
+    final registeredName = _textOrNull(user?.name);
+    final registeredEmail = _textOrNull(user?.email);
+    final registeredPhone = _textOrNull(user?.phone);
+    final isGuest = guestName != null || guestPhone != null;
+
+    return _buildInfoCard([
+      _buildInfoRow(
+        context.tr(vi: 'Người đặt', en: 'Booker'),
+        guestName ??
+            registeredName ??
+            context.tr(vi: 'Chưa có tên', en: 'No name'),
+        isBold: true,
+      ),
+      _buildInfoRow(
+        context.tr(vi: 'Số điện thoại', en: 'Phone'),
+        guestPhone ??
+            registeredPhone ??
+            context.tr(vi: 'Chưa có SĐT', en: 'No phone'),
+      ),
+      if (!isGuest && registeredEmail != null)
+        _buildInfoRow(context.tr(vi: 'Email', en: 'Email'), registeredEmail),
+    ]);
   }
 
   Widget _buildCancellationInfoCard(BookingDetailEntity booking) {

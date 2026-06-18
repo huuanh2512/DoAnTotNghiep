@@ -1068,6 +1068,8 @@ class ReportService {
     const customerStatsByKey = new Map();
 
     for (const court of scope.courts) {
+      const sportId = this._normalizeId(court.sport_id);
+      const sportName = court.sport_id?.name || '';
       const operatingIntervals = this._operatingIntervals(court, dateRange);
       const baseAvailableMinutes = this._intervalMinutes(operatingIntervals);
       const blockUnavailable = this._unavailableSummary(
@@ -1091,6 +1093,8 @@ class ReportService {
       courtStatsById.set(court._id.toString(), {
         courtId: court._id.toString(),
         courtName: court.name || '',
+        sportId,
+        sportName,
         status: court.status || '',
         activeBookings: 0,
         confirmedBookings: 0,
@@ -1220,6 +1224,7 @@ class ReportService {
       appliedFilters: {
         facilityId: filters.facilityId || null,
         courtId: filters.courtId || null,
+        sportId: filters.sportId || null,
         status: filters.status || null
       },
       ...counts,

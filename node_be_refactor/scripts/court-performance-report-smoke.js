@@ -11,8 +11,15 @@ const ids = {
   staffNoScope: '222222222222222222222222',
   facilityA: 'aaaaaaaaaaaaaaaaaaaaaaaa',
   facilityB: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+  sportA: '333333333333333333333333',
+  sportB: '444444444444444444444444',
   courtA: 'cccccccccccccccccccccccc',
   courtB: 'dddddddddddddddddddddddd'
+};
+
+const sports = {
+  [ids.sportA]: { _id: ids.sportA, name: 'Football' },
+  [ids.sportB]: { _id: ids.sportB, name: 'Tennis' }
 };
 
 const courts = [
@@ -20,6 +27,7 @@ const courts = [
     _id: ids.courtA,
     name: 'Court A',
     facility_id: ids.facilityA,
+    sport_id: sports[ids.sportA],
     status: 'ACTIVE',
     slot_config: {
       opening_minutes: 600,
@@ -31,6 +39,7 @@ const courts = [
     _id: ids.courtB,
     name: 'Court B',
     facility_id: ids.facilityB,
+    sport_id: sports[ids.sportB],
     status: 'ACTIVE',
     slot_config: {
       opening_minutes: 600,
@@ -60,7 +69,22 @@ Court.find = query => ({
       ) {
         return false;
       }
-      return !query._id || String(query._id) === String(court._id);
+      if (query._id && String(query._id) !== String(court._id)) return false;
+      if (query.sport_id && String(query.sport_id) !== String(court.sport_id._id)) return false;
+      return true;
+    }),
+    populate: () => ({
+      lean: async () => courts.filter(court => {
+        if (
+          query.facility_id?.$in
+          && !query.facility_id.$in.map(String).includes(String(court.facility_id))
+        ) {
+          return false;
+        }
+        if (query._id && String(query._id) !== String(court._id)) return false;
+        if (query.sport_id && String(query.sport_id) !== String(court.sport_id._id)) return false;
+        return true;
+      })
     })
   })
 });
@@ -260,6 +284,8 @@ async function run() {
   assert.equal(staffReport.refundedAmount, 30);
   assert.equal(staffReport.courtStats[0].bookedMinutes, 600);
   assert.equal(staffReport.courtStats[0].availableMinutes, 18000);
+  assert.equal(staffReport.courtStats[0].sportId, ids.sportA);
+  assert.equal(staffReport.courtStats[0].sportName, 'Football');
   assert.equal(staffReport.customerStats.length, 6);
   assert.equal(
     staffReport.customerStats.every(item => item.customerKey.length === 16),
@@ -335,6 +361,16 @@ async function run() {
     adminReport.courtStats.map(item => item.courtId),
     [ids.courtA, ids.courtB]
   );
+
+  const sportReport = await reportService.getCourtPerformance(
+    { ...dateFilters, sportId: ids.sportA },
+    { id: ids.staff, role: 'ADMIN' }
+  );
+  assert.deepEqual(
+    sportReport.courtStats.map(item => item.courtId),
+    [ids.courtA]
+  );
+  assert.equal(sportReport.appliedFilters.sportId, ids.sportA);
 
   console.log('Court performance report smoke tests passed.');
 }

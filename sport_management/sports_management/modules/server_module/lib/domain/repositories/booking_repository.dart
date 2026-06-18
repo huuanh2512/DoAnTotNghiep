@@ -36,6 +36,11 @@ abstract class BookingRepository {
 
   Future<BaseResponse<BookingEntity>> createBooking(Map<String, dynamic> data);
 
+  Future<BaseResponse<BookingEntity>> updateBooking(
+    String id,
+    Map<String, dynamic> data,
+  );
+
   Future<BaseResponse<BookingEntity>> updateBookingStatus(
     String id,
     String status,

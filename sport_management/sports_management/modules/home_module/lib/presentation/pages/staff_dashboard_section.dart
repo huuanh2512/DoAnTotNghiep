@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app_module/app_module.dart';
 import 'package:authentication_module/authentication_module.dart';
 import 'package:server_module/server_module.dart';
 import 'package:booking_module/booking_module.dart';
@@ -30,6 +31,7 @@ class StaffDashboardSection extends StatefulWidget {
 
 class _StaffDashboardSectionState extends State<StaffDashboardSection> {
   static const String _brandLogoAsset = 'assets/images/sport_energy_logo.png';
+  static const String _allFilterValue = '__all__';
 
   int _currentIndex = 0;
   UserResult? _user;
@@ -46,6 +48,10 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
   final _bookingSearchController = TextEditingController();
   String _bookingSearchQuery = '';
   String? _selectedStatusFilter;
+  DateTime? _bookingDateFrom;
+  DateTime? _bookingDateTo;
+  String? _selectedCourtFilterId;
+  String? _selectedSportFilterName;
   final _bookingScrollController = ScrollController();
   Map<String, UserEntity> _usersCache = {};
   StreamSubscription? _eventSubscription;
@@ -348,6 +354,26 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
             _facilities = state.facilities;
             _selectedFacilityId = state.selectedFacilityId;
             _usersCache = facilityUsers;
+            final courtFilterStillExists =
+                _selectedCourtFilterId == null ||
+                state.bookings.any(
+                  (booking) =>
+                      (booking.courtId ?? booking.court?.id) ==
+                      _selectedCourtFilterId,
+                );
+            if (!courtFilterStillExists) {
+              _selectedCourtFilterId = null;
+            }
+            final sportFilterStillExists =
+                _selectedSportFilterName == null ||
+                state.bookings.any(
+                  (booking) =>
+                      _normalizeFilterText(booking.sportName) ==
+                      _normalizeFilterText(_selectedSportFilterName),
+                );
+            if (!sportFilterStillExists) {
+              _selectedSportFilterName = null;
+            }
             _isLoading = false;
           });
           _paymentCubit.loadPayments(facilityId: state.selectedFacilityId);
@@ -422,6 +448,184 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
     final h = minutes ~/ 60;
     final m = minutes % 60;
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+
+  DateTime? _bookingDateValue(BookingDetailEntity booking) {
+    final parsed = DateTime.tryParse(booking.bookingDate ?? '');
+    if (parsed == null) return null;
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  bool _isFixedBooking(BookingDetailEntity booking) {
+    return booking.isFixedSchedule == true || booking.fixedScheduleId != null;
+  }
+
+  bool _isFixedMatchingBooking(BookingDetailEntity booking) {
+    return _isFixedBooking(booking) && booking.matchingSessionId != null;
+  }
+
+  bool _isActionablePendingBooking(BookingDetailEntity booking) {
+    return booking.status == 'PENDING' && !_isFixedBooking(booking);
+  }
+
+  bool _isInStaffBookingWindow(BookingDetailEntity booking) {
+    final date = _bookingDateValue(booking);
+    if (date == null) return true;
+    if (_bookingDateFrom != null || _bookingDateTo != null) {
+      final from = _bookingDateFrom;
+      final to = _bookingDateTo ?? _bookingDateFrom;
+      if (from != null && date.isBefore(_dateOnly(from))) return false;
+      if (to != null && date.isAfter(_dateOnly(to))) return false;
+      return true;
+    }
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastVisibleDate = today.add(const Duration(days: 7));
+    return !date.isBefore(today) && !date.isAfter(lastVisibleDate);
+  }
+
+  String _formatBookingFilterDate(DateTime date) {
+    return DateDisplayFormatter.date(_dateOnly(date));
+  }
+
+  String _bookingDateFilterLabel() {
+    if (_bookingDateFrom == null && _bookingDateTo == null) {
+      return context.tr(vi: '7 ngày tới', en: 'Next 7 days');
+    }
+    final from = _bookingDateFrom;
+    final to = _bookingDateTo ?? _bookingDateFrom;
+    if (from != null &&
+        to != null &&
+        _dateOnly(from).isAtSameMomentAs(_dateOnly(to))) {
+      return _formatBookingFilterDate(from);
+    }
+    if (from != null && to != null) {
+      return '${_formatBookingFilterDate(from)} - ${_formatBookingFilterDate(to)}';
+    }
+    return context.tr(vi: 'Tùy chọn', en: 'Custom');
+  }
+
+  Future<void> _pickSingleBookingDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _bookingDateFrom ?? _dateOnly(now),
+      firstDate: _dateOnly(now).subtract(const Duration(days: 365)),
+      lastDate: _dateOnly(now).add(const Duration(days: 365)),
+    );
+    if (picked == null || !mounted) return;
+    final selected = _dateOnly(picked);
+    setState(() {
+      _bookingDateFrom = selected;
+      _bookingDateTo = selected;
+    });
+  }
+
+  Future<void> _pickBookingDateRange() async {
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: _bookingDateFrom != null
+          ? DateTimeRange(
+              start: _bookingDateFrom!,
+              end: _bookingDateTo ?? _bookingDateFrom!,
+            )
+          : DateTimeRange(
+              start: today,
+              end: today.add(const Duration(days: 7)),
+            ),
+      firstDate: today.subtract(const Duration(days: 365)),
+      lastDate: today.add(const Duration(days: 365)),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _bookingDateFrom = _dateOnly(picked.start);
+      _bookingDateTo = _dateOnly(picked.end);
+    });
+  }
+
+  void _clearBookingDateFilter() {
+    setState(() {
+      _bookingDateFrom = null;
+      _bookingDateTo = null;
+    });
+  }
+
+  String _normalizeFilterText(String? value) {
+    return (value ?? '').trim().toLowerCase();
+  }
+
+  String? _bookingCourtId(BookingDetailEntity booking) {
+    final id = booking.courtId ?? booking.court?.id;
+    if (id == null || id.trim().isEmpty) return null;
+    return id;
+  }
+
+  String _bookingCourtName(BookingDetailEntity booking) {
+    final name = booking.courtName ?? booking.court?.name;
+    if (name != null && name.trim().isNotEmpty) return name.trim();
+    return context.tr(vi: 'Sân chưa rõ', en: 'Unknown court');
+  }
+
+  List<MapEntry<String, String>> _courtFilterOptions() {
+    final courtsById = <String, String>{};
+    for (final booking in _bookings) {
+      final id = _bookingCourtId(booking);
+      if (id == null) continue;
+      courtsById.putIfAbsent(id, () => _bookingCourtName(booking));
+    }
+    final options = courtsById.entries.toList();
+    options.sort((a, b) => a.value.compareTo(b.value));
+    return options;
+  }
+
+  String? _bookingSportName(BookingDetailEntity booking) {
+    final name = booking.sportName;
+    if (name == null || name.trim().isEmpty) return null;
+    return name.trim();
+  }
+
+  List<String> _sportFilterOptions() {
+    final sportsByKey = <String, String>{};
+    for (final booking in _bookings) {
+      final name = _bookingSportName(booking);
+      if (name == null) continue;
+      sportsByKey.putIfAbsent(_normalizeFilterText(name), () => name);
+    }
+    final options = sportsByKey.values.toList();
+    options.sort();
+    return options;
+  }
+
+  void _clearBookingAttributeFilters() {
+    setState(() {
+      _selectedCourtFilterId = null;
+      _selectedSportFilterName = null;
+    });
+  }
+
+  int _compareBookingSchedule(BookingDetailEntity a, BookingDetailEntity b) {
+    final aDate = _bookingDateValue(a);
+    final bDate = _bookingDateValue(b);
+    if (aDate != null && bDate != null) {
+      final dateCompare = aDate.compareTo(bDate);
+      if (dateCompare != 0) return dateCompare;
+    } else if (aDate != null) {
+      return -1;
+    } else if (bDate != null) {
+      return 1;
+    }
+
+    final timeCompare = (a.startMinutes ?? 0).compareTo(b.startMinutes ?? 0);
+    if (timeCompare != 0) return timeCompare;
+    return (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+      a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
   }
 
   // --- TAB 0: TỔNG QUAN ---
@@ -715,9 +919,28 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
   // --- TAB 2: ĐẶT LỊCH (DUYỆT ĐẶT LỊCH) ---
   Widget _buildBookingTab() {
     final filteredBookings = _bookings.where((b) {
-      // 1. Filter by status
-      if (_selectedStatusFilter != null && b.status != _selectedStatusFilter) {
+      if (!_isInStaffBookingWindow(b)) {
         return false;
+      }
+
+      if (_selectedCourtFilterId != null &&
+          _bookingCourtId(b) != _selectedCourtFilterId) {
+        return false;
+      }
+
+      if (_selectedSportFilterName != null &&
+          _normalizeFilterText(_bookingSportName(b)) !=
+              _normalizeFilterText(_selectedSportFilterName)) {
+        return false;
+      }
+
+      // 1. Filter by status
+      if (_selectedStatusFilter != null) {
+        if (_selectedStatusFilter == 'PENDING') {
+          if (!_isActionablePendingBooking(b)) return false;
+        } else if (b.status != _selectedStatusFilter) {
+          return false;
+        }
       }
 
       // 2. Filter rescheduled bookings
@@ -746,12 +969,8 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
       return true;
     }).toList();
 
-    // Sắp xếp ngược lại cho lịch để xem mới nhất trước
-    filteredBookings.sort(
-      (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
-        a.createdAt ?? DateTime.now(),
-      ),
-    );
+    // Sort by schedule so staff see the nearest sessions first.
+    filteredBookings.sort(_compareBookingSchedule);
 
     final bookingList = RefreshIndicator(
       onRefresh: () =>
@@ -937,9 +1156,256 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          _buildBookingDateFilterRow(),
+          const SizedBox(height: 12),
+          _buildBookingAttributeFilterRow(),
         ],
       ),
     );
+  }
+
+  Widget _buildBookingDateFilterRow() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: Color(0xFFFF5600),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _bookingDateFilterLabel(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: _pickSingleBookingDate,
+            icon: const Icon(Icons.today_outlined, size: 16),
+            label: Text(context.tr(vi: 'Chọn ngày', en: 'Date')),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: _pickBookingDateRange,
+            icon: const Icon(Icons.date_range_outlined, size: 16),
+            label: Text(context.tr(vi: 'Khoảng ngày', en: 'Date range')),
+          ),
+          if (_bookingDateFrom != null || _bookingDateTo != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: context.tr(vi: 'Xóa lọc ngày', en: 'Clear date'),
+              onPressed: _clearBookingDateFilter,
+              icon: const Icon(Icons.close, size: 18),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingAttributeFilterRow() {
+    final courtOptions = _courtFilterOptions();
+    final sportOptions = _sportFilterOptions();
+    final selectedCourtLabel = courtOptions
+        .where((option) => option.key == _selectedCourtFilterId)
+        .map((option) => option.value)
+        .cast<String?>()
+        .firstWhere((_) => true, orElse: () => null);
+    final selectedSportLabel = sportOptions
+        .where(
+          (option) =>
+              _normalizeFilterText(option) ==
+              _normalizeFilterText(_selectedSportFilterName),
+        )
+        .cast<String?>()
+        .firstWhere((_) => true, orElse: () => null);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterPopupButton(
+            width: 170,
+            icon: Icons.stadium_outlined,
+            label:
+                selectedCourtLabel ??
+                context.tr(vi: 'Tất cả sân', en: 'All courts'),
+            isActive: _selectedCourtFilterId != null,
+            onTap: () => _showCourtFilterPopup(courtOptions),
+          ),
+          const SizedBox(width: 8),
+          _buildFilterPopupButton(
+            width: 190,
+            icon: Icons.sports_soccer_outlined,
+            label:
+                selectedSportLabel ??
+                context.tr(vi: 'Tất cả môn', en: 'All sports'),
+            isActive: _selectedSportFilterName != null,
+            onTap: () => _showSportFilterPopup(sportOptions),
+          ),
+          if (_selectedCourtFilterId != null ||
+              _selectedSportFilterName != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: context.tr(
+                vi: 'Xóa lọc sân/môn',
+                en: 'Clear court/sport filters',
+              ),
+              onPressed: _clearBookingAttributeFilters,
+              icon: const Icon(Icons.close, size: 18),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterPopupButton({
+    required double width,
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: width,
+      height: 44,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isActive
+                    ? const Color(0xFFFF5600)
+                    : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isActive ? const Color(0xFFFF5600) : Colors.black87,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isActive
+                          ? const Color(0xFFFF5600)
+                          : Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCourtFilterPopup(
+    List<MapEntry<String, String>> courtOptions,
+  ) async {
+    final selected = await AppPopup.showSelection<String>(
+      context,
+      title: context.tr(vi: 'Chọn sân', en: 'Select court'),
+      subtitle: context.tr(
+        vi: 'Lọc lịch đặt sân theo sân cụ thể.',
+        en: 'Filter bookings by a specific court.',
+      ),
+      icon: Icons.stadium_outlined,
+      confirmLabel: context.tr(vi: 'Áp dụng', en: 'Apply'),
+      searchHint: context.tr(vi: 'Tìm sân...', en: 'Search courts...'),
+      selectedValue: _selectedCourtFilterId ?? _allFilterValue,
+      options: [
+        AppPopupOption<String>(
+          value: _allFilterValue,
+          label: context.tr(vi: 'Tất cả sân', en: 'All courts'),
+          icon: Icons.select_all_rounded,
+        ),
+        ...courtOptions.map(
+          (option) => AppPopupOption<String>(
+            value: option.key,
+            label: option.value,
+            icon: Icons.stadium_outlined,
+          ),
+        ),
+      ],
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _selectedCourtFilterId = selected == _allFilterValue ? null : selected;
+    });
+  }
+
+  Future<void> _showSportFilterPopup(List<String> sportOptions) async {
+    final selected = await AppPopup.showSelection<String>(
+      context,
+      title: context.tr(vi: 'Chọn môn thể thao', en: 'Select sport'),
+      subtitle: context.tr(
+        vi: 'Lọc lịch đặt sân theo môn thể thao.',
+        en: 'Filter bookings by sport.',
+      ),
+      icon: Icons.sports_soccer_outlined,
+      confirmLabel: context.tr(vi: 'Áp dụng', en: 'Apply'),
+      searchHint: context.tr(vi: 'Tìm môn...', en: 'Search sports...'),
+      selectedValue: _selectedSportFilterName ?? _allFilterValue,
+      options: [
+        AppPopupOption<String>(
+          value: _allFilterValue,
+          label: context.tr(vi: 'Tất cả môn', en: 'All sports'),
+          icon: Icons.select_all_rounded,
+        ),
+        ...sportOptions.map(
+          (sportName) => AppPopupOption<String>(
+            value: sportName,
+            label: sportName,
+            icon: Icons.sports_soccer_outlined,
+          ),
+        ),
+      ],
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _selectedSportFilterName = selected == _allFilterValue ? null : selected;
+    });
   }
 
   Widget _buildStatusChip(String label, String? value) {
@@ -971,11 +1437,11 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
   Widget _buildStaffBookingCard(BookingDetailEntity booking) {
     final theme = Theme.of(context);
     final isPending = booking.status == 'PENDING';
+    final isActionablePending = _isActionablePendingBooking(booking);
     final isConfirmed = booking.status == 'CONFIRMED';
-    final isFixed =
-        booking.isFixedSchedule == true || booking.fixedScheduleId != null;
+    final isFixed = _isFixedBooking(booking);
     final isMatching = booking.matchingSessionId != null;
-    final isFixedMatching = isFixed && isMatching;
+    final isFixedMatching = _isFixedMatchingBooking(booking);
     final code = booking.id.length > 4
         ? booking.id.substring(booking.id.length - 4).toUpperCase()
         : booking.id.toUpperCase();
@@ -983,7 +1449,13 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
     Color statusColor = Colors.orange;
     String statusText = context.tr(vi: 'Chờ duyệt', en: 'Pending');
 
-    if (booking.status == 'CONFIRMED') {
+    if (isPending && isFixedMatching) {
+      statusColor = Colors.purple;
+      statusText = context.tr(vi: 'Chờ ghép', en: 'Matching');
+    } else if (isPending && isFixed) {
+      statusColor = Colors.blue;
+      statusText = context.tr(vi: 'Lịch cố định', en: 'Fixed schedule');
+    } else if (booking.status == 'CONFIRMED') {
       statusColor = Colors.green;
       statusText = context.tr(vi: 'Đã check-in', en: 'Checked-in');
     } else if (booking.status == 'COMPLETED') {
@@ -1013,9 +1485,9 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isPending
-              ? const Color(0xFFFF5600).withValues(alpha: 0.3)
+              ? statusColor.withValues(alpha: 0.3)
               : theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: isPending ? 1.5 : 1,
+          width: isActionablePending ? 1.5 : 1,
         ),
       ),
       child: Padding(
@@ -2654,60 +3126,51 @@ class _RescheduleDialogState extends State<_RescheduleDialog> {
       final formattedDate =
           '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}';
 
-      final statusUseCase = GetIt.I<UpdateBookingStatusUseCase>();
-      final statusRes = await statusUseCase(widget.booking.id, 'RESCHEDULED');
+      final updateUseCase = GetIt.I<UpdateBookingUseCase>();
+      final updateRes = await updateUseCase(
+        widget.booking.id,
+        courtId: courtId,
+        bookingDate: formattedDate,
+        startMinutes: slot.startMinutes,
+        endMinutes: slot.endMinutes,
+      );
 
-      if (statusRes.success) {
-        final bookingUseCase = GetIt.I<CreateBookingUseCase>();
-        final newBookingRes = await bookingUseCase(
-          courtId: courtId,
-          bookingDate: formattedDate,
-          startMinutes: slot.startMinutes,
-          endMinutes: slot.endMinutes,
-          totalPrice: widget.booking.totalPrice ?? 0.0,
-          userId: widget.booking.userId,
-          guestName: widget.booking.guestName,
-          guestPhone: widget.booking.guestPhone,
-        );
-
-        if (newBookingRes.success && newBookingRes.data != null) {
-          await statusUseCase(newBookingRes.data!.id, 'CONFIRMED');
-
-          try {
-            GetIt.I<AppNotificationEventBus>().emit(
-              const AppNotificationEvent(
-                type: AppNotificationEventType.bookingCreated,
-              ),
-            );
-            GetIt.I<AppNotificationEventBus>().emit(
-              const AppNotificationEvent(
-                type: AppNotificationEventType.bookingConfirmed,
-              ),
-            );
-            GetIt.I<AppNotificationEventBus>().emit(
-              const AppNotificationEvent(
-                type: AppNotificationEventType.bookingRescheduled,
-              ),
-            );
-          } catch (e) {
-            debugPrint('Error emitting reschedule events: $e');
-          }
-
-          if (mounted) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  language == 'vi'
-                      ? 'Đổi lịch đặt sân thành công!'
-                      : 'Booking rescheduled successfully!',
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-            widget.onRescheduled();
-            navigator.pop();
-          }
+      if (!mounted) return;
+      if (updateRes.success && updateRes.data != null) {
+        try {
+          GetIt.I<AppNotificationEventBus>().emit(
+            const AppNotificationEvent(
+              type: AppNotificationEventType.bookingRescheduled,
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error emitting reschedule events: $e');
         }
+
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              language == 'vi'
+                  ? 'Đổi lịch đặt sân thành công!'
+                  : 'Booking rescheduled successfully!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        widget.onRescheduled();
+        navigator.pop();
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              updateRes.message ??
+                  (language == 'vi'
+                      ? 'Đổi lịch đặt sân thất bại.'
+                      : 'Unable to reschedule booking.'),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -10,6 +10,7 @@ import '../../domain/usecases/sign_in_usecase.dart';
 import '../../domain/usecases/sign_out_usecase.dart';
 import '../../domain/usecases/sign_up_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
+import '../../domain/usecases/delete_user_avatar_usecase.dart';
 import '../../domain/usecases/get_local_user_usecase.dart';
 import '../../domain/usecases/clear_local_session_usecase.dart';
 import '../../application/session/session_manager.dart';
@@ -323,6 +324,10 @@ Future<void> initInjection() async {
 
   sl.registerLazySingleton<UpdateProfileUseCase>(
     () => UpdateProfileUseCase(sl<auth_domain.UserRepository>()),
+  );
+
+  sl.registerLazySingleton<DeleteUserAvatarUseCase>(
+    () => DeleteUserAvatarUseCase(sl<auth_domain.UserRepository>()),
   );
 
   sl.registerLazySingleton<GetUserDataUseCase>(

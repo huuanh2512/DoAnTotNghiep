@@ -5,6 +5,8 @@ class BookingDetailModel extends BookingDetailEntity {
   const BookingDetailModel({
     required super.id,
     super.userId,
+    super.guestName,
+    super.guestPhone,
     super.user,
     super.courtId,
     super.court,
@@ -37,13 +39,15 @@ class BookingDetailModel extends BookingDetailEntity {
     UserEntity? userEntity;
     if (json['user'] != null) {
       final u = json['user'];
+      final profile = u['profile'] is Map
+          ? Map<String, dynamic>.from(u['profile'] as Map)
+          : const <String, dynamic>{};
       userEntity = UserEntity(
         id: u['_id'] ?? u['id'] ?? '',
         email: u['email'],
-        name:
-            u['name'] ??
-            (u['profile'] != null ? u['profile']['fullName'] : null),
+        name: u['name'] ?? profile['name'] ?? profile['fullName'],
         avatar: u['avatar'],
+        phone: u['phone']?.toString() ?? profile['phone']?.toString(),
         role: u['role'],
         status: u['status'],
       );
@@ -65,6 +69,10 @@ class BookingDetailModel extends BookingDetailEntity {
     return BookingDetailModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       userId: json['userId']?.toString(),
+      guestName:
+          json['guestName']?.toString() ?? json['guest_name']?.toString(),
+      guestPhone:
+          json['guestPhone']?.toString() ?? json['guest_phone']?.toString(),
       user: userEntity,
       courtId: json['courtId']?.toString(),
       court: courtEntity,

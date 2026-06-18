@@ -11,6 +11,7 @@ export 'domain/usecases/get_booking_history_usecase.dart';
 export 'domain/usecases/get_booking_detail_usecase.dart';
 export 'domain/usecases/get_court_performance_report_usecase.dart';
 export 'domain/usecases/get_advanced_performance_report_usecase.dart';
+export 'domain/usecases/update_booking_usecase.dart';
 export 'domain/usecases/update_booking_status_usecase.dart';
 export 'domain/usecases/cancel_booking_usecase.dart';
 export 'domain/usecases/update_court_slot_config_usecase.dart';

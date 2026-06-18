@@ -273,6 +273,7 @@ class BookingService {
       'facilityId'
     );
     const courtId = this._optionalObjectIdFilter(filters.courtId, 'courtId');
+    const sportId = this._optionalObjectIdFilter(filters.sportId, 'sportId');
     const scope = await this._resolveReadScope(actor, facilityId);
     const courtQuery = {};
 
@@ -282,9 +283,13 @@ class BookingService {
     if (courtId) {
       courtQuery._id = courtId;
     }
+    if (sportId) {
+      courtQuery.sport_id = sportId;
+    }
 
     const courts = await Court.find(courtQuery)
-      .select('name facility_id status slot_config')
+      .select('name facility_id sport_id status slot_config')
+      .populate('sport_id', 'name')
       .lean();
 
     if (courtId && courts.length === 0) {
@@ -912,6 +917,13 @@ class BookingService {
 
     const rescheduleFields = ['bookingDate', 'booking_date', 'startMinutes', 'start_minutes', 'endMinutes', 'end_minutes', 'courtId', 'court_id'];
     const isReschedule = rescheduleFields.some(field => Object.prototype.hasOwnProperty.call(data, field));
+    if (!isReschedule) {
+      throw this._businessError(
+        'No supported booking update fields were provided',
+        400,
+        'NO_UPDATE_FIELDS'
+      );
+    }
 
     if (actor?.role === 'CUSTOMER') {
       this._assertCustomerOwnsBooking(booking, actor);
@@ -922,7 +934,112 @@ class BookingService {
 
     await this._assertStaffFacilityScope(booking, actor);
 
-    throw this._businessError('Booking update endpoint is not implemented.', 404, 'NOT_IMPLEMENTED');
+    if (
+      booking.status === BOOKING_STATUSES.CANCELLED ||
+      booking.status === BOOKING_STATUSES.COMPLETED
+    ) {
+      throw this._businessError(
+        'Only active bookings can be rescheduled',
+        400,
+        'BOOKING_NOT_ACTIVE'
+      );
+    }
+
+    const courtId = data.courtId || data.court_id || booking.court_id?._id || booking.court_id;
+    const bookingDate = data.bookingDate || data.booking_date || booking.booking_date;
+    const startMinutes = data.startMinutes ?? data.start_minutes ?? booking.start_minutes;
+    const endMinutes = data.endMinutes ?? data.end_minutes ?? booking.end_minutes;
+    const start = Number(startMinutes);
+    const end = Number(endMinutes);
+
+    if (!mongoose.isValidObjectId(courtId)) {
+      throw this._businessError('Invalid courtId', 400, 'INVALID_COURT_ID');
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(bookingDate))) {
+      throw this._businessError('Invalid bookingDate', 400, 'INVALID_BOOKING_DATE');
+    }
+    if (
+      !Number.isInteger(start) ||
+      !Number.isInteger(end) ||
+      start < 0 ||
+      end > 24 * 60 ||
+      start >= end
+    ) {
+      throw this._businessError('Invalid booking time range', 400, 'INVALID_TIME_RANGE');
+    }
+
+    const court = await courtAvailabilityService.loadCourt(courtId);
+    await this._assertCreateBookingScope(court, booking.user_id, actor);
+
+    if (booking.user_id) {
+      await userScheduleConflictService.assertNoUserScheduleConflict(
+        booking.user_id._id || booking.user_id,
+        {
+          bookingDate,
+          startMinutes: start,
+          endMinutes: end
+        },
+        { excludeBookingId: booking._id }
+      );
+    }
+
+    await courtAvailabilityService.assertAvailable({
+      courtId,
+      bookingDate,
+      startMinutes: start,
+      endMinutes: end,
+      court
+    });
+
+    const conflictingBooking = await Booking.findOne({
+      _id: { $ne: booking._id },
+      court_id: courtId,
+      booking_date: bookingDate,
+      status: { $in: [BOOKING_STATUSES.PENDING, BOOKING_STATUSES.CONFIRMED] },
+      $nor: [
+        { start_minutes: { $gte: end } },
+        { end_minutes: { $lte: start } }
+      ]
+    });
+
+    if (conflictingBooking) {
+      throw this._businessError(
+        'Sân đã bị đặt vào khung giờ này bởi một lịch chơi khác',
+        409,
+        'BOOKING_TIME_CONFLICT'
+      );
+    }
+
+    const conflictingSchedule = await fixedScheduleService.checkBookingConflict(
+      courtId,
+      bookingDate,
+      start,
+      end
+    );
+
+    if (conflictingSchedule) {
+      throw this._businessError(
+        'Slot này đã thuộc lịch cố định, không thể đặt',
+        409,
+        'ACTIVE_FIXED_SCHEDULE_CONFLICT'
+      );
+    }
+
+    const totalPrice = bookingPriceService.calculateBookingPrice(
+      court,
+      start,
+      end
+    );
+
+    const updatedBooking = await bookingRepository.updateById(booking._id, {
+      court_id: courtId,
+      booking_date: bookingDate,
+      start_minutes: start,
+      end_minutes: end,
+      total_price: totalPrice
+    });
+
+    return { booking: this._formatBookingResponse(updatedBooking) };
   }
 
   async autoCancelPendingBookings(now = new Date()) {

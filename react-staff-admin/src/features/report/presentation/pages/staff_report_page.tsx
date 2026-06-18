@@ -19,6 +19,7 @@ interface CourtItem {
   name: string;
   facilityId?: string;
   sportId?: string;
+  sportName?: string;
 }
 
 interface SportItem {
@@ -33,6 +34,8 @@ const numberValue = (value: any) => {
 };
 
 const percentText = (value: number) => `${(numberValue(value) * 100).toFixed(1)}%`;
+
+const normalizeId = (value: any) => value?._id || value?.id || value || undefined;
 
 const quickRange = (key: string): [Dayjs, Dayjs] => {
   const today = dayjs();
@@ -91,7 +94,12 @@ const StaffReportPage: React.FC = () => {
       apiClient.get('/court', { params: { facilityId } }),
       apiClient.get('/sport'),
     ]);
-    setCourts((courtRes.data.items || []).map((c: any) => ({ ...c, _id: c._id || c.id || '' })));
+    setCourts((courtRes.data.items || []).map((c: any) => ({
+      ...c,
+      _id: c._id || c.id || '',
+      sportId: c.sportId || c.sport_id || normalizeId(c.sport),
+      sportName: c.sportName || c.sport?.name || '',
+    })));
     setSports((sportRes.data.items || []).map((s: any) => ({ ...s, _id: s._id || s.id || '' })));
   }, [facilityId]);
 
@@ -106,9 +114,10 @@ const StaffReportPage: React.FC = () => {
         .filter((court) => (!courtId || (court._id || court.id) === courtId) && (!sportId || court.sportId === sportId))
         .map((court) => court._id || court.id)
     );
+    const hasCourtScopeFilter = Boolean(courtId || sportId);
     const bookings = (bookingRes.data.items || [])
       .filter((booking: any) => courtIds.has(booking.courtId || booking.court_id))
-      .filter((booking: any) => selectedCourtIds.size === 0 || selectedCourtIds.has(booking.courtId || booking.court_id))
+      .filter((booking: any) => !hasCourtScopeFilter || selectedCourtIds.has(booking.courtId || booking.court_id))
       .filter((booking: any) => {
         const date = dayjs(booking.bookingDate || booking.booking_date);
         return date.isValid() && !date.isBefore(range[0], 'day') && !date.isAfter(range[1], 'day');
@@ -119,7 +128,7 @@ const StaffReportPage: React.FC = () => {
     const pendingRevenue = payments.filter((payment: any) => payment.status === 'PENDING').reduce((sum: number, payment: any) => sum + numberValue(payment.amount), 0);
 
     const courtStats = courts
-      .filter((court) => selectedCourtIds.size === 0 || selectedCourtIds.has(court._id || court.id))
+      .filter((court) => !hasCourtScopeFilter || selectedCourtIds.has(court._id || court.id))
       .map((court) => {
         const id = court._id || court.id || '';
         const courtBookings = bookings.filter((booking: any) => (booking.courtId || booking.court_id) === id);
@@ -236,6 +245,24 @@ const StaffReportPage: React.FC = () => {
     loadReport();
   }, [loadReport]);
 
+  useEffect(() => {
+    if (!sportId || !courtId) return;
+    const selectedCourt = courts.find((court) => (court._id || court.id) === courtId);
+    if (selectedCourt && selectedCourt.sportId !== sportId) {
+      setCourtId(undefined);
+    }
+  }, [courtId, courts, sportId]);
+
+  const courtOptions = useMemo(
+    () => courts
+      .filter((court) => !sportId || court.sportId === sportId)
+      .map((court) => ({
+        value: court._id || court.id,
+        label: court.sportName ? `${court.name} · ${court.sportName}` : court.name,
+      })),
+    [courts, sportId]
+  );
+
   const sportChartData = useMemo(() => {
     const source = report.sportStats.length > 0 ? report.sportStats : report.courtStats;
     const map = new Map<string, number>();
@@ -248,9 +275,15 @@ const StaffReportPage: React.FC = () => {
 
   const filteredCourtStats = useMemo(() => {
     const query = searchText.trim().toLowerCase();
-    if (!query) return report.courtStats;
-    return report.courtStats.filter((item) => [item.courtName, item.facilityName, item.sportName].join(' ').toLowerCase().includes(query));
-  }, [report.courtStats, searchText]);
+    return report.courtStats
+      .filter((item) => !courtId || item.courtId === courtId)
+      .filter((item) => !sportId || item.sportId === sportId)
+      .filter((item) => !query || [item.courtName, item.facilityName, item.sportName].join(' ').toLowerCase().includes(query))
+      .sort((a, b) => (
+        (a.sportName || '').localeCompare(b.sportName || '', 'vi')
+        || (a.courtName || '').localeCompare(b.courtName || '', 'vi')
+      ));
+  }, [courtId, report.courtStats, searchText, sportId]);
 
   const peakHour = report.peakHours.length > 0
     ? `${report.peakHours[0].label || report.peakHours[0].hour}: ${report.peakHours[0].bookingCount} ca`
@@ -258,13 +291,19 @@ const StaffReportPage: React.FC = () => {
 
   const courtColumns = [
     {
-      title: 'Sân',
+      title: 'Sân / Môn thể thao',
       key: 'court',
       render: (_: any, record: CourtPerformanceItem) => (
         <div className="flex flex-col">
           <span className="font-semibold dark:text-white">{record.courtName || 'Chưa có dữ liệu'}</span>
-          <span className="text-xs text-ink-muted dark:text-ink-darkMuted">{record.sportName || 'Chưa có dữ liệu'}</span>
+          <div className="mt-1">
+            <Tag color={record.sportName ? 'geekblue' : 'default'}>{record.sportName || 'Chưa rõ môn'}</Tag>
+          </div>
         </div>
+      ),
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => (
+        (a.sportName || '').localeCompare(b.sportName || '', 'vi')
+        || (a.courtName || '').localeCompare(b.courtName || '', 'vi')
       ),
     },
     {
@@ -272,36 +311,42 @@ const StaffReportPage: React.FC = () => {
       dataIndex: 'bookingCount',
       key: 'bookingCount',
       render: (value: number) => <Tag color="processing">{numberValue(value)} ca</Tag>,
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => numberValue(a.bookingCount) - numberValue(b.bookingCount),
     },
     {
       title: 'Hoàn tất',
       dataIndex: 'completedBookings',
       key: 'completedBookings',
       render: (value: number) => numberValue(value),
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => numberValue(a.completedBookings) - numberValue(b.completedBookings),
     },
     {
       title: 'Đã hủy',
       dataIndex: 'cancelledBookings',
       key: 'cancelledBookings',
       render: (value: number) => numberValue(value),
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => numberValue(a.cancelledBookings) - numberValue(b.cancelledBookings),
     },
     {
       title: 'Doanh thu',
       dataIndex: 'paidRevenue',
       key: 'paidRevenue',
       render: (value: number) => <span className="font-bold text-brand-orange">{formatVND(numberValue(value))}</span>,
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => numberValue(a.paidRevenue) - numberValue(b.paidRevenue),
     },
     {
       title: 'Giờ đặt',
       dataIndex: 'bookedMinutes',
       key: 'bookedMinutes',
       render: (value: number) => `${(numberValue(value) / 60).toFixed(1)}h`,
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => numberValue(a.bookedMinutes) - numberValue(b.bookedMinutes),
     },
     {
       title: 'Tỷ lệ sử dụng',
       dataIndex: 'utilizationRate',
       key: 'utilizationRate',
       render: (value: number) => percentText(value),
+      sorter: (a: CourtPerformanceItem, b: CourtPerformanceItem) => numberValue(a.utilizationRate) - numberValue(b.utilizationRate),
     },
   ];
 
@@ -369,13 +414,19 @@ const StaffReportPage: React.FC = () => {
             value={courtId}
             onChange={setCourtId}
             className="w-full lg:w-56"
-            options={courts.map((court) => ({ value: court._id || court.id, label: court.name }))}
+            options={courtOptions}
           />
           <Select
             allowClear
             placeholder="Tất cả môn"
             value={sportId}
-            onChange={setSportId}
+            onChange={(value) => {
+              setSportId(value);
+              if (value) {
+                const selectedCourt = courts.find((court) => (court._id || court.id) === courtId);
+                if (selectedCourt && selectedCourt.sportId !== value) setCourtId(undefined);
+              }
+            }}
             className="w-full lg:w-56"
             options={sports.map((sport) => ({ value: sport._id || sport.id, label: sport.name }))}
           />

@@ -154,6 +154,15 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
+  Future<BaseResponse<BookingEntity>> updateBooking(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await _remoteDataSource.updateBooking(id, data);
+    return _mapToBookingResponse(response);
+  }
+
+  @override
   Future<BaseResponse<BookingEntity>> updateBookingStatus(
     String id,
     String status,
@@ -487,10 +496,18 @@ class BookingRepositoryImpl implements BookingRepository {
       final userMap = map['user'] as Map<String, dynamic>?;
       UserEntity? userEntity;
       if (userMap != null) {
+        final profile = userMap['profile'] is Map
+            ? Map<String, dynamic>.from(userMap['profile'] as Map)
+            : const <String, dynamic>{};
         userEntity = UserEntity(
-          id: userMap['id']?.toString() ?? '',
-          name: userMap['name']?.toString() ?? '',
+          id: userMap['id']?.toString() ?? userMap['_id']?.toString() ?? '',
+          name:
+              userMap['name']?.toString() ??
+              profile['name']?.toString() ??
+              profile['fullName']?.toString() ??
+              '',
           email: userMap['email']?.toString(),
+          phone: userMap['phone']?.toString() ?? profile['phone']?.toString(),
         );
       }
 
@@ -518,7 +535,11 @@ class BookingRepositoryImpl implements BookingRepository {
       // 3. Return BookingDetailEntity
       return BookingDetailEntity(
         id: map['id']?.toString() ?? '',
-        userId: userMap?['id']?.toString(),
+        userId:
+            map['userId']?.toString() ??
+            map['user_id']?.toString() ??
+            userMap?['id']?.toString() ??
+            userMap?['_id']?.toString(),
         guestName:
             map['guestName']?.toString() ?? map['guest_name']?.toString(),
         guestPhone:
@@ -527,6 +548,7 @@ class BookingRepositoryImpl implements BookingRepository {
         courtId: courtMap?['id']?.toString(),
         court: courtEntity,
         courtName: courtMap?['name']?.toString(),
+        courtCode: courtMap?['code']?.toString(),
         bookingDate: _normalizeDate(map['bookingDate']?.toString()),
         startMinutes: map['startMinutes'] as int?,
         endMinutes: map['endMinutes'] as int?,

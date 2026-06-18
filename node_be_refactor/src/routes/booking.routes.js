@@ -9,6 +9,11 @@ router.post('/', bookingController.createBooking);
 router.get('/', bookingController.queryBookings);
 router.get('/:id', bookingController.getBookingDetail);
 router.put(
+  '/:id',
+  authMiddleware.requireRole(['CUSTOMER', 'STAFF', 'ADMIN']),
+  bookingController.updateBooking
+);
+router.put(
   '/:id/cancel',
   authMiddleware.requireRole(['CUSTOMER', 'STAFF', 'ADMIN']),
   bookingController.cancelBooking

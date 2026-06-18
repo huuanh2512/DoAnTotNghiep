@@ -24,15 +24,17 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<Either<Failure, UserResult>> signUp(SignUpRequest request) async {
-    final UserResult result =
-        await _authenticationRemoteDataSource.signUp(request);
+    final UserResult result = await _authenticationRemoteDataSource.signUp(
+      request,
+    );
     return Right(result);
   }
 
   @override
   Future<Either<Failure, UserResult>> signIn(SignInRequest request) async {
-    final UserResult result =
-        await _authenticationRemoteDataSource.signIn(request);
+    final UserResult result = await _authenticationRemoteDataSource.signIn(
+      request,
+    );
     if (result.isSuccess) {
       await _authenticationLocalDataSource.saveUser(result);
     }
@@ -43,11 +45,11 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, UserResult>> refreshSession(
     String refreshToken,
   ) async {
-    final UserResult result =
-        await _authenticationRemoteDataSource.refreshToken(refreshToken);
+    final UserResult result = await _authenticationRemoteDataSource
+        .refreshToken(refreshToken);
     if (result.isSuccess) {
-      final UserResult? currentUser =
-          await _authenticationLocalDataSource.getUser();
+      final UserResult? currentUser = await _authenticationLocalDataSource
+          .getUser();
       final UserResult merged = (currentUser ?? result).copyWith(
         isSuccess: result.isSuccess,
         error: result.error,
@@ -69,8 +71,9 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<Either<Failure, UserResult>> signOut(SignOutRequest request) async {
-    final UserResult result =
-        await _authenticationRemoteDataSource.signOut(request);
+    final UserResult result = await _authenticationRemoteDataSource.signOut(
+      request,
+    );
     if (result.isSuccess) {
       await _authenticationLocalDataSource.clearUser();
     }
@@ -87,20 +90,25 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, UserResult>> updateUserProfile(
     UpdateProfileRequest request,
   ) async {
-    final UserResult result =
-        await _userRemoteDataSource.updateUserProfile(request);
+    final UserResult result = await _userRemoteDataSource.updateUserProfile(
+      request,
+    );
     if (result.isSuccess) {
-      final UserResult? currentUser =
-          await _authenticationLocalDataSource.getUser();
-      final UserResult merged = (currentUser ?? result).copyWith(
+      final UserResult? currentUser = await _authenticationLocalDataSource
+          .getUser();
+      final base = currentUser ?? result;
+      final UserResult merged = UserResult(
         isSuccess: result.isSuccess,
         error: result.error,
-        userId: result.userId,
-        email: result.email,
-        name: result.name,
-        avatarUrl: result.avatarUrl,
-        role: result.role,
-        status: result.status,
+        userId: result.userId ?? base.userId,
+        email: result.email ?? base.email,
+        name: result.name ?? base.name,
+        avatarUrl: null,
+        role: result.role ?? base.role,
+        status: result.status ?? base.status,
+        accessToken: base.accessToken,
+        refreshToken: base.refreshToken,
+        expiresAt: base.expiresAt,
       );
       await _authenticationLocalDataSource.saveUser(merged);
       return Right(merged);
@@ -110,11 +118,12 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<Either<Failure, UserResult>> deleteUserAvatar(String userId) async {
-    final UserResult result =
-        await _userRemoteDataSource.deleteUserAvatar(userId);
+    final UserResult result = await _userRemoteDataSource.deleteUserAvatar(
+      userId,
+    );
     if (result.isSuccess) {
-      final UserResult? currentUser =
-          await _authenticationLocalDataSource.getUser();
+      final UserResult? currentUser = await _authenticationLocalDataSource
+          .getUser();
       final UserResult merged = (currentUser ?? result).copyWith(
         isSuccess: result.isSuccess,
         error: result.error,
@@ -135,8 +144,8 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, UserResult>> resetPassword(
     ResetPasswordRequest request,
   ) async {
-    final UserResult result =
-        await _authenticationRemoteDataSource.resetPassword(request);
+    final UserResult result = await _authenticationRemoteDataSource
+        .resetPassword(request);
     return Right(result);
   }
 
@@ -147,7 +156,9 @@ class UserRepositoryImpl implements UserRepository {
       if (user != null) {
         return Right(user);
       }
-      return const Left(CacheFailure(message: 'No user session found in cache'));
+      return const Left(
+        CacheFailure(message: 'No user session found in cache'),
+      );
     } catch (e) {
       return Left(CacheFailure(message: e.toString()));
     }
