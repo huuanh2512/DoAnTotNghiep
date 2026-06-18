@@ -426,10 +426,18 @@ class BookingService {
     }
   }
 
-  _assertCustomerCanReschedule(booking) {
+  _assertCustomerCanReschedule(booking, now = new Date()) {
+    const startAt = getBookingStartAt(booking);
+    if (startAt && now >= startAt) {
+      throw this._businessError(
+        CUSTOMER_CANCEL_STARTED_MESSAGE,
+        400,
+        'BOOKING_ALREADY_STARTED'
+      );
+    }
     if (
       booking.status === BOOKING_STATUSES.CONFIRMED &&
-      isWithinHoursBeforeStart(booking, 2)
+      isWithinHoursBeforeStart(booking, 2, now)
     ) {
       throw this._businessError(CUSTOMER_RESCHEDULE_BLOCK_MESSAGE, 400, 'RESCHEDULE_TOO_CLOSE_TO_START');
     }
@@ -966,6 +974,20 @@ class BookingService {
       start >= end
     ) {
       throw this._businessError('Invalid booking time range', 400, 'INVALID_TIME_RANGE');
+    }
+
+    if (actor?.role === 'CUSTOMER') {
+      const autoCancelAt = getBookingAutoCancelAt({
+        booking_date: bookingDate,
+        start_minutes: start
+      });
+      if (!autoCancelAt || new Date() >= autoCancelAt) {
+        throw this._businessError(
+          CUSTOMER_BOOKING_LEAD_TIME_MESSAGE,
+          400,
+          'BOOKING_TOO_CLOSE_TO_START'
+        );
+      }
     }
 
     const court = await courtAvailabilityService.loadCourt(courtId);

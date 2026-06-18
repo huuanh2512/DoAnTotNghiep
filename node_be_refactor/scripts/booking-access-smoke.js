@@ -5,11 +5,13 @@ const bookingRepository = require('../src/repositories/booking.repository');
 const paymentService = require('../src/services/payment.service');
 const fixedScheduleService = require('../src/services/fixed-schedule.service');
 const notificationHelper = require('../src/services/notification.helper');
+const userScheduleConflictService = require('../src/services/user-schedule-conflict.service');
 const User = require('../src/models/user.model');
 const Facility = require('../src/models/facility.model');
 const Court = require('../src/models/court.model');
 const CourtBlock = require('../src/models/court-block.model');
 const Booking = require('../src/models/booking.model');
+const MatchingSession = require('../src/models/matching.model');
 
 const ids = {
   customerA: '111111111111111111111111',
@@ -126,8 +128,11 @@ Court.find = ({ facility_id: facilityFilter }) => ({
 Court.findById = id => queryResult(courtsById.get(String(id)) || null);
 CourtBlock.findOne = () => queryResult(null);
 Booking.findOne = () => queryResult(null);
+MatchingSession.findOne = () => queryResult(null);
+MatchingSession.find = () => queryResult([]);
 fixedScheduleService.checkBookingConflict = async () => null;
 notificationHelper.notifyBookingCreated = async () => {};
+userScheduleConflictService.assertNoUserScheduleConflict = async () => {};
 
 let lastListQuery = null;
 bookingRepository.findMany = async (query) => {
@@ -177,6 +182,25 @@ bookingRepository.create = async (bookingData) => {
   };
   createdBookings.set(id, booking);
   return booking;
+};
+bookingRepository.updateById = async (id, updateData) => {
+  const existing = await bookingRepository.findById(id);
+  if (!existing) return null;
+  const court = courtsById.get(String(updateData.court_id || existing.court_id?._id || existing.court_id));
+  const updated = {
+    ...existing,
+    ...updateData,
+    court_id: populatedId(updateData.court_id || existing.court_id?._id || existing.court_id, {
+      name: court?.name || existing.court_id?.name || '',
+      facility_id: populatedId(court?.facility_id || existing.court_id?.facility_id?._id || existing.court_id?.facility_id || '', {
+        name: court?.facility_id === ids.facilityA ? 'Facility A' : 'Facility B'
+      })
+    })
+  };
+  if (String(id) === ids.bookingA) Object.assign(bookingA, updated);
+  if (String(id) === ids.bookingB) Object.assign(bookingB, updated);
+  if (createdBookings.has(String(id))) createdBookings.set(String(id), updated);
+  return updated;
 };
 paymentService.queryPaymentByBookingId = async () => null;
 
@@ -421,6 +445,34 @@ async function run() {
     { id: ids.customerA, role: 'CUSTOMER' }
   );
   assert.equal(customerCreateOwn.booking.user.id, ids.customerA);
+
+  const customerRescheduleOwn = await bookingService.updateBooking(
+    customerCreateOwn.booking.id,
+    {
+      courtId: ids.courtA,
+      bookingDate: '2099-06-12',
+      startMinutes: 780,
+      endMinutes: 840
+    },
+    { id: ids.customerA, role: 'CUSTOMER' }
+  );
+  assert.equal(customerRescheduleOwn.booking.bookingDate, '2099-06-12');
+  assert.equal(customerRescheduleOwn.booking.startMinutes, 780);
+
+  await expectReject(
+    bookingService.updateBooking(
+      customerCreateOwn.booking.id,
+      {
+        courtId: ids.courtA,
+        bookingDate: '2099-06-13',
+        startMinutes: 840,
+        endMinutes: 900
+      },
+      { id: ids.customerB, role: 'CUSTOMER' }
+    ),
+    403,
+    'FORBIDDEN'
+  );
 
   await expectReject(
     bookingService.createBooking(

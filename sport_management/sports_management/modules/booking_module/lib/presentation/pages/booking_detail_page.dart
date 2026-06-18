@@ -6,7 +6,11 @@ import 'package:notification_module/notification_module.dart';
 import 'package:server_module/server_module.dart';
 import 'package:review_module/review_module.dart';
 import '../../domain/entities/booking_detail_entity.dart';
+import '../../domain/entities/slot_config_entity.dart';
 import '../../domain/usecases/cancel_fixed_schedule_usecase.dart';
+import '../../domain/usecases/get_booking_history_usecase.dart';
+import '../../domain/usecases/get_slot_config_usecase.dart';
+import '../../domain/usecases/update_booking_usecase.dart';
 import '../cubit/booking_detail_cubit.dart';
 import '../utils/booking_ui_helper.dart';
 
@@ -231,6 +235,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   if (booking.status == 'PENDING' ||
                       booking.status == 'CONFIRMED') ...[
                     const SizedBox(height: 12),
+                    if (_canShowRescheduleAction(booking)) ...[
+                      _buildRescheduleBookingButton(booking),
+                      const SizedBox(height: 12),
+                    ],
                     _buildCancelBookingPanel(booking, state.isCancelling),
                   ],
                   if (booking.status == 'COMPLETED') ...[
@@ -414,6 +422,59 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           valueColor: Colors.green.shade700,
         ),
     ]);
+  }
+
+  bool _canShowRescheduleAction(BookingDetailEntity booking) {
+    final status = booking.status;
+    if (status != 'PENDING' && status != 'CONFIRMED') return false;
+    if (booking.courtId == null) return false;
+    if (booking.isFixedSchedule == true || booking.fixedScheduleId != null) {
+      return false;
+    }
+    if (booking.matchingSessionId != null || booking.isMatching == true) {
+      return false;
+    }
+    if (BookingUiHelper.hasStarted(booking) == true) return false;
+    if (status == 'CONFIRMED' &&
+        BookingUiHelper.isWithinTwoHoursBeforeStart(booking) == true) {
+      return false;
+    }
+    return true;
+  }
+
+  Widget _buildRescheduleBookingButton(BookingDetailEntity booking) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _showRescheduleDialog(booking),
+        icon: const Icon(Icons.event_repeat_outlined),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _primaryColor,
+          side: const BorderSide(color: _primaryColor),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        label: Text(
+          context.tr(vi: 'Đổi lịch', en: 'Reschedule'),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showRescheduleDialog(BookingDetailEntity booking) async {
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => _CustomerRescheduleDialog(booking: booking),
+    );
+    if (changed == true && mounted) {
+      await _cubit.loadBookingDetail(booking.id);
+    }
   }
 
   Widget _buildCancelBookingPanel(
@@ -779,6 +840,356 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CustomerRescheduleDialog extends StatefulWidget {
+  final BookingDetailEntity booking;
+
+  const _CustomerRescheduleDialog({required this.booking});
+
+  @override
+  State<_CustomerRescheduleDialog> createState() =>
+      _CustomerRescheduleDialogState();
+}
+
+class _CustomerRescheduleDialogState extends State<_CustomerRescheduleDialog> {
+  DateTime _date = DateTime.now();
+  int? _selectedSlotIndex;
+  SlotConfigEntity? _slotConfig;
+  Set<int> _bookedSlotIndices = {};
+  bool _isLoadingSlots = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final parsed = DateTime.tryParse(widget.booking.bookingDate ?? '');
+    if (parsed != null) {
+      _date = DateTime(parsed.year, parsed.month, parsed.day);
+    }
+    _loadSlots();
+  }
+
+  String _apiDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  bool _isSlotTooSoon(SlotEntity slot) {
+    final startAt = DateTime(
+      _date.year,
+      _date.month,
+      _date.day,
+    ).add(Duration(minutes: slot.startMinutes));
+    return !startAt.isAfter(DateTime.now().add(const Duration(minutes: 10)));
+  }
+
+  Future<void> _loadSlots() async {
+    final courtId = widget.booking.courtId;
+    if (courtId == null || !mounted) return;
+    setState(() {
+      _isLoadingSlots = true;
+      _selectedSlotIndex = null;
+      _slotConfig = null;
+      _bookedSlotIndices.clear();
+    });
+
+    try {
+      final formattedDate = _apiDate(_date);
+      final slotRes = await GetIt.I<GetSlotConfigUseCase>()(
+        courtId,
+        bookingDate: formattedDate,
+      );
+      if (!mounted) return;
+
+      if (!slotRes.success || slotRes.data == null) {
+        setState(() => _slotConfig = null);
+        return;
+      }
+
+      final config = slotRes.data!;
+      final bookingsRes = await GetIt.I<GetBookingHistoryUseCase>()();
+      if (!mounted) return;
+
+      final booked = <int>{};
+      if (bookingsRes.success && bookingsRes.data != null) {
+        final courtBookings = bookingsRes.data!.where(
+          (booking) =>
+              booking.id != widget.booking.id &&
+              booking.courtId == courtId &&
+              booking.bookingDate == formattedDate &&
+              booking.status != 'CANCELLED',
+        );
+        for (final booking in courtBookings) {
+          final bookedStart = booking.startMinutes;
+          final bookedEnd = booking.endMinutes;
+          if (bookedStart == null || bookedEnd == null) continue;
+          for (var i = 0; i < config.slots.length; i++) {
+            final slot = config.slots[i];
+            if (slot.startMinutes < bookedEnd &&
+                slot.endMinutes > bookedStart) {
+              booked.add(i);
+            }
+          }
+        }
+      }
+
+      setState(() {
+        _slotConfig = config;
+        _bookedSlotIndices = booked;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoadingSlots = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    final courtId = widget.booking.courtId;
+    if (courtId == null || _selectedSlotIndex == null || _slotConfig == null) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    try {
+      final slot = _slotConfig!.slots[_selectedSlotIndex!];
+      final response = await GetIt.I<UpdateBookingUseCase>()(
+        widget.booking.id,
+        courtId: courtId,
+        bookingDate: _apiDate(_date),
+        startMinutes: slot.startMinutes,
+        endMinutes: slot.endMinutes,
+      );
+
+      if (!mounted) return;
+      if (response.success) {
+        try {
+          GetIt.I<AppNotificationEventBus>().emit(
+            const AppNotificationEvent(
+              type: AppNotificationEventType.bookingRescheduled,
+            ),
+          );
+        } catch (error) {
+          debugPrint('Error emitting booking rescheduled event: $error');
+        }
+
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              context.tr(
+                vi: 'Đổi lịch đặt sân thành công.',
+                en: 'Booking rescheduled successfully.',
+              ),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        navigator.pop(true);
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              response.message ??
+                  context.tr(
+                    vi: 'Không thể đổi lịch đặt sân.',
+                    en: 'Unable to reschedule booking.',
+                  ),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(context.tr(vi: 'Lỗi: $error', en: 'Error: $error')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(context.tr(vi: 'Đổi lịch đặt sân', en: 'Reschedule booking')),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${context.tr(vi: 'Sân', en: 'Court')}: ${widget.booking.courtName ?? context.tr(vi: 'Sân đấu', en: 'Court')}',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              context.tr(vi: 'Chọn ngày mới', en: 'Select new date'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: _isSubmitting
+                  ? null
+                  : () async {
+                      final now = DateTime.now();
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate:
+                            _date.isBefore(
+                              DateTime(now.year, now.month, now.day),
+                            )
+                            ? now
+                            : _date,
+                        firstDate: DateTime(now.year, now.month, now.day),
+                        lastDate: now.add(const Duration(days: 30)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _date = DateTime(
+                            picked.year,
+                            picked.month,
+                            picked.day,
+                          );
+                        });
+                        _loadSlots();
+                      }
+                    },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(DateDisplayFormatter.date(_date)),
+                    const Icon(Icons.calendar_month, color: Color(0xFFFF5600)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              context.tr(vi: 'Chọn khung giờ mới', en: 'Select new time slot'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            if (_isLoadingSlots)
+              const Center(
+                child: CircularProgressIndicator(color: Color(0xFFFF5600)),
+              )
+            else if (_slotConfig == null || _slotConfig!.slots.isEmpty)
+              Text(
+                context.tr(
+                  vi: 'Không tìm thấy khung giờ hoạt động.',
+                  en: 'No active time slots found.',
+                ),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: List.generate(_slotConfig!.slots.length, (index) {
+                  final slot = _slotConfig!.slots[index];
+                  final isBooked = _bookedSlotIndices.contains(index);
+                  final isBlocked = !slot.isAvailable;
+                  final isTooSoon = _isSlotTooSoon(slot);
+                  final isDisabled = isBooked || isBlocked || isTooSoon;
+                  final isSelected = _selectedSlotIndex == index;
+
+                  Color color = theme.colorScheme.surfaceContainerHighest;
+                  Color textColor = theme.colorScheme.onSurface;
+                  Color borderColor = Colors.grey.shade300;
+                  if (isDisabled) {
+                    color = Colors.grey.shade100;
+                    textColor = Colors.grey.shade500;
+                  } else if (isSelected) {
+                    color = const Color(0xFFFF5600);
+                    textColor = Colors.white;
+                    borderColor = const Color(0xFFFF5600);
+                  }
+
+                  return Tooltip(
+                    message: isBooked
+                        ? context.tr(vi: 'Đã có lịch đặt', en: 'Booked')
+                        : isBlocked
+                        ? context.tr(
+                            vi: 'Sân không khả dụng',
+                            en: 'Unavailable',
+                          )
+                        : isTooSoon
+                        ? context.tr(
+                            vi: 'Quá sát giờ bắt đầu',
+                            en: 'Too close to start time',
+                          )
+                        : '',
+                    child: GestureDetector(
+                      onTap: isDisabled || _isSubmitting
+                          ? null
+                          : () => setState(() => _selectedSlotIndex = index),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Text(
+                          '${slot.startLabel}-${slot.endLabel}',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context, false),
+          child: Text(context.tr(vi: 'Hủy', en: 'Cancel')),
+        ),
+        ElevatedButton(
+          onPressed: _selectedSlotIndex == null || _isSubmitting
+              ? null
+              : _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFF5600),
+            foregroundColor: Colors.white,
+          ),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(context.tr(vi: 'Đổi lịch', en: 'Reschedule')),
+        ),
+      ],
     );
   }
 }
