@@ -14,21 +14,6 @@ class AppNavItem {
   });
 }
 
-/// A premium, floating pill-style bottom navigation bar that matches the
-/// Sport Energy design system (AppColors.finOrange accent, Inter typography,
-/// light & dark theme aware).
-///
-/// Usage:
-/// ```dart
-/// AppBottomNavBar(
-///   currentIndex: _currentIndex,
-///   onTap: (i) => setState(() => _currentIndex = i),
-///   items: const [
-///     AppNavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Home'),
-///     AppNavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
-///   ],
-/// )
-/// ```
 class AppBottomNavBar extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -49,216 +34,268 @@ class AppBottomNavBar extends StatefulWidget {
   State<AppBottomNavBar> createState() => _AppBottomNavBarState();
 }
 
-class _AppBottomNavBarState extends State<AppBottomNavBar>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnim;
-
-  static const Color _accentColor = Color(0xFFFF5600);
-
+class _AppBottomNavBarState extends State<AppBottomNavBar> {
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
+  Widget build(BuildContext context) {
+    return FloatingPillBottomNavigation(
+      currentIndex: widget.currentIndex,
+      onTap: widget.onTap,
+      items: widget.items,
+      badgeCounts: widget.badgeCounts,
     );
-    _scaleAnim = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
-    _controller.forward();
   }
+}
 
-  @override
-  void didUpdateWidget(covariant AppBottomNavBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentIndex != widget.currentIndex) {
-      _controller.forward(from: 0);
-    }
-  }
+/// Floating pill bottom navigation that renders whatever tab list is passed in.
+class FloatingPillBottomNavigation extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+  final List<AppNavItem> items;
+  final List<int?>? badgeCounts;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  const FloatingPillBottomNavigation({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+    required this.items,
+    this.badgeCounts,
+  });
+
+  static const Duration _animationDuration = Duration(milliseconds: 240);
 
   void _handleTap(int index) {
-    if (index == widget.currentIndex) return;
+    if (index == currentIndex) return;
     HapticFeedback.selectionClick();
-    widget.onTap(index);
+    onTap(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final selectedIndex = currentIndex.clamp(0, items.length - 1);
+    final barColor = isDark
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.surface;
+    final accentColor = colorScheme.secondary;
+    final inactiveColor =
+        theme.bottomNavigationBarTheme.unselectedItemColor ??
+        colorScheme.onSurface.withValues(alpha: isDark ? 0.72 : 0.56);
+    final borderColor = colorScheme.outline.withValues(
+      alpha: isDark ? 0.22 : 0.16,
+    );
+    final shadowColor = Colors.black.withValues(alpha: isDark ? 0.26 : 0.12);
 
-    final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE3DED7);
-    final unselectedColor = isDark ? const Color(0xFF6E6E6E) : const Color(0xFF9C9FA5);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(
-          top: BorderSide(color: borderColor, width: 1),
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: barColor,
+          borderRadius: BorderRadius.circular(34),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(widget.items.length, (index) {
-              final item = widget.items[index];
-              final isSelected = index == widget.currentIndex;
-              final badgeCount = widget.badgeCounts != null &&
-                      index < widget.badgeCounts!.length
-                  ? widget.badgeCounts![index]
-                  : null;
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final itemCount = items.length;
+            final preferredActiveWidth = constraints.maxWidth >= 340
+                ? 150.0
+                : 128.0;
+            final inactiveWidth = itemCount <= 1
+                ? 0.0
+                : ((constraints.maxWidth - preferredActiveWidth) /
+                          (itemCount - 1))
+                      .clamp(36.0, 52.0);
+            final remainingActiveWidth =
+                constraints.maxWidth - (inactiveWidth * (itemCount - 1));
+            final resolvedActiveWidth = remainingActiveWidth.clamp(0.0, 156.0);
 
-              return Expanded(
-                child: _NavBarItem(
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(itemCount, (index) {
+                final item = items[index];
+                final isSelected = index == selectedIndex;
+                final badgeCount =
+                    badgeCounts != null && index < badgeCounts!.length
+                    ? badgeCounts![index]
+                    : null;
+
+                return _FloatingPillNavItem(
+                  width: isSelected ? resolvedActiveWidth : inactiveWidth,
                   item: item,
                   isSelected: isSelected,
-                  scaleAnim: isSelected ? _scaleAnim : const AlwaysStoppedAnimation(1.0),
-                  accentColor: _accentColor,
-                  unselectedColor: unselectedColor,
                   badgeCount: badgeCount,
+                  accentColor: accentColor,
+                  inactiveColor: inactiveColor,
+                  animationDuration: _animationDuration,
                   onTap: () => _handleTap(index),
-                  isDark: isDark,
-                ),
-              );
-            }),
-          ),
+                );
+              }),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _NavBarItem extends StatelessWidget {
+class _FloatingPillNavItem extends StatelessWidget {
+  final double width;
   final AppNavItem item;
   final bool isSelected;
-  final Animation<double> scaleAnim;
-  final Color accentColor;
-  final Color unselectedColor;
   final int? badgeCount;
+  final Color accentColor;
+  final Color inactiveColor;
+  final Duration animationDuration;
   final VoidCallback onTap;
-  final bool isDark;
 
-  const _NavBarItem({
+  const _FloatingPillNavItem({
+    required this.width,
     required this.item,
     required this.isSelected,
-    required this.scaleAnim,
-    required this.accentColor,
-    required this.unselectedColor,
     required this.badgeCount,
+    required this.accentColor,
+    required this.inactiveColor,
+    required this.animationDuration,
     required this.onTap,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final pillBg = isDark
-        ? accentColor.withValues(alpha: 0.15)
-        : accentColor.withValues(alpha: 0.10);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final activePillColor = accentColor.withValues(alpha: isDark ? 0.22 : 0.12);
+    final labelStyle =
+        theme.textTheme.labelMedium?.copyWith(
+          color: accentColor,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          height: 1.1,
+        ) ??
+        TextStyle(
+          color: accentColor,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          height: 1.1,
+        );
+    final badgeValue = badgeCount ?? 0;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedBuilder(
-            animation: scaleAnim,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: isSelected ? scaleAnim.value : 1.0,
-                child: child,
-              );
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.symmetric(
-                horizontal: isSelected ? 16 : 10,
-                vertical: 7,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? pillBg : Colors.transparent,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, anim) => ScaleTransition(
-                      scale: anim,
-                      child: child,
-                    ),
-                    child: Icon(
-                      isSelected ? item.activeIcon : item.icon,
-                      key: ValueKey(isSelected),
-                      color: isSelected ? accentColor : unselectedColor,
-                      size: 22,
-                    ),
-                  ),
-                  // Badge
-                  if (badgeCount != null && badgeCount! > 0)
-                    Positioned(
-                      top: -5,
-                      right: -8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: item.label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Center(
+          child: AnimatedContainer(
+            duration: animationDuration,
+            curve: Curves.easeOutCubic,
+            width: width,
+            height: 48,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSelected ? 14 : 0,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected ? activePillColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                AnimatedSwitcher(
+                  duration: animationDuration,
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SizeTransition(
+                        sizeFactor: animation,
+                        axis: Axis.horizontal,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: isSelected
+                      ? Row(
+                          key: const ValueKey('selected'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Icon(item.activeIcon, color: accentColor, size: 22),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  item.label,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.visible,
+                                  style: labelStyle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Icon(
+                          item.icon,
+                          key: const ValueKey('unselected'),
+                          color: inactiveColor,
+                          size: 24,
                         ),
-                        decoration: BoxDecoration(
-                          color: accentColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          badgeCount! > 99 ? '99+' : '$badgeCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
+                ),
+                if (badgeValue > 0)
+                  Positioned(
+                    top: -4,
+                    right: isSelected ? -6 : 8,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        badgeValue > 99 ? '99+' : '$badgeValue',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-              color: isSelected ? accentColor : unselectedColor,
-              height: 1.2,
-            ),
-            child: Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 2),
-        ],
+        ),
       ),
     );
   }

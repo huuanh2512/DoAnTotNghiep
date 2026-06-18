@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:server_module/server_module.dart';
 
 enum AppPopupTone { success, danger, warning, info }
 
@@ -345,24 +346,17 @@ class AppPopup {
                                 children: [
                                   if (option.imageUrl?.trim().isNotEmpty ==
                                       true) ...[
-                                    ClipOval(
-                                      child: Image.network(
-                                        option.imageUrl!,
-                                        width: 38,
-                                        height: 38,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Icon(
-                                                  option.icon ??
-                                                      Icons.sports_rounded,
-                                                  color: selected
-                                                      ? _primaryColor
-                                                      : Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurfaceVariant,
-                                                ),
-                                      ),
+                                    SportIconImage(
+                                      imageUrl: option.imageUrl,
+                                      fallbackIcon:
+                                          option.icon ?? Icons.sports_rounded,
+                                      size: 34,
+                                      fallbackColor: selected
+                                          ? _primaryColor
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                      padding: const EdgeInsets.all(6),
                                     ),
                                     const SizedBox(width: 12),
                                   ] else if (option.icon != null) ...[
