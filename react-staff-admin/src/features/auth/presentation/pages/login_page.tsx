@@ -155,7 +155,7 @@ const LoginPage: React.FC = () => {
         </Form>
 
         {/* Quick Testing accounts container */}
-        <div className="mt-6 pt-6 border-t border-semantic-border/40 dark:border-semantic-borderDark/40">
+        {/* <div className="mt-6 pt-6 border-t border-semantic-border/40 dark:border-semantic-borderDark/40">
           <div className="flex items-center gap-1.5 text-xs text-brand-orange font-semibold mb-3">
             <InfoCircleOutlined />
             <span>Tài khoản dùng thử (Click để chọn):</span>
@@ -176,7 +176,7 @@ const LoginPage: React.FC = () => {
               Staff Test 02
             </Button>
           </Space>
-        </div>
+        </div> */}
       </Card>
     </div>
   );

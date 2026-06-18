@@ -407,45 +407,7 @@ class _SignUpPageState extends State<SignUpPage> {
                               const SizedBox(height: 24),
 
                               // Info Badge
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.03,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.06),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.info_outline,
-                                      color: Color(0xFFFF5600),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        context.tr(
-                                          vi: 'Tài khoản đăng ký thành công có thể sử dụng cho cả 3 vai trò: Người chơi, Chủ sân hoặc Admin.',
-                                          en: 'Registered account can be used for all 3 roles: Player, Owner, or Admin.',
-                                        ),
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme.colorScheme.onSurface
-                                                  .withOpacity(0.7),
-                                              fontSize: 11,
-                                              height: 1.4,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            
                               const SizedBox(height: 24),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

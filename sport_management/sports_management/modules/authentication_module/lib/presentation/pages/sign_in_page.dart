@@ -334,47 +334,6 @@ class _SignInPageState extends State<SignInPage> {
                                 ),
                               ),
                               const SizedBox(height: 24),
-
-                              // 3-Role Info Card
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.03,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.06),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.info_outline,
-                                      color: Color(0xFFFF5600),
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        context.tr(
-                                          vi: 'Hệ sinh thái đa vai trò: Tài khoản có thể đăng nhập với vai trò Người chơi, Chủ sân hoặc Admin.',
-                                          en: 'Multi-role ecosystem: Account can log in as Player, Owner, or Admin.',
-                                        ),
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme.colorScheme.onSurface
-                                                  .withOpacity(0.7),
-                                              fontSize: 11,
-                                              height: 1.4,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                               const SizedBox(height: 24),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
