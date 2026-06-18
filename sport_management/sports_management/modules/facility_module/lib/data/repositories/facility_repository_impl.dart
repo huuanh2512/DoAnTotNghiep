@@ -209,8 +209,8 @@ class FacilityRepositoryImpl implements FacilityRepository {
     // 4. Thử 'staffIds'
     final staffIds = item['staffIds'];
     if (staffIds != null) {
-      if (staffIds is List && staffIds.isNotEmpty) {
-        return _extractHexId(staffIds.first);
+      if (staffIds is List) {
+        return staffIds.isNotEmpty ? _extractHexId(staffIds.first) : null;
       }
       return _extractHexId(staffIds);
     }
@@ -218,8 +218,8 @@ class FacilityRepositoryImpl implements FacilityRepository {
     // 5. Thử 'staffs'
     final staffs = item['staffs'];
     if (staffs != null) {
-      if (staffs is List && staffs.isNotEmpty) {
-        return _extractHexId(staffs.first);
+      if (staffs is List) {
+        return staffs.isNotEmpty ? _extractHexId(staffs.first) : null;
       }
       return _extractHexId(staffs);
     }
@@ -233,7 +233,11 @@ class FacilityRepositoryImpl implements FacilityRepository {
       final id = value['_id'] ?? value['id'] ?? value['ownerId'];
       return id != null ? _extractHexId(id) : null;
     }
+    if (value is List) {
+      return value.isNotEmpty ? _extractHexId(value.first) : null;
+    }
     final str = value.toString().trim();
+    if (str == '[]' || str == 'null') return null;
     final regExp = RegExp(r'[a-fA-F0-9]{24}');
     final match = regExp.firstMatch(str);
     if (match != null) {

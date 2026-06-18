@@ -12,7 +12,12 @@ const queryUsers = async (req, res) => {
       total: result.total
     });
   } catch (error) {
-    return sendError(res, 500, error.message, 'QUERY_ERROR');
+    return sendError(
+      res,
+      error.statusCode || 500,
+      error.message,
+      error.code || 'QUERY_ERROR'
+    );
   }
 };
 
@@ -80,7 +85,12 @@ const assignUserFacility = async (req, res) => {
     await userService.assignUserFacility(id, facilityId);
     return sendSuccess(res, null, 'Facility assigned successfully', 'FACILITY_ASSIGNED');
   } catch (error) {
-    return sendError(res, 400, error.message, 'ASSIGN_ERROR');
+    return sendError(
+      res,
+      error.statusCode || 400,
+      error.message,
+      error.code || 'ASSIGN_ERROR'
+    );
   }
 };
 

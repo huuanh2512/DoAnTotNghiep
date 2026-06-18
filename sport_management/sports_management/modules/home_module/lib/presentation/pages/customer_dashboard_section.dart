@@ -65,18 +65,21 @@ class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
 
   Future<void> _loadUser() async {
     final result = await GetIt.I<GetLocalUserUseCase>()();
+    if (!mounted) return;
     setState(() {
       _user = result.fold((_) => null, (user) => user);
     });
   }
 
   Future<void> _loadSports() async {
+    if (!mounted) return;
     setState(() {
       _isLoadingSports = true;
     });
     try {
       final useCase = GetIt.I<GetSportsUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _sports = response.data!;
@@ -85,19 +88,23 @@ class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
     } catch (e) {
       debugPrint('Error loading sports: $e');
     } finally {
-      setState(() {
-        _isLoadingSports = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingSports = false;
+        });
+      }
     }
   }
 
   Future<void> _loadFacilities() async {
+    if (!mounted) return;
     setState(() {
       _isLoadingFacilities = true;
     });
     try {
       final useCase = GetIt.I<GetFacilitiesUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _facilities = response.data!;
@@ -106,9 +113,11 @@ class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
     } catch (e) {
       debugPrint('Error loading facilities: $e');
     } finally {
-      setState(() {
-        _isLoadingFacilities = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingFacilities = false;
+        });
+      }
     }
   }
 
@@ -116,6 +125,7 @@ class _CustomerDashboardSectionState extends State<CustomerDashboardSection> {
     try {
       final useCase = GetIt.I<GetCourtsUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _allCourts = response.data!;
@@ -998,6 +1008,7 @@ class _FacilityCourtsBottomSheetState
   }
 
   Future<void> _loadCourts() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -1007,6 +1018,7 @@ class _FacilityCourtsBottomSheetState
         facilityId: widget.facility.id,
         sportId: _currentSportId,
       );
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _courts = response.data!;
@@ -1015,9 +1027,11 @@ class _FacilityCourtsBottomSheetState
     } catch (e) {
       debugPrint('Error loading courts: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

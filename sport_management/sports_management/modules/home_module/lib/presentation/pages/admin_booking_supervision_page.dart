@@ -34,10 +34,12 @@ class _AdminBookingSupervisionPageState
   }
 
   Future<void> _loadBookings() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final useCase = GetIt.I<GetBookingHistoryUseCase>();
       final response = await useCase(status: _selectedStatus);
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _bookings = response.data!;

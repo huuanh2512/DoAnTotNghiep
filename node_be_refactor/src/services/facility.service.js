@@ -2,6 +2,21 @@ const facilityRepository = require('../repositories/facility.repository');
 const User = require('../models/user.model');
 
 class FacilityService {
+  _normalizeStaffIds(staffIds) {
+    if (staffIds === undefined || staffIds === null) return [];
+
+    const values = Array.isArray(staffIds) ? staffIds : [staffIds];
+    return values
+      .flatMap((value) => {
+        if (value === undefined || value === null) return [];
+        if (Array.isArray(value)) return value;
+        const text = value.toString().trim();
+        if (!text || text === '[]' || text.toLowerCase() === 'null') return [];
+        return [text];
+      })
+      .filter((value) => /^[a-fA-F0-9]{24}$/.test(value.toString().trim()));
+  }
+
   _formatFacilityResponse(facility) {
   return {
     id: facility._id.toString(),
@@ -46,7 +61,7 @@ class FacilityService {
         full: data.fullAddress || ''
       },
       active: data.active !== undefined ? data.active : true,
-      staff_ids: data.staffIds || []
+      staff_ids: this._normalizeStaffIds(data.staffIds)
     };
 
     const newFacility = await facilityRepository.create(facilityData);
@@ -121,7 +136,7 @@ class FacilityService {
     }
     
     if (data.staffIds !== undefined) {
-      updateData.staff_ids = data.staffIds;
+      updateData.staff_ids = this._normalizeStaffIds(data.staffIds);
     }
 
     const updatedFacility = await facilityRepository.updateById(id, updateData);

@@ -45,16 +45,19 @@ class _AdminDashboardSectionState extends State<AdminDashboardSection> {
 
   Future<void> _loadUser() async {
     final result = await GetIt.I<GetLocalUserUseCase>()();
+    if (!mounted) return;
     setState(() {
       _user = result.fold((_) => null, (user) => user);
     });
   }
 
   Future<void> _loadFacilities() async {
+    if (!mounted) return;
     setState(() => _isLoadingFacilities = true);
     try {
       final useCase = GetIt.I<GetFacilitiesUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _facilities = response.data!;
@@ -65,6 +68,7 @@ class _AdminDashboardSectionState extends State<AdminDashboardSection> {
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingFacilities = false);
   }
 
@@ -699,7 +703,9 @@ class _AdminDashboardSectionState extends State<AdminDashboardSection> {
                 }).toList(),
                 onChanged: (val) {
                   if (val != null) {
-                    final fac = _facilities.firstWhere((f) => f.id == val);
+                    final matched = _facilities.where((f) => f.id == val);
+                    if (matched.isEmpty) return;
+                    final fac = matched.first;
                     setState(() {
                       _selectedFacilityId = val;
                       _selectedFacilityName = fac.name;

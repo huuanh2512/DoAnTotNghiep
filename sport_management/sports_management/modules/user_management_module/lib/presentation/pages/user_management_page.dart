@@ -35,7 +35,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
   @override
   void initState() {
     super.initState();
-    _cubit = UserManagementCubit(GetIt.I(), GetIt.I(), GetIt.I(), GetIt.I(), GetIt.I());
+    _cubit = UserManagementCubit(
+      GetIt.I(),
+      GetIt.I(),
+      GetIt.I(),
+      GetIt.I(),
+      GetIt.I(),
+    );
     _cubit.loadUsers();
     _loadFacilities();
   }
@@ -48,16 +54,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   Future<void> _loadFacilities() async {
+    if (!mounted) return;
     setState(() => _isLoadingFacilities = true);
     try {
       final useCase = GetIt.I<GetFacilitiesUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _facilities = response.data!;
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingFacilities = false);
   }
 
@@ -139,15 +148,27 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 items: const [
                   DropdownMenuItem(
                     value: 'CUSTOMER',
-                    child: Text('CUSTOMER (Khách hàng)', overflow: TextOverflow.ellipsis, maxLines: 1),
+                    child: Text(
+                      'CUSTOMER (Khách hàng)',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'STAFF',
-                    child: Text('STAFF (Nhân viên)', overflow: TextOverflow.ellipsis, maxLines: 1),
+                    child: Text(
+                      'STAFF (Nhân viên)',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'ADMIN',
-                    child: Text('ADMIN (Quản trị viên)', overflow: TextOverflow.ellipsis, maxLines: 1),
+                    child: Text(
+                      'ADMIN (Quản trị viên)',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ],
                 onChanged: (val) {
@@ -550,7 +571,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.person_add_rounded, color: _primaryColor, size: 28),
+                const Icon(
+                  Icons.person_add_rounded,
+                  color: _primaryColor,
+                  size: 28,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -682,15 +707,27 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     items: const [
                       DropdownMenuItem(
                         value: 'CUSTOMER',
-                        child: Text('CUSTOMER (Khách hàng)', overflow: TextOverflow.ellipsis, maxLines: 1),
+                        child: Text(
+                          'CUSTOMER (Khách hàng)',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'STAFF',
-                        child: Text('STAFF (Nhân viên)', overflow: TextOverflow.ellipsis, maxLines: 1),
+                        child: Text(
+                          'STAFF (Nhân viên)',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'ADMIN',
-                        child: Text('ADMIN (Quản trị viên)', overflow: TextOverflow.ellipsis, maxLines: 1),
+                        child: Text(
+                          'ADMIN (Quản trị viên)',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ],
                     onChanged: (val) {
@@ -751,7 +788,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Hủy', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -775,9 +818,15 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
-              child: const Text('Đăng ký', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Đăng ký',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -953,15 +1002,27 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         items: const [
                           DropdownMenuItem(
                             value: 'ALL',
-                            child: Text('Tất cả trạng thái', overflow: TextOverflow.ellipsis, maxLines: 1),
+                            child: Text(
+                              'Tất cả trạng thái',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'ACTIVE',
-                            child: Text('Đang hoạt động', overflow: TextOverflow.ellipsis, maxLines: 1),
+                            child: Text(
+                              'Đang hoạt động',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'INACTIVE',
-                            child: Text('Đang bị khóa', overflow: TextOverflow.ellipsis, maxLines: 1),
+                            child: Text(
+                              'Đang bị khóa',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
                         ],
                         onChanged: (val) {
@@ -1011,7 +1072,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
                           items: [
                             const DropdownMenuItem(
                               value: 'ALL',
-                              child: Text('Tất cả cơ sở', overflow: TextOverflow.ellipsis, maxLines: 1),
+                              child: Text(
+                                'Tất cả cơ sở',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
                             ..._facilities.map(
                               (fac) => DropdownMenuItem(
@@ -1283,7 +1348,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                                     color: Colors.grey.shade500,
                                                     fontSize: 11,
                                                   ),
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   maxLines: 1,
                                                 ),
                                               ),
@@ -1356,18 +1422,26 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: (facilityName != null && facilityName.isNotEmpty
-                                                    ? Colors.teal
-                                                    : Colors.orange)
-                                                .withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(6),
+                                            color:
+                                                (facilityName != null &&
+                                                            facilityName
+                                                                .isNotEmpty
+                                                        ? Colors.teal
+                                                        : Colors.orange)
+                                                    .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Text(
-                                            facilityName != null && facilityName.isNotEmpty
+                                            facilityName != null &&
+                                                    facilityName.isNotEmpty
                                                 ? 'ĐÃ GÁN CƠ SỞ'
                                                 : 'CHƯA GÁN CƠ SỞ',
                                             style: TextStyle(
-                                              color: facilityName != null && facilityName.isNotEmpty
+                                              color:
+                                                  facilityName != null &&
+                                                      facilityName.isNotEmpty
                                                   ? Colors.teal
                                                   : Colors.orange.shade900,
                                               fontSize: 9,
@@ -1407,8 +1481,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
                                                 fontSize: 12.5,
                                                 color: facilityName != null
                                                     ? (isDark
-                                                          ? Colors.tealAccent.shade400
-                                                          : Colors.teal.shade700)
+                                                          ? Colors
+                                                                .tealAccent
+                                                                .shade400
+                                                          : Colors
+                                                                .teal
+                                                                .shade700)
                                                     : Colors.orange.shade800,
                                                 fontWeight: FontWeight.bold,
                                               ),

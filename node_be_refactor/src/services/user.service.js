@@ -1,6 +1,34 @@
+const mongoose = require('mongoose');
 const userRepository = require('../repositories/user.repository');
 
 class UserService {
+  _businessError(message, statusCode = 400, code = 'USER_ERROR') {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    error.code = code;
+    return error;
+  }
+
+  _objectId(value, name, required = false) {
+    if (value === undefined || value === null || value === '') {
+      if (required) {
+        throw this._businessError(`${name} is required`, 400, 'MISSING_FIELDS');
+      }
+      return null;
+    }
+
+    if (typeof value !== 'string') {
+      throw this._businessError(`Invalid ${name}`, 400, 'INVALID_ID');
+    }
+
+    const normalized = value.trim();
+    if (!mongoose.isValidObjectId(normalized)) {
+      throw this._businessError(`Invalid ${name}`, 400, 'INVALID_ID');
+    }
+
+    return normalized;
+  }
+
   _formatUserResponse(user) {
     return {
       id: user._id.toString(),
@@ -22,12 +50,14 @@ class UserService {
 
   async queryUsers(filters, skip = 0, limit = 20) {
     const query = {};
+    const userId = this._objectId(filters.userId, 'userId');
+    const facilityId = this._objectId(filters.facilityId, 'facilityId');
 
-    if (filters.userId) query._id = filters.userId;
+    if (userId) query._id = userId;
     if (filters.email) query.email = new RegExp(filters.email, 'i');
     if (filters.role) query.role = filters.role;
     if (filters.status) query.status = filters.status;
-    if (filters.facilityId) query.facility_id = filters.facilityId;
+    if (facilityId) query.facility_id = facilityId;
 
     const [users, total] = await Promise.all([
       userRepository.findMany(query, parseInt(skip), parseInt(limit)),
@@ -80,7 +110,11 @@ class UserService {
   }
 
   async assignUserFacility(userId, facilityId) {
-    const user = await userRepository.updateById(userId, { facility_id: facilityId });
+    const normalizedUserId = this._objectId(userId, 'userId', true);
+    const normalizedFacilityId = this._objectId(facilityId, 'facilityId', true);
+    const user = await userRepository.updateById(normalizedUserId, {
+      facility_id: normalizedFacilityId
+    });
     if (!user) throw new Error('User not found');
     return true;
   }

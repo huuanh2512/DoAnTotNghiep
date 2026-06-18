@@ -12,7 +12,12 @@ const queryCourts = async (req, res) => {
       total: result.total
     });
   } catch (error) {
-    return sendError(res, 500, error.message, 'QUERY_ERROR');
+    return sendError(
+      res,
+      error.statusCode || 500,
+      error.message,
+      error.code || 'QUERY_ERROR'
+    );
   }
 };
 
@@ -30,7 +35,12 @@ const createCourt = async (req, res) => {
       court: result.court
     });
   } catch (error) {
-    return sendError(res, 500, error.message, 'CREATE_ERROR');
+    return sendError(
+      res,
+      error.statusCode || 500,
+      error.message,
+      error.code || 'CREATE_ERROR'
+    );
   }
 };
 
@@ -47,7 +57,12 @@ const updateCourt = async (req, res) => {
       ...(result.warning && { warning: result.warning })
     });
   } catch (error) {
-    return sendError(res, 400, error.message, 'UPDATE_ERROR');
+    return sendError(
+      res,
+      error.statusCode || 400,
+      error.message,
+      error.code || 'UPDATE_ERROR'
+    );
   }
 };
 

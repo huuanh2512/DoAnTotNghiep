@@ -34,7 +34,12 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
   @override
   void initState() {
     super.initState();
-    _cubit = FacilityManagementCubit(GetIt.I(), GetIt.I(), GetIt.I(), GetIt.I());
+    _cubit = FacilityManagementCubit(
+      GetIt.I(),
+      GetIt.I(),
+      GetIt.I(),
+      GetIt.I(),
+    );
     _cubit.loadFacilities();
     _loadStaff();
   }
@@ -47,151 +52,187 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
   }
 
   Future<void> _loadStaff() async {
+    if (!mounted) return;
     setState(() => _isLoadingStaff = true);
     try {
       final useCase = GetIt.I<GetStaffUsersUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _staffList = response.data!;
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingStaff = false);
   }
 
   void _onSearchChanged(String query) {
     setState(() {
       _filteredFacilities = _allFacilities
-          .where((f) =>
-              (f.name ?? '').toLowerCase().contains(query.toLowerCase()) ||
-              (f.address ?? '').toLowerCase().contains(query.toLowerCase()) ||
-              (f.description ?? '').toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (f) =>
+                (f.name ?? '').toLowerCase().contains(query.toLowerCase()) ||
+                (f.address ?? '').toLowerCase().contains(query.toLowerCase()) ||
+                (f.description ?? '').toLowerCase().contains(
+                  query.toLowerCase(),
+                ),
+          )
           .toList();
     });
   }
 
-  void _showFormDialog({FacilityEntity? facility}) {
+  bool _isValidObjectId(String? value) {
+    if (value == null) return false;
+    return RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(value.trim());
+  }
+
+  Future<void> _showFormDialog({FacilityEntity? facility}) async {
     final isEdit = facility != null;
     final nameController = TextEditingController(text: facility?.name);
     final addressController = TextEditingController(text: facility?.address);
-    final cityController = TextEditingController(text: facility?.description ?? 'Hà Nội');
-    
+    VoidCallback? submitAfterSheetClosed;
+    final cityController = TextEditingController(
+      text: facility?.description ?? 'Hà Nội',
+    );
+
     // Tìm staffId hiện tại nếu có
     String? selectedStaffId = facility?.ownerId;
     bool active = facility == null || facility.status == 'ACTIVE';
 
-    CrudPopup.showForm<void>(
+    await CrudPopup.showForm<void>(
       context,
       title: isEdit ? 'Chỉnh sửa cơ sở' : 'Thêm cơ sở mới',
       submitLabel: isEdit ? 'Lưu thay đổi' : 'Thêm mới',
-      icon: isEdit ? Icons.edit_location_alt_outlined : Icons.add_business_rounded,
+      icon: isEdit
+          ? Icons.edit_location_alt_outlined
+          : Icons.add_business_rounded,
       barrierDismissible: false,
       builder: (context, setDialogState) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tên cơ sở',
-                    hintText: 'Nhập tên cơ sở...',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Địa chỉ',
-                    hintText: 'Nhập địa chỉ đầy đủ...',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: cityController,
-                  decoration: const InputDecoration(
-                    labelText: 'Thành phố',
-                    hintText: 'Nhập thành phố...',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                
-                // Staff Dropdown
-                _isLoadingStaff
-                    ? const CircularProgressIndicator(color: _primaryColor)
-                    : DropdownButtonFormField<String>(
-                        initialValue: _staffList.any((s) => s.id == selectedStaffId) ? selectedStaffId : null,
-                        decoration: const InputDecoration(labelText: 'Nhân viên phụ trách'),
-                        items: _staffList
-                            .map((staff) => DropdownMenuItem(
-                                  value: staff.id,
-                                  child: Text(staff.name ?? staff.email ?? 'Staff'),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          setDialogState(() {
-                            selectedStaffId = val;
-                          });
-                        },
-                      ),
-                const SizedBox(height: 16),
-                
-                // Active Switch
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Trạng thái hoạt động', style: TextStyle(fontSize: 14)),
-                    Switch(
-                      value: active,
-                      activeThumbColor: _primaryColor,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          active = val;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ],
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Tên cơ sở',
+              hintText: 'Nhập tên cơ sở...',
             ),
-      onSubmit: () {
-                final name = nameController.text.trim();
-                final address = addressController.text.trim();
-                final city = cityController.text.trim();
-                if (name.isEmpty || address.isEmpty || city.isEmpty) {
-                  CrudPopup.showMessage(
-                    context,
-                    message: 'Vui lòng điền đầy đủ thông tin',
-                    tone: CrudPopupTone.warning,
-                  );
-                  return;
-                }
-                
-                final staffIds = selectedStaffId != null ? [selectedStaffId!] : <String>[];
-                
-                if (isEdit) {
-                  _cubit.updateFacility(
-                    id: facility.id,
-                    name: name,
-                    address: address,
-                    city: city,
-                    staffIds: staffIds,
-                    active: active,
-                  );
-                } else {
-                  _cubit.createFacility(
-                    name: name,
-                    address: address,
-                    city: city,
-                    staffIds: staffIds,
-                    active: active,
-                  );
-                }
-                Navigator.pop(context);
-              },
-    ).whenComplete(() {
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: addressController,
+            decoration: const InputDecoration(
+              labelText: 'Địa chỉ',
+              hintText: 'Nhập địa chỉ đầy đủ...',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: cityController,
+            decoration: const InputDecoration(
+              labelText: 'Thành phố',
+              hintText: 'Nhập thành phố...',
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Staff Dropdown
+          _isLoadingStaff
+              ? const CircularProgressIndicator(color: _primaryColor)
+              : DropdownButtonFormField<String>(
+                  initialValue: _staffList.any((s) => s.id == selectedStaffId)
+                      ? selectedStaffId
+                      : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Nhân viên phụ trách',
+                  ),
+                  items: _staffList
+                      .map(
+                        (staff) => DropdownMenuItem(
+                          value: staff.id,
+                          child: Text(staff.name ?? staff.email ?? 'Staff'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) {
+                    setDialogState(() {
+                      selectedStaffId = val;
+                    });
+                  },
+                ),
+          const SizedBox(height: 16),
+
+          // Active Switch
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Trạng thái hoạt động',
+                style: TextStyle(fontSize: 14),
+              ),
+              Switch(
+                value: active,
+                activeThumbColor: _primaryColor,
+                onChanged: (val) {
+                  setDialogState(() {
+                    active = val;
+                  });
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+      onSubmit: () async {
+        final name = nameController.text.trim();
+        final address = addressController.text.trim();
+        final city = cityController.text.trim();
+        if (name.isEmpty || address.isEmpty || city.isEmpty) {
+          CrudPopup.showMessage(
+            context,
+            message: 'Vui lòng điền đầy đủ thông tin',
+            tone: CrudPopupTone.warning,
+          );
+          return;
+        }
+
+        final staffIds = _isValidObjectId(selectedStaffId)
+            ? [selectedStaffId!.trim()]
+            : <String>[];
+
+        if (isEdit) {
+          submitAfterSheetClosed = () => _cubit.updateFacility(
+            id: facility.id,
+            name: name,
+            address: address,
+            city: city,
+            staffIds: staffIds,
+            active: active,
+          );
+        } else {
+          submitAfterSheetClosed = () => _cubit.createFacility(
+            name: name,
+            address: address,
+            city: city,
+            staffIds: staffIds,
+            active: active,
+          );
+        }
+        FocusManager.instance.primaryFocus?.unfocus();
+        final navigator = Navigator.of(context);
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        navigator.pop();
+      },
+    ).whenComplete(() async {
+      final submit = submitAfterSheetClosed;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       nameController.dispose();
       addressController.dispose();
       cityController.dispose();
+      if (submit != null && mounted) {
+        submit();
+      }
     });
   }
 
@@ -226,7 +267,11 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded, color: _primaryColor, size: 28),
+                  icon: const Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: _primaryColor,
+                    size: 28,
+                  ),
                   onPressed: () => _showFormDialog(),
                 ),
                 const SizedBox(width: 8),
@@ -252,7 +297,9 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.15)),
+                  borderSide: BorderSide(
+                    color: theme.dividerColor.withValues(alpha: 0.15),
+                  ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
@@ -281,7 +328,9 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
               },
               builder: (context, state) {
                 if (state is FacilityManagementLoading) {
-                  return const Center(child: CircularProgressIndicator(color: _primaryColor));
+                  return const Center(
+                    child: CircularProgressIndicator(color: _primaryColor),
+                  );
                 }
 
                 if (state is FacilityManagementLoaded) {
@@ -296,7 +345,11 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.business_rounded, size: 64, color: Colors.grey.shade300),
+                        Icon(
+                          Icons.business_rounded,
+                          size: 64,
+                          color: Colors.grey.shade300,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Không tìm thấy cơ sở nào',
@@ -311,19 +364,27 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                   onRefresh: () => _cubit.loadFacilities(),
                   color: _primaryColor,
                   child: ListView.separated(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+                    padding: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: 24,
+                    ),
                     itemCount: _filteredFacilities.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final facility = _filteredFacilities[index];
                       final isActive = facility.status == 'ACTIVE';
-                      
+
                       // Tìm tên nhân viên phụ trách nếu trùng khớp
                       final staffUser = _staffList.firstWhere(
                         (s) => s.id == facility.ownerId,
                         orElse: () => UserEntity(
                           id: '',
-                          name: facility.ownerId != null && facility.ownerId!.isNotEmpty && _isLoadingStaff
+                          name:
+                              facility.ownerId != null &&
+                                  facility.ownerId!.isNotEmpty &&
+                                  _isLoadingStaff
                               ? 'Đang tải...'
                               : 'Chưa có nhân viên phụ trách',
                         ),
@@ -333,7 +394,9 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.15)),
+                          side: BorderSide(
+                            color: theme.dividerColor.withValues(alpha: 0.15),
+                          ),
                         ),
                         child: InkWell(
                           onTap: () {
@@ -353,7 +416,8 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
@@ -365,15 +429,26 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: (isActive ? Colors.green : Colors.grey).withValues(alpha: 0.1),
+                                        color:
+                                            (isActive
+                                                    ? Colors.green
+                                                    : Colors.grey)
+                                                .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        isActive ? 'ĐANG HOẠT ĐỘNG' : 'TẠM DỪNG',
+                                        isActive
+                                            ? 'ĐANG HOẠT ĐỘNG'
+                                            : 'TẠM DỪNG',
                                         style: TextStyle(
-                                          color: isActive ? Colors.green : Colors.grey,
+                                          color: isActive
+                                              ? Colors.green
+                                              : Colors.grey,
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -384,12 +459,19 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade500),
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      size: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         '${facility.address} (${facility.description ?? 'Hà Nội'})',
-                                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13,
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -399,19 +481,27 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey.shade500),
+                                    Icon(
+                                      Icons.person_outline_rounded,
+                                      size: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         'Phụ trách: ${staffUser.name}',
-                                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
                                 const Divider(height: 24),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
@@ -429,15 +519,26 @@ class _FacilityManagementPageState extends State<FacilityManagementPage> {
                                     Row(
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
-                                          onPressed: () => _showFormDialog(facility: facility),
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            color: Colors.blue,
+                                            size: 20,
+                                          ),
+                                          onPressed: () => _showFormDialog(
+                                            facility: facility,
+                                          ),
                                           constraints: const BoxConstraints(),
                                           padding: const EdgeInsets.all(4),
                                         ),
                                         const SizedBox(width: 12),
                                         IconButton(
-                                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
-                                          onPressed: () => _confirmDelete(facility),
+                                          icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: Colors.red,
+                                            size: 20,
+                                          ),
+                                          onPressed: () =>
+                                              _confirmDelete(facility),
                                           constraints: const BoxConstraints(),
                                           padding: const EdgeInsets.all(4),
                                         ),

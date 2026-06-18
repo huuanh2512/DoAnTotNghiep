@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const courtRepository = require('../repositories/court.repository');
 const bookingRepository = require('../repositories/booking.repository');
 const fixedScheduleRepository = require('../repositories/fixed-schedule.repository');
@@ -7,6 +8,33 @@ const { getDayOfWeekFromDateString } = require('../utils/booking-time.util');
 const { toLocalDateString } = require('../utils/booking-time.util');
 
 class CourtService {
+  _businessError(message, statusCode = 400, code = 'COURT_ERROR') {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    error.code = code;
+    return error;
+  }
+
+  _objectId(value, name, required = false) {
+    if (value === undefined || value === null || value === '') {
+      if (required) {
+        throw this._businessError(`${name} is required`, 400, 'MISSING_FIELDS');
+      }
+      return null;
+    }
+
+    if (typeof value !== 'string') {
+      throw this._businessError(`Invalid ${name}`, 400, 'INVALID_ID');
+    }
+
+    const normalized = value.trim();
+    if (!mongoose.isValidObjectId(normalized)) {
+      throw this._businessError(`Invalid ${name}`, 400, 'INVALID_ID');
+    }
+
+    return normalized;
+  }
+
   _generateCourtCode() {
     const timestamp = Date.now().toString(36).toUpperCase();
     const suffix = crypto.randomBytes(2).toString('hex').toUpperCase();
@@ -139,9 +167,11 @@ class CourtService {
 
   async queryCourts(filters, skip = 0, limit = 20) {
     const query = {};
+    const facilityId = this._objectId(filters.facilityId, 'facilityId');
+    const sportId = this._objectId(filters.sportId, 'sportId');
     
-    if (filters.facilityId) query.facility_id = filters.facilityId;
-    if (filters.sportId) query.sport_id = filters.sportId;
+    if (facilityId) query.facility_id = facilityId;
+    if (sportId) query.sport_id = sportId;
     if (filters.status) query.status = filters.status;
 
     const [courts, total] = await Promise.all([
@@ -156,10 +186,12 @@ class CourtService {
   }
 
   async createCourt(data) {
+    const facilityId = this._objectId(data.facilityId, 'facilityId', true);
+    const sportId = this._objectId(data.sportId, 'sportId', true);
     const courtData = {
       name: data.name,
-      facility_id: data.facilityId,
-      sport_id: data.sportId,
+      facility_id: facilityId,
+      sport_id: sportId,
       code: data.code || this._generateCourtCode(),
       status: data.status || 'ACTIVE',
       price_per_hour: data.pricePerHour || 0
@@ -178,8 +210,12 @@ class CourtService {
     
     if (data.name !== undefined) updateData.name = data.name;
     if (data.code !== undefined) updateData.code = data.code;
-    if (data.facilityId !== undefined) updateData.facility_id = data.facilityId;
-    if (data.sportId !== undefined) updateData.sport_id = data.sportId;
+    if (data.facilityId !== undefined) {
+      updateData.facility_id = this._objectId(data.facilityId, 'facilityId');
+    }
+    if (data.sportId !== undefined) {
+      updateData.sport_id = this._objectId(data.sportId, 'sportId');
+    }
     if (data.status !== undefined) updateData.status = data.status;
     if (data.pricePerHour !== undefined) updateData.price_per_hour = data.pricePerHour;
 

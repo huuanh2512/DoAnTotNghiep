@@ -156,6 +156,7 @@ class _StaffDashboardSectionState extends State<StaffDashboardSection> {
 
   Future<void> _loadUser() async {
     final result = await GetIt.I<GetLocalUserUseCase>()();
+    if (!mounted) return;
     setState(() {
       _user = result.fold((_) => null, (user) => user);
     });
@@ -1935,25 +1936,30 @@ class _NewBookingDialogState extends State<_NewBookingDialog> {
   }
 
   Future<void> _loadSports() async {
+    if (!mounted) return;
     setState(() => _isLoadingSports = true);
     try {
       final useCase = GetIt.I<GetSportsUseCase>();
       final res = await useCase();
+      if (!mounted) return;
       if (res.success && res.data != null) {
         setState(() {
           _sports = res.data!;
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingSports = false);
   }
 
   Future<void> _loadCourts() async {
     if (_facilityId == null) return;
+    if (!mounted) return;
     setState(() => _isLoadingCourts = true);
     try {
       final useCase = GetIt.I<GetCourtsUseCase>();
       final res = await useCase();
+      if (!mounted) return;
       if (res.success && res.data != null) {
         setState(() {
           _courts = res.data!
@@ -1962,11 +1968,13 @@ class _NewBookingDialogState extends State<_NewBookingDialog> {
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingCourts = false);
   }
 
   Future<void> _loadSlots() async {
     if (_courtId == null) return;
+    if (!mounted) return;
     setState(() {
       _isLoadingSlots = true;
       _selectedSlotIndex = null;
@@ -1978,12 +1986,14 @@ class _NewBookingDialogState extends State<_NewBookingDialog> {
           '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}';
       final useCase = GetIt.I<GetSlotConfigUseCase>();
       final res = await useCase(_courtId!, bookingDate: formattedDate);
+      if (!mounted) return;
       if (res.success && res.data != null) {
         final config = res.data!;
 
         // Load booked slots
         final bookingUseCase = GetIt.I<GetBookingHistoryUseCase>();
         final bookingsRes = await bookingUseCase();
+        if (!mounted) return;
         final booked = <int>{};
         if (bookingsRes.success && bookingsRes.data != null) {
           final courtBookings = bookingsRes.data!.where(
@@ -2011,6 +2021,7 @@ class _NewBookingDialogState extends State<_NewBookingDialog> {
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingSlots = false);
   }
 
@@ -2018,7 +2029,9 @@ class _NewBookingDialogState extends State<_NewBookingDialog> {
     if (_selectedSlotIndex == null || _slotConfig == null || _courtId == null) {
       return 0;
     }
-    final court = _courts.firstWhere((c) => c.id == _courtId);
+    final matches = _courts.where((c) => c.id == _courtId);
+    if (matches.isEmpty) return 0;
+    final court = matches.first;
     final int? priceVal = court is BookingCourtModel
         ? court.pricePerHour
         : null;
@@ -2576,6 +2589,7 @@ class _RescheduleDialogState extends State<_RescheduleDialog> {
   Future<void> _loadSlots() async {
     final courtId = widget.booking.courtId;
     if (courtId == null) return;
+    if (!mounted) return;
     setState(() {
       _isLoadingSlots = true;
       _selectedSlotIndex = null;
@@ -2587,12 +2601,14 @@ class _RescheduleDialogState extends State<_RescheduleDialog> {
           '${_date.year}-${_date.month.toString().padLeft(2, '0')}-${_date.day.toString().padLeft(2, '0')}';
       final useCase = GetIt.I<GetSlotConfigUseCase>();
       final res = await useCase(courtId, bookingDate: formattedDate);
+      if (!mounted) return;
       if (res.success && res.data != null) {
         final config = res.data!;
 
         // Load booked slots
         final bookingUseCase = GetIt.I<GetBookingHistoryUseCase>();
         final bookingsRes = await bookingUseCase();
+        if (!mounted) return;
         final booked = <int>{};
         if (bookingsRes.success && bookingsRes.data != null) {
           final courtBookings = bookingsRes.data!.where(
@@ -2620,6 +2636,7 @@ class _RescheduleDialogState extends State<_RescheduleDialog> {
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingSlots = false);
   }
 

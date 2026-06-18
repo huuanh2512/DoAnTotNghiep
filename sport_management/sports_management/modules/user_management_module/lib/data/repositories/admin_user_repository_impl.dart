@@ -36,16 +36,18 @@ class AdminUserRepositoryImpl implements UserRepository {
                 status: item['status']?.toString() ?? 'ACTIVE',
                 name: profile != null
                     ? (profile['name']?.toString() ??
-                        profile['fullName']?.toString())
+                          profile['fullName']?.toString())
                     : null,
                 avatar: profile != null
                     ? (profile['avatarUrl']?.toString() ??
-                        profile['avatar']?.toString())
+                          profile['avatar']?.toString())
                     : null,
                 facilityName: _parseFacilityName(item),
                 facilityId: _parseFacilityId(item),
                 phone: profile != null ? profile['phone']?.toString() : null,
-                createdAt: createdStr != null ? DateTime.tryParse(createdStr) : null,
+                createdAt: createdStr != null
+                    ? DateTime.tryParse(createdStr)
+                    : null,
               ),
             );
           }
@@ -73,25 +75,37 @@ class AdminUserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<BaseResponse<UserEntity>> updateUser(String id, Map<String, dynamic> data) async {
+  Future<BaseResponse<UserEntity>> updateUser(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     final response = await _remoteDataSource.updateUser(id, data);
     return _mapToUserResponse(response);
   }
 
   @override
-  Future<BaseResponse<UserEntity>> updateUserRole(String id, String role) async {
+  Future<BaseResponse<UserEntity>> updateUserRole(
+    String id,
+    String role,
+  ) async {
     final response = await _remoteDataSource.updateUserRole(id, role);
     return _mapToUserResponse(response);
   }
 
   @override
-  Future<BaseResponse<UserEntity>> updateUserStatus(String id, String status) async {
+  Future<BaseResponse<UserEntity>> updateUserStatus(
+    String id,
+    String status,
+  ) async {
     final response = await _remoteDataSource.updateUserStatus(id, status);
     return _mapToUserResponse(response);
   }
 
   @override
-  Future<BaseResponse<UserEntity>> assignFacility(String id, String facilityId) async {
+  Future<BaseResponse<UserEntity>> assignFacility(
+    String id,
+    String facilityId,
+  ) async {
     final response = await _remoteDataSource.assignFacility(id, facilityId);
     return _mapToUserResponse(response);
   }
@@ -116,12 +130,11 @@ class AdminUserRepositoryImpl implements UserRepository {
         role: userMap['role']?.toString() ?? 'CUSTOMER',
         status: userMap['status']?.toString() ?? 'ACTIVE',
         name: profile != null
-            ? (profile['name']?.toString() ??
-                profile['fullName']?.toString())
+            ? (profile['name']?.toString() ?? profile['fullName']?.toString())
             : null,
         avatar: profile != null
             ? (profile['avatarUrl']?.toString() ??
-                profile['avatar']?.toString())
+                  profile['avatar']?.toString())
             : null,
         facilityName: _parseFacilityName(userMap),
         facilityId: _parseFacilityId(userMap),
@@ -148,7 +161,8 @@ class AdminUserRepositoryImpl implements UserRepository {
     }
     final facility = item['facility'];
     if (facility is Map) {
-      return facility['name']?.toString() ?? facility['facilityName']?.toString();
+      return facility['name']?.toString() ??
+          facility['facilityName']?.toString();
     }
     return null;
   }
@@ -170,7 +184,11 @@ class AdminUserRepositoryImpl implements UserRepository {
       final id = value['_id'] ?? value['id'];
       return id != null ? _extractHexId(id) : null;
     }
+    if (value is List) {
+      return value.isNotEmpty ? _extractHexId(value.first) : null;
+    }
     final str = value.toString().trim();
+    if (str == '[]' || str == 'null') return null;
     final regExp = RegExp(r'[a-fA-F0-9]{24}');
     final match = regExp.firstMatch(str);
     if (match != null) {
@@ -182,4 +200,3 @@ class AdminUserRepositoryImpl implements UserRepository {
     return str.isNotEmpty ? str : null;
   }
 }
-

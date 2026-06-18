@@ -1,6 +1,34 @@
+const mongoose = require('mongoose');
 const reviewRepository = require('../repositories/review.repository');
 
 class ReviewService {
+  _businessError(message, statusCode = 400, code = 'REVIEW_ERROR') {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    error.code = code;
+    return error;
+  }
+
+  _objectId(value, name, required = false) {
+    if (value === undefined || value === null || value === '') {
+      if (required) {
+        throw this._businessError(`${name} is required`, 400, 'MISSING_FIELDS');
+      }
+      return null;
+    }
+
+    if (typeof value !== 'string') {
+      throw this._businessError(`Invalid ${name}`, 400, 'INVALID_ID');
+    }
+
+    const normalized = value.trim();
+    if (!mongoose.isValidObjectId(normalized)) {
+      throw this._businessError(`Invalid ${name}`, 400, 'INVALID_ID');
+    }
+
+    return normalized;
+  }
+
   _formatReviewResponse(review) {
     return {
       id: review._id.toString(),
@@ -21,9 +49,11 @@ class ReviewService {
 
   async queryReviews(filters, skip = 0, limit = 20) {
     const query = {};
+    const courtId = this._objectId(filters.courtId, 'courtId');
+    const userId = this._objectId(filters.userId, 'userId');
     
-    if (filters.courtId) query.court_id = filters.courtId;
-    if (filters.userId) query.user_id = filters.userId;
+    if (courtId) query.court_id = courtId;
+    if (userId) query.user_id = userId;
     if (filters.rating) query.rating = parseInt(filters.rating);
 
     const [reviews, total] = await Promise.all([
@@ -38,9 +68,11 @@ class ReviewService {
   }
 
   async createReview(data, userId) {
+    const normalizedCourtId = this._objectId(data.courtId, 'courtId', true);
+    const normalizedUserId = this._objectId(userId, 'userId', true);
     const reviewData = {
-      user_id: userId,
-      court_id: data.courtId,
+      user_id: normalizedUserId,
+      court_id: normalizedCourtId,
       rating: data.rating,
       comment: data.comment || ''
     };

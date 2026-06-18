@@ -36,10 +36,12 @@ class _AdminPaymentSupervisionPageState
   }
 
   Future<void> _loadPayments() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final useCase = GetIt.I<GetPaymentsUseCase>();
       final response = await useCase(status: _selectedStatus);
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _payments = response.data!;

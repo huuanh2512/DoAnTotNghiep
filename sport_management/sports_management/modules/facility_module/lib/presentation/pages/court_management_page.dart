@@ -45,16 +45,19 @@ class _CourtManagementPageState extends State<CourtManagementPage> {
   }
 
   Future<void> _loadSports() async {
+    if (!mounted) return;
     setState(() => _isLoadingSports = true);
     try {
       final useCase = GetIt.I<GetSportsUseCase>();
       final response = await useCase();
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _sportList = response.data!;
         });
       }
     } catch (_) {}
+    if (!mounted) return;
     setState(() => _isLoadingSports = false);
   }
 
@@ -207,8 +210,9 @@ class _CourtManagementPageState extends State<CourtManagementPage> {
         await Future<void>.delayed(const Duration(milliseconds: 80));
         navigator.pop();
       },
-    ).whenComplete(() {
+    ).whenComplete(() async {
       final submit = submitAfterSheetClosed;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       nameController.dispose();
       priceController.dispose();
       if (submit != null && mounted) {
