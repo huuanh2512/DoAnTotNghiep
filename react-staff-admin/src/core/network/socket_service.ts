@@ -34,11 +34,19 @@ class SocketService {
 
       // Join rooms
       if (user.role === 'STAFF') {
-        this.socket?.emit('join_room', 'room_staff');
+        this.socket?.emit('join', 'room_staff');
         console.log('[Socket] Joined room_staff');
       }
-      this.socket?.emit('join_room', `user_${user._id}`);
-      console.log(`[Socket] Joined user_${user._id}`);
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        this.socket?.emit('join', 'room_admin');
+        console.log('[Socket] Joined room_admin');
+      }
+
+      const userId = user._id || user.id;
+      if (userId) {
+        this.socket?.emit('join', `user_${userId}`);
+        console.log(`[Socket] Joined user_${userId}`);
+      }
     });
 
     this.socket.on('booking_created', (data) => {

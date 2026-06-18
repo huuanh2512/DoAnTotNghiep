@@ -3,6 +3,10 @@ const notificationRepository = require('../repositories/notification.repository'
 class NotificationService {
   _normalizeRole(userRole) {
     const role = userRole?.toString().toUpperCase();
+    if (role === 'SUPER_ADMIN') {
+      return 'ADMIN';
+    }
+
     return ['CUSTOMER', 'STAFF', 'ADMIN'].includes(role)
       ? role
       : 'CUSTOMER';

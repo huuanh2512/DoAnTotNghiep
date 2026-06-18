@@ -17,7 +17,7 @@ interface NotificationDropdownProps {
   unreadCount: number;
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
-  userRole: 'ADMIN' | 'STAFF' | 'CUSTOMER';
+  userRole: 'ADMIN' | 'SUPER_ADMIN' | 'STAFF' | 'CUSTOMER';
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
@@ -28,6 +28,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   userRole,
 }) => {
   const navigate = useNavigate();
+  const isAdminRole = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
 
   const getBookingId = (notif: Notification) => {
     const metadata = notif.metadata || {};
@@ -37,7 +38,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const getBookingDetailPath = (bookingId: string) => {
-    return userRole === 'ADMIN' ? `/admin/bookings/${bookingId}` : `/staff/bookings/${bookingId}`;
+    return isAdminRole ? `/admin/bookings/${bookingId}` : `/staff/bookings/${bookingId}`;
   };
 
   const getFixedScheduleId = (notif: Notification) => {
@@ -47,7 +48,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const getFixedScheduleDetailPath = (fixedScheduleId: string) => {
-    return userRole === 'ADMIN' ? `/admin/fixed-schedules/${fixedScheduleId}` : `/staff/fixed-schedules/${fixedScheduleId}`;
+    return isAdminRole ? `/admin/fixed-schedules/${fixedScheduleId}` : `/staff/fixed-schedules/${fixedScheduleId}`;
   };
 
   const getMatchingId = (notif: Notification) => {
@@ -68,7 +69,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const getMatchingDetailPath = (matchingId: string) => {
-    return userRole === 'ADMIN' ? `/admin/matching/${matchingId}` : `/staff/matching/${matchingId}`;
+    return isAdminRole ? `/admin/matching/${matchingId}` : `/staff/matching/${matchingId}`;
   };
 
   const getReviewId = (notif: Notification) => {
@@ -89,7 +90,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const getReviewDetailPath = (reviewId: string) => {
-    return userRole === 'ADMIN' ? `/admin/reviews/${reviewId}` : `/staff/reviews/${reviewId}`;
+    return isAdminRole ? `/admin/reviews/${reviewId}` : `/staff/reviews/${reviewId}`;
   };
 
   const handleNotificationClick = async (notif: Notification) => {
@@ -112,11 +113,11 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     } else if (notif.type === 'PAYMENT' && (metadata.paymentId || metadata.id || metadata.bookingId)) {
       const pId = metadata.paymentId || metadata.id;
       const bId = metadata.bookingId;
-      navigate(userRole === 'ADMIN' && bId ? `/admin/bookings/${bId}` : `/staff/cashier?paymentId=${pId}&bookingId=${bId}`);
+      navigate(isAdminRole && bId ? `/admin/bookings/${bId}` : `/staff/cashier?paymentId=${pId}&bookingId=${bId}`);
     } else if (notif.type === 'PROMOTION') {
-      navigate(userRole === 'ADMIN' ? '/admin/profile' : '/staff/profile');
+      navigate(isAdminRole ? '/admin/profile' : '/staff/profile');
     } else if (notif.type === 'SYSTEM') {
-      navigate(userRole === 'ADMIN' ? '/admin/profile' : '/staff/profile');
+      navigate(isAdminRole ? '/admin/profile' : '/staff/profile');
     }
   };
 
@@ -197,7 +198,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           block
           onClick={() => {
             // Redirect based on current user role
-            if (userRole === 'ADMIN') {
+            if (isAdminRole) {
               navigate('/admin/notifications');
             } else {
               navigate('/staff/notifications');

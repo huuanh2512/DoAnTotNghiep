@@ -7,7 +7,7 @@ export interface UserSession {
   _id?: string;
   id?: string;
   email: string;
-  role: 'ADMIN' | 'STAFF' | 'CUSTOMER';
+  role: 'ADMIN' | 'SUPER_ADMIN' | 'STAFF' | 'CUSTOMER';
   status: 'ACTIVE' | 'INACTIVE';
   profile?: {
     fullName?: string;

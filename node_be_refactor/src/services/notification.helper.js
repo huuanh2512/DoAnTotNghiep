@@ -33,6 +33,9 @@ class NotificationHelper {
         const targetUser = await User.findById(userId).select('role');
         resolvedAudience = targetUser?.role || 'ALL';
       }
+      if (resolvedAudience === 'SUPER_ADMIN') {
+        resolvedAudience = 'ADMIN';
+      }
       notification = await notificationService.createNotification({
         userId,
         title,
@@ -96,18 +99,6 @@ class NotificationHelper {
       );
       await Promise.all(promises);
 
-      // 3. Gửi Socket.IO cho room_staff (dành cho Web client hoặc các listener phòng chung)
-      if (socketIOService.io) {
-        const roomNotification = {
-          title,
-          content,
-          type,
-          metadata,
-          createdAt: new Date().toISOString()
-        };
-        socketIOService.notifyStaff(roomNotification);
-      }
-
       return { success: true };
     } catch (error) {
       console.error('Error in notifyStaff:', error);
@@ -128,7 +119,7 @@ class NotificationHelper {
 
     try {
       // 1. Tìm tất cả User có role là ADMIN
-      const adminUsers = await User.find({ role: 'ADMIN' });
+      const adminUsers = await User.find({ role: { $in: ['ADMIN', 'SUPER_ADMIN'] } });
 
       // 2. Gửi thông báo đến từng admin (DB + Real-time + FCM)
       const promises = adminUsers.map(user =>
@@ -142,18 +133,6 @@ class NotificationHelper {
         }).catch(err => console.error(`Error notifying admin ${user._id}:`, err))
       );
       await Promise.all(promises);
-
-      // 3. Gửi Socket.IO cho room_admin
-      if (socketIOService.io) {
-        const roomNotification = {
-          title,
-          content,
-          type,
-          metadata,
-          createdAt: new Date().toISOString()
-        };
-        socketIOService.notifyAdmin(roomNotification);
-      }
 
       return { success: true };
     } catch (error) {
@@ -220,7 +199,7 @@ class NotificationHelper {
 
     try {
       // 1. Tìm tất cả User có role là STAFF hoặc ADMIN
-      const staffAndAdminUsers = await User.find({ role: { $in: ['STAFF', 'ADMIN'] } });
+      const staffAndAdminUsers = await User.find({ role: { $in: ['STAFF', 'ADMIN', 'SUPER_ADMIN'] } });
 
       // 2. Gửi thông báo đến từng người (DB + Real-time + FCM)
       const promises = staffAndAdminUsers.map(user =>
@@ -229,24 +208,11 @@ class NotificationHelper {
           title,
           content,
           type,
-          audience: user.role,
+          audience: user.role === 'SUPER_ADMIN' ? 'ADMIN' : user.role,
           metadata
         }).catch(err => console.error(`Error notifying staff/admin ${user._id}:`, err))
       );
       await Promise.all(promises);
-
-      // 3. Gửi Socket.IO cho cả hai phòng room_staff và room_admin
-      if (socketIOService.io) {
-        const roomNotification = {
-          title,
-          content,
-          type,
-          metadata,
-          createdAt: new Date().toISOString()
-        };
-        socketIOService.notifyStaff(roomNotification);
-        socketIOService.notifyAdmin(roomNotification);
-      }
 
       return { success: true };
     } catch (error) {

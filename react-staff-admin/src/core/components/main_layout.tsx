@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Space, App } from 'antd';
 import {
   MenuFoldOutlined,
@@ -40,6 +40,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
   const [facilityName, setFacilityName] = useState<string>('');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const realtimeNotificationKeys = useRef<Set<string>>(new Set());
   const brandLogoSrc = `${process.env.PUBLIC_URL}/sport-energy-logo.png`;
   
   const navigate = useNavigate();
@@ -109,7 +110,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await getNotificationsUseCase.execute();
-      setNotifications(res.items || []);
+      const items = res.items || [];
+      realtimeNotificationKeys.current = new Set(items.map((item) => `id:${item.id}`));
+      setNotifications(items);
       setUnreadCount(res.unreadCount || 0);
     } catch (e) {
       console.error('Failed to fetch notifications:', e);
@@ -205,9 +208,25 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
 
     // Handle when a new notification is pushed in real-time
     const handleRealtimeNotification = (notifData: any) => {
+      const notificationId = notifData.id || notifData._id;
+      const fallbackKey = [
+        notifData.type || 'SYSTEM',
+        notifData.title || '',
+        notifData.body || notifData.content || '',
+        notifData.createdAt || '',
+        JSON.stringify(notifData.metadata || {}),
+      ].join('|');
+      const realtimeKey = notificationId ? `id:${notificationId}` : `fallback:${fallbackKey}`;
+
+      if (realtimeNotificationKeys.current.has(realtimeKey)) {
+        console.log('[Socket] Skipped duplicate notification:', realtimeKey);
+        return;
+      }
+      realtimeNotificationKeys.current.add(realtimeKey);
+
       const newNotif: Notification = {
-        id: notifData.id || notifData._id || `socket_${Date.now()}`,
-        userId: notifData.userId || user._id,
+        id: notificationId || `socket_${Date.now()}`,
+        userId: notifData.userId || user._id || user.id || '',
         title: notifData.title || 'Thông báo mới',
         body: notifData.body || notifData.content || '',
         type: notifData.type || 'SYSTEM',
@@ -260,7 +279,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, user, isDarkMo
       });
 
       // Update state
-      setNotifications((prev) => [newNotif, ...prev]);
+      setNotifications((prev) => {
+        if (prev.some((item) => item.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
       setUnreadCount((prev) => prev + 1);
     };
 

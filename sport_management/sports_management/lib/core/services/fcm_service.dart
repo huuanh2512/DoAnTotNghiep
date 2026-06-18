@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:app_module/router/app_router.dart';
 import 'package:get_it/get_it.dart';
+import 'package:notification_module/notification_module.dart';
 import 'package:server_module/server_module.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,11 +20,7 @@ class FcmService {
     final messaging = FirebaseMessaging.instance;
 
     // Request permissions
-    await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await messaging.requestPermission(alert: true, badge: true, sound: true);
 
     // Listen to foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
@@ -40,7 +37,9 @@ class FcmService {
     // Check initial message (Terminated State)
     final initialMessage = await messaging.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('[FCM] Initial Message: ${initialMessage.notification?.title}');
+      debugPrint(
+        '[FCM] Initial Message: ${initialMessage.notification?.title}',
+      );
       await _handleMessagePayload(initialMessage, isForeground: false);
     }
   }
@@ -65,7 +64,9 @@ class FcmService {
           if (response.success) {
             debugPrint('[FCM] Đã gửi device token lên backend thành công.');
           } else {
-            debugPrint('[FCM] Gửi device token lên backend thất bại: ${response.message}');
+            debugPrint(
+              '[FCM] Gửi device token lên backend thất bại: ${response.message}',
+            );
           }
         } else {
           debugPrint('[FCM] Không lấy được device token (null).');
@@ -88,7 +89,9 @@ class FcmService {
         if (response.success) {
           debugPrint('[FCM] Đã xóa device token khỏi backend thành công.');
         } else {
-          debugPrint('[FCM] Xóa device token khỏi backend thất bại: ${response.message}');
+          debugPrint(
+            '[FCM] Xóa device token khỏi backend thất bại: ${response.message}',
+          );
         }
       }
     } catch (e) {
@@ -111,9 +114,23 @@ class FcmService {
     }
   }
 
-  static Future<void> _handleMessagePayload(RemoteMessage message, {required bool isForeground}) async {
+  static Future<void> _handleMessagePayload(
+    RemoteMessage message, {
+    required bool isForeground,
+  }) async {
     final data = message.data;
     final type = data['type'] as String?;
+
+    try {
+      GetIt.I<AppNotificationEventBus>().emit(
+        AppNotificationEvent(
+          type: AppNotificationEventType.fcmReceived,
+          data: Map<String, dynamic>.from(data),
+        ),
+      );
+    } catch (e) {
+      debugPrint('[FCM] Lỗi khi phát event reload thông báo: $e');
+    }
 
     if (type == null) return;
 
@@ -126,22 +143,31 @@ class FcmService {
         return;
       }
 
-      final bookingEnabled = prefs.getBool('notification_booking_enabled') ?? true;
-      final paymentEnabled = prefs.getBool('notification_payment_enabled') ?? true;
-      final systemEnabled = prefs.getBool('notification_system_enabled') ?? true;
+      final bookingEnabled =
+          prefs.getBool('notification_booking_enabled') ?? true;
+      final paymentEnabled =
+          prefs.getBool('notification_payment_enabled') ?? true;
+      final systemEnabled =
+          prefs.getBool('notification_system_enabled') ?? true;
 
       if ((type == 'BOOKING' || type == 'MATCHING') && !bookingEnabled) {
-        debugPrint('[FCM] Bỏ qua thông báo $type: Người dùng tắt nhận thông báo Đặt sân & Kèo đấu.');
+        debugPrint(
+          '[FCM] Bỏ qua thông báo $type: Người dùng tắt nhận thông báo Đặt sân & Kèo đấu.',
+        );
         return;
       }
 
       if (type == 'PAYMENT' && !paymentEnabled) {
-        debugPrint('[FCM] Bỏ qua thông báo $type: Người dùng tắt nhận thông báo Giao dịch & Thanh toán.');
+        debugPrint(
+          '[FCM] Bỏ qua thông báo $type: Người dùng tắt nhận thông báo Giao dịch & Thanh toán.',
+        );
         return;
       }
 
       if (type == 'SYSTEM' && !systemEnabled) {
-        debugPrint('[FCM] Bỏ qua thông báo $type: Người dùng tắt nhận thông báo Hệ thống & Bảo trì.');
+        debugPrint(
+          '[FCM] Bỏ qua thông báo $type: Người dùng tắt nhận thông báo Hệ thống & Bảo trì.',
+        );
         return;
       }
     } catch (e) {
@@ -169,7 +195,9 @@ class FcmService {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(message.notification?.title ?? _getTitleForType(type)),
-            content: Text(message.notification?.body ?? 'Có cập nhật mới từ hệ thống.'),
+            content: Text(
+              message.notification?.body ?? 'Có cập nhật mới từ hệ thống.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
@@ -190,7 +218,10 @@ class FcmService {
                   } else if (type == 'PROMOTION' && link != null) {
                     final uri = Uri.tryParse(link);
                     if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   }
                 },

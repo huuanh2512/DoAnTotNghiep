@@ -60,7 +60,7 @@ class SocketIOService {
       if (socket.userRole === 'STAFF') {
         socket.join('room_staff');
       }
-      if (socket.userRole === 'ADMIN') {
+      if (socket.userRole === 'ADMIN' || socket.userRole === 'SUPER_ADMIN') {
         socket.join('room_admin');
       }
 

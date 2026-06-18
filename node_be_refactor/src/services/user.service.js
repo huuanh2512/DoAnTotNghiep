@@ -95,7 +95,12 @@ class UserService {
     const validRoles = ['CUSTOMER', 'STAFF', 'ADMIN'];
     if (!validRoles.includes(role)) throw new Error('Invalid role');
 
-    const user = await userRepository.updateById(userId, { role });
+    const updateData = { role };
+    if (role !== 'STAFF') {
+      updateData.facility_id = null;
+    }
+
+    const user = await userRepository.updateById(userId, updateData);
     if (!user) throw new Error('User not found');
     return true;
   }

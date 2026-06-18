@@ -6,6 +6,7 @@ import { MockFacility } from '../../../../core/network/mock_db';
 import { apiClient } from '../../../../core/network/api_client';
 
 const { Title, Text } = Typography;
+type CreatableRole = 'CUSTOMER' | 'STAFF' | 'ADMIN';
 
 const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserSession[]>([]);
@@ -14,6 +15,7 @@ const AdminUsersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [form] = Form.useForm();
+  const selectedCreateRole = Form.useWatch('role', form) as CreatableRole | undefined;
 
   // Load users and facilities
   const loadData = async () => {
@@ -66,8 +68,9 @@ const AdminUsersPage: React.FC = () => {
     }
   };
 
-  // Quick register Staff
-  const handleQuickRegisterStaff = async (values: any) => {
+  const handleCreateAccount = async (values: any) => {
+    const role: CreatableRole = values.role || 'CUSTOMER';
+
     setRegistering(true);
     try {
       // Step 1: POST /auth/register (mật khẩu mặc định 123456)
@@ -75,9 +78,14 @@ const AdminUsersPage: React.FC = () => {
         email: values.email,
         password: '123456',
         fullName: values.fullName,
-        phone: values.phone
+        phone: values.phone,
+        role,
+        facilityId: role === 'STAFF' ? values.facilityId : undefined
       });
       const newUserId = regResponse.data.userId || regResponse.data.data?.userId || regResponse.data.user?._id || regResponse.data.user?.id;
+      if (!newUserId) {
+        throw new Error('Không lấy được ID tài khoản vừa tạo');
+      }
 
       // Step 2: Cập nhật thông tin profile (fullName, phone)
       await apiClient.put(`/user/${newUserId}`, {
@@ -90,13 +98,17 @@ const AdminUsersPage: React.FC = () => {
       // Step 2.5: Kích hoạt trạng thái tài khoản thành ACTIVE
       await apiClient.put(`/user/${newUserId}/status`, { status: 'ACTIVE' });
 
-      // Step 3: Gán quyền STAFF
-      await apiClient.put(`/user/${newUserId}/role`, { role: 'STAFF' });
+      // Step 3: Gán quyền theo lựa chọn
+      if (role !== 'CUSTOMER') {
+        await apiClient.put(`/user/${newUserId}/role`, { role });
+      }
 
-      // Step 4: Gán facility
-      await apiClient.post(`/user/${newUserId}/assign-facility`, { facilityId: values.facilityId });
+      // Step 4: Chỉ STAFF mới cần cơ sở làm việc
+      if (role === 'STAFF') {
+        await apiClient.post(`/user/${newUserId}/assign-facility`, { facilityId: values.facilityId });
+      }
 
-      message.success('Đăng ký tài khoản nhân viên thành công! Mật khẩu mặc định: 123456');
+      message.success('Tạo tài khoản thành công! Mật khẩu mặc định: 123456');
       setIsModalOpen(false);
       form.resetFields();
       loadData();
@@ -230,12 +242,13 @@ const AdminUsersPage: React.FC = () => {
           icon={<UserAddOutlined />}
           onClick={() => {
             form.resetFields();
+            form.setFieldsValue({ role: 'STAFF' });
             setIsModalOpen(true);
           }}
           size="large"
           className="bg-brand-orange hover:bg-brand-orange/90 border-none rounded-md font-semibold shrink-0 shadow-md shadow-brand-orange/20"
         >
-          Tạo tài khoản Nhân viên
+          Tạo tài khoản
         </Button>
       </div>
 
@@ -249,11 +262,14 @@ const AdminUsersPage: React.FC = () => {
         className="border border-semantic-border/10 dark:border-semantic-borderDark/10 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-surface-dark1"
       />
 
-      {/* Register Staff Modal */}
+      {/* Create Account Modal */}
       <Modal
-        title={<span className="font-bold text-lg dark:text-white">Đăng ký Tài khoản Nhân viên mới</span>}
+        title={<span className="font-bold text-lg dark:text-white">Tạo tài khoản mới</span>}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          form.resetFields();
+        }}
         footer={null}
         width={500}
         destroyOnClose
@@ -261,13 +277,34 @@ const AdminUsersPage: React.FC = () => {
         <Form
           form={form}
           layout="vertical"
-          onFinish={handleQuickRegisterStaff}
+          initialValues={{ role: 'STAFF' }}
+          onFinish={handleCreateAccount}
           className="mt-4"
         >
           <Form.Item
+            name="role"
+            label={<span className="font-semibold dark:text-white">Vai trò tài khoản</span>}
+            rules={[{ required: true, message: 'Vui lòng chọn vai trò tài khoản!' }]}
+          >
+            <Select
+              placeholder="Chọn vai trò"
+              className="rounded-md"
+              onChange={(role: CreatableRole) => {
+                if (role !== 'STAFF') {
+                  form.setFieldValue('facilityId', undefined);
+                }
+              }}
+            >
+              <Select.Option value="CUSTOMER">Khách hàng</Select.Option>
+              <Select.Option value="STAFF">Nhân viên cơ sở</Select.Option>
+              <Select.Option value="ADMIN">Quản trị viên</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
             name="fullName"
             label={<span className="font-semibold dark:text-white">Họ và Tên</span>}
-            rules={[{ required: true, message: 'Vui lòng nhập họ và tên nhân viên!' }]}
+            rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
           >
             <Input placeholder="Ví dụ: Nguyễn Văn A" className="rounded-md dark:bg-surface-dark2 dark:text-white" />
           </Form.Item>
@@ -286,31 +323,41 @@ const AdminUsersPage: React.FC = () => {
           <Form.Item
             name="phone"
             label={<span className="font-semibold dark:text-white">Số điện thoại</span>}
-            rules={[{ required: true, message: 'Nhập số điện thoại nhân viên!' }]}
+            rules={[{ required: selectedCreateRole !== 'ADMIN', message: 'Nhập số điện thoại!' }]}
           >
             <Input placeholder="Ví dụ: 0987654321" className="rounded-md dark:bg-surface-dark2 dark:text-white" />
           </Form.Item>
 
-          <Form.Item
-            name="facilityId"
-            label={<span className="font-semibold dark:text-white">Cơ sở làm việc gán trước</span>}
-            rules={[{ required: true, message: 'Vui lòng chọn cơ sở làm việc!' }]}
-          >
-            <Select placeholder="Chọn cơ sở" className="rounded-md">
-              {facilities.map(f => (
-                <Select.Option key={f._id} value={f._id}>{f.name}</Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+          {selectedCreateRole === 'STAFF' && (
+            <Form.Item
+              name="facilityId"
+              label={<span className="font-semibold dark:text-white">Khu liên hợp / Cơ sở làm việc</span>}
+              rules={[{ required: true, message: 'Vui lòng chọn khu liên hợp/cơ sở cho nhân viên!' }]}
+            >
+              <Select
+                placeholder="Chọn khu liên hợp/cơ sở"
+                className="rounded-md"
+                showSearch
+                optionFilterProp="children"
+              >
+                {facilities.map(f => (
+                  <Select.Option key={f._id} value={f._id}>{f.name}</Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
 
           <Card className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-md p-1 mb-6">
             <span className="text-xs text-amber-700 dark:text-amber-400 block leading-normal">
-              * Hệ thống đăng ký tài khoản qua Firebase sẽ tự tạo mật khẩu mặc định là <strong>123456</strong>. Nhân viên có thể thay đổi sau khi đăng nhập.
+              * Hệ thống sẽ tạo mật khẩu mặc định là <strong>123456</strong>. Người dùng có thể đổi mật khẩu sau khi đăng nhập.
             </span>
           </Card>
 
           <div className="flex gap-3 justify-end border-t border-semantic-border/10 dark:border-semantic-borderDark/10 pt-4 mt-6">
-            <Button onClick={() => setIsModalOpen(false)} className="rounded-md">
+            <Button onClick={() => {
+              setIsModalOpen(false);
+              form.resetFields();
+            }} className="rounded-md">
               Hủy bỏ
             </Button>
             <Button
@@ -319,7 +366,7 @@ const AdminUsersPage: React.FC = () => {
               loading={registering}
               className="bg-brand-orange hover:bg-brand-orange/90 border-none font-semibold rounded-md shadow-md"
             >
-              Đăng ký & Phân bổ
+              Tạo tài khoản
             </Button>
           </div>
         </Form>
