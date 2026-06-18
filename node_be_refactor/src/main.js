@@ -6,6 +6,7 @@ const connectDB = require('./config/mongo');
 const routes = require('./routes/index');
 const path = require('path');
 const socketIOService = require('./services/socket-io.service');
+const cronStatus = require('./utils/cron-status');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -30,6 +31,14 @@ app.get('/health', (req, res) => {
         service: 'sport-energy-backend',
         uptime: process.uptime(),
         timestamp
+    });
+});
+
+app.get('/health/cron', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        cron: cronStatus.getStatus()
     });
 });
 

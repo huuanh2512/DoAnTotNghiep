@@ -1477,7 +1477,10 @@ class MatchingService {
       booking_date: bookingDate
     });
 
-    if (queues.length < 2) return;
+    if (queues.length < 2) {
+      console.log(`[Matchmaker] No match candidates: only ${queues.length} SEARCHING queue(s).`);
+      return { scannedQueues: queues.length, matched: false, reason: 'not_enough_queues' };
+    }
     queues.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     const individualQueues = queues.filter(
@@ -1500,8 +1503,12 @@ class MatchingService {
 
         matchedGroup.push(candidate);
         if (matchedGroup.length === targetGroupSize) {
-          await this.executeSuccessfulMatch(matchedGroup, sportId, facilityId, bookingDate, commonWindow);
-          return;
+          const matchingSessionId = await this.executeSuccessfulMatch(matchedGroup, sportId, facilityId, bookingDate, commonWindow);
+          return {
+            scannedQueues: queues.length,
+            matched: Boolean(matchingSessionId),
+            matchingSessionId: matchingSessionId?.toString() || null
+          };
         }
       }
     }
@@ -1511,7 +1518,7 @@ class MatchingService {
     ));
     const teamMatch = this._findAutoTeamMatch(teamQueues);
     if (teamMatch) {
-      await this.executeSuccessfulMatch(
+      const matchingSessionId = await this.executeSuccessfulMatch(
         teamMatch.queues,
         sportId,
         facilityId,
@@ -1519,7 +1526,15 @@ class MatchingService {
         teamMatch.window,
         teamMatch
       );
+      return {
+        scannedQueues: queues.length,
+        matched: Boolean(matchingSessionId),
+        matchingSessionId: matchingSessionId?.toString() || null
+      };
     }
+
+    console.log(`[Matchmaker] No compatible match found among ${queues.length} SEARCHING queue(s).`);
+    return { scannedQueues: queues.length, matched: false, reason: 'no_compatible_match' };
   }
 
   _findAutoTeamMatch(queues) {
@@ -1846,7 +1861,7 @@ class MatchingService {
       'auto executeSuccessfulMatch'
     );
 
-    if (!createdSessionId) return;
+    if (!createdSessionId) return null;
 
     const allUserIds = matchedQueues.map(q => q.user_id._id.toString());
     for (const userId of allUserIds) {
@@ -1860,6 +1875,7 @@ class MatchingService {
     }
 
     console.log(`[Matchmaker] Matched session ${createdSessionId} for users: ${allUserIds.join(', ')}`);
+    return createdSessionId;
   }
 }
 
