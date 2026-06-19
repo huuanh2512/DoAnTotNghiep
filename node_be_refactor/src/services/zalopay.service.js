@@ -139,7 +139,9 @@ class ZaloPayService {
           deeplink_url:   deeplinkUrl,
           zp_trans_token: zpTransToken,
           app_trans_id:   appTransId,
-          qr_code:        res.qr_code || null,
+          // Sandbox may omit qr_code. The deep link still carries the
+          // ZaloPay transaction token and can be rendered as a QR locally.
+          qr_code:        res.qr_code || deeplinkUrl || res.order_url || null,
         };
       }
 

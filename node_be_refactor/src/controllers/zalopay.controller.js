@@ -52,7 +52,11 @@ const createOrder = async (req, res) => {
         order_url: payment.zalopay_order_url,
         deeplink_url: payment.zalopay_deeplink_url,
         app_trans_id: payment.transaction_id,
-        qr_code: payment.zalopay_qr_code || null,
+        qr_code:
+          payment.zalopay_qr_code
+          || payment.zalopay_deeplink_url
+          || payment.zalopay_order_url
+          || null,
       });
     }
 
