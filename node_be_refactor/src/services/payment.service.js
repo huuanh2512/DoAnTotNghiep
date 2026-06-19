@@ -489,6 +489,14 @@ class PaymentService {
         );
       }
 
+      if (
+        currentPayment.method === 'ZALOPAY'
+        && currentPayment.status === 'SUCCESS'
+        && status === 'SUCCESS'
+      ) {
+        return { payment: this._formatPaymentResponse(currentPayment) };
+      }
+
       if (currentPayment.status !== 'PENDING' || status !== 'SUCCESS') {
         throw this._businessError(
           'Khách hàng chỉ có thể thanh toán hóa đơn đang chờ thanh toán.',
@@ -497,11 +505,15 @@ class PaymentService {
         );
       }
 
-      if (currentPayment.method === 'CASH') {
+      if (['CASH', 'ZALOPAY'].includes(currentPayment.method)) {
         throw this._businessError(
-          'Khách hàng không thể tự xác nhận thanh toán tiền mặt tại quầy.',
+          currentPayment.method === 'ZALOPAY'
+            ? 'Giao dịch ZaloPay chỉ được xác nhận từ ZaloPay.'
+            : 'Khách hàng không thể tự xác nhận thanh toán tiền mặt tại quầy.',
           409,
-          'CUSTOMER_CASH_CONFIRMATION_FORBIDDEN'
+          currentPayment.method === 'ZALOPAY'
+            ? 'CUSTOMER_ZALOPAY_CONFIRMATION_FORBIDDEN'
+            : 'CUSTOMER_CASH_CONFIRMATION_FORBIDDEN'
         );
       }
     }

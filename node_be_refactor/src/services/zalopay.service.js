@@ -160,7 +160,12 @@ class ZaloPayService {
   verifyCallback({ data, mac }) {
     try {
       const expectedMac = this._hmacSha256(data, this.key2);
-      if (expectedMac !== mac) {
+      const expectedBuffer = Buffer.from(expectedMac, 'hex');
+      const receivedBuffer = Buffer.from(String(mac), 'hex');
+      if (
+        expectedBuffer.length !== receivedBuffer.length
+        || !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+      ) {
         console.warn('[ZaloPay] Callback MAC mismatch!');
         return { valid: false, parsedData: null };
       }

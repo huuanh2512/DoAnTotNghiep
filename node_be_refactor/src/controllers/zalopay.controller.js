@@ -41,6 +41,21 @@ const createOrder = async (req, res) => {
       return sendError(res, 403, 'Bạn không có quyền thanh toán hóa đơn này.', 'FORBIDDEN');
     }
 
+    if (
+      payment.method === 'ZALOPAY'
+      && payment.transaction_id
+      && payment.zalopay_order_url
+    ) {
+      return res.status(200).json({
+        success: true,
+        message: 'Existing ZaloPay order returned',
+        order_url: payment.zalopay_order_url,
+        deeplink_url: payment.zalopay_deeplink_url,
+        app_trans_id: payment.transaction_id,
+        qr_code: payment.zalopay_qr_code || null,
+      });
+    }
+
     const bookingId = payment.booking_id?._id?.toString() || payment.booking_id?.toString();
     const amount    = payment.amount;
 
@@ -52,8 +67,12 @@ const createOrder = async (req, res) => {
 
     // Cập nhật method của payment sang ZALOPAY và lưu app_trans_id vào transaction_id
     await paymentRepository.updateStatus(paymentId, {
-      method:         'ZALOPAY',
-      transaction_id: result.app_trans_id,
+      method:               'ZALOPAY',
+      transaction_id:       result.app_trans_id,
+      zalopay_order_url:    result.order_url || '',
+      zalopay_deeplink_url: result.deeplink_url || '',
+      zalopay_qr_code:      result.qr_code || '',
+      zalopay_created_at:   new Date(),
     });
 
     return res.status(200).json({
@@ -149,6 +168,47 @@ const queryOrder = async (req, res) => {
 
     if (!app_trans_id) {
       return sendError(res, 400, 'app_trans_id is required', 'MISSING_TRANS_ID');
+    }
+
+    if (!payment_id) {
+      return sendError(res, 400, 'payment_id is required', 'MISSING_PAYMENT_ID');
+    }
+
+    const requestedPayment = await paymentRepository.findById(payment_id);
+    if (!requestedPayment) {
+      return sendError(res, 404, 'Payment not found', 'PAYMENT_NOT_FOUND');
+    }
+
+    const requestedPaymentUserId =
+      requestedPayment.user_id?._id?.toString()
+      || requestedPayment.user_id?.toString();
+    if (req.user.role === 'CUSTOMER' && requestedPaymentUserId !== req.user.id) {
+      return sendError(res, 403, 'Forbidden', 'FORBIDDEN');
+    }
+
+    if (
+      requestedPayment.method !== 'ZALOPAY'
+      || requestedPayment.transaction_id !== app_trans_id
+    ) {
+      return sendError(
+        res,
+        409,
+        'ZaloPay transaction does not match a pending payment.',
+        'ZALOPAY_TRANSACTION_MISMATCH'
+      );
+    }
+
+    if (requestedPayment.status === 'SUCCESS') {
+      return res.status(200).json({
+        success: true,
+        is_paid: true,
+        return_code: 1,
+        message: 'Payment already confirmed',
+      });
+    }
+
+    if (requestedPayment.status !== 'PENDING') {
+      return sendError(res, 409, 'Payment is not pending.', 'PAYMENT_NOT_PENDING');
     }
 
     // Nếu có payment_id, kiểm tra quyền truy cập

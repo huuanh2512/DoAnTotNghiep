@@ -36,6 +36,22 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  zalopay_order_url: {
+    type: String,
+    default: ''
+  },
+  zalopay_deeplink_url: {
+    type: String,
+    default: ''
+  },
+  zalopay_qr_code: {
+    type: String,
+    default: ''
+  },
+  zalopay_created_at: {
+    type: Date,
+    default: null
+  },
   refunded_at: {
     type: Date,
     default: null

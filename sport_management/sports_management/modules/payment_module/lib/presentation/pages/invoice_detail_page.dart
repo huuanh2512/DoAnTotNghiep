@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'zalopay_webview_page.dart';
 
 import 'package:server_module/server_module.dart';
@@ -35,6 +36,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
   bool _paymentSuccess = false;
   String? _zaloPayTransId;
   String? _zaloPayQrCode;
+  String? _zaloPayOrderUrl;
   Timer? _pollingTimer;
 
   MatchingSessionEntity? _matchingSession;
@@ -117,8 +119,12 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
   /// ngầy lập tức kiểm tra trạng thái thanh toán nếu đang ở trong trạng thái chờ ZaloPay
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _isZaloPayWaiting && _zaloPayTransId != null) {
-      debugPrint('[ZaloPay] App resumed — kiểm tra trạng thái thanh toán ngay lập tức');
+    if (state == AppLifecycleState.resumed &&
+        _isZaloPayWaiting &&
+        _zaloPayTransId != null) {
+      debugPrint(
+        '[ZaloPay] App resumed — kiểm tra trạng thái thanh toán ngay lập tức',
+      );
       _checkZaloPayStatusNow();
     }
   }
@@ -134,7 +140,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
       final getPayments = GetIt.I<GetPaymentsUseCase>();
       final response = await getPayments();
       if (response.success && response.data != null) {
-        final updated = response.data!.where((p) => p.id == _invoice!.id).firstOrNull;
+        final updated = response.data!
+            .where((p) => p.id == _invoice!.id)
+            .firstOrNull;
         if (updated != null && updated.status == 'SUCCESS' && mounted) {
           _pollingTimer?.cancel();
           try {
@@ -149,7 +157,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
             _isZaloPayWaiting = false;
             _paymentSuccess = true;
           });
-          debugPrint('[ZaloPay] ✅ Backend DB xác nhận SUCCESS sau khi app resume!');
+          debugPrint(
+            '[ZaloPay] ✅ Backend DB xác nhận SUCCESS sau khi app resume!',
+          );
           return;
         }
       }
@@ -177,7 +187,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
               _isZaloPayWaiting = false;
               _paymentSuccess = true;
             });
-            debugPrint('[ZaloPay] ✅ ZaloPay API xác nhận SUCCESS sau khi resume!');
+            debugPrint(
+              '[ZaloPay] ✅ ZaloPay API xác nhận SUCCESS sau khi resume!',
+            );
           }
         }
       }
@@ -495,9 +507,6 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
     }
   }
 
-
-
-
   Future<void> _startZaloPayPayment() async {
     if (_invoice == null) return;
 
@@ -507,6 +516,13 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
     } catch (_) {}
     String translate(String vi, String en) => lang == 'vi' ? vi : en;
 
+    if (_isZaloPayWaiting) return;
+    if (_zaloPayTransId != null && _zaloPayOrderUrl != null) {
+      setState(() => _isZaloPayWaiting = true);
+      _startPollingZaloPayStatus(translate);
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     try {
@@ -515,28 +531,20 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
       );
 
       if (response != null && response['app_trans_id'] != null) {
-        final transId  = response['app_trans_id'] as String;
-        final orderUrl = response['order_url']    as String? ?? '';
+        final transId = response['app_trans_id'] as String;
+        final orderUrl = response['order_url'] as String? ?? '';
 
         setState(() {
           _isZaloPayWaiting = true;
           _zaloPayTransId = transId;
-          _zaloPayQrCode  = response['qr_code'] as String?;
+          _zaloPayQrCode = response['qr_code'] as String?;
+          _zaloPayOrderUrl = orderUrl;
         });
 
         debugPrint('[ZaloPay] order_url: $orderUrl');
 
         // Mở in-app WebView — hiển thị ZaloPay gateway ngay trong app
         // WebView sẽ intercept zalopay:// deeplink và mở ZaloPay Sandbox
-        if (mounted && orderUrl.isNotEmpty) {
-          await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder: (_) => ZaloPayWebViewPage(orderUrl: orderUrl),
-              fullscreenDialog: true,
-            ),
-          );
-        }
-
         // Bắt đầu polling tự động (mỗi 3 giây, tối đa 2 phút)
         _startPollingZaloPayStatus(translate);
       } else {
@@ -559,9 +567,24 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
     }
   }
 
-
   /// Polling tự động kiểm tra trạng thái ZaloPay mỗi 3 giây (tối đa 40 lần = 2 phút)
   /// Ưu tiên query backend DB (webhook sẽ đã cập nhật) thay vì chỉ dựa vào ZaloPay API
+  Future<void> _openZaloPayCheckout() async {
+    final orderUrl = _zaloPayOrderUrl;
+    if (orderUrl == null || orderUrl.isEmpty || !mounted) return;
+
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ZaloPayWebViewPage(orderUrl: orderUrl),
+        fullscreenDialog: true,
+      ),
+    );
+
+    if (mounted) {
+      await _checkZaloPayStatus();
+    }
+  }
+
   void _startPollingZaloPayStatus(String Function(String, String) translate) {
     _pollingTimer?.cancel();
     int attempts = 0;
@@ -583,7 +606,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
         final getPayments = GetIt.I<GetPaymentsUseCase>();
         final response = await getPayments();
         if (response.success && response.data != null) {
-          final updated = response.data!.where((p) => p.id == _invoice!.id).firstOrNull;
+          final updated = response.data!
+              .where((p) => p.id == _invoice!.id)
+              .firstOrNull;
           if (updated != null && updated.status == 'SUCCESS' && mounted) {
             timer.cancel();
             try {
@@ -598,7 +623,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
               _isZaloPayWaiting = false;
               _paymentSuccess = true;
             });
-            debugPrint('[ZaloPay] ✅ Backend DB polling phát hiện SUCCESS (lần thử $attempts)');
+            debugPrint(
+              '[ZaloPay] ✅ Backend DB polling phát hiện SUCCESS (lần thử $attempts)',
+            );
             return;
           }
         }
@@ -626,7 +653,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                 _isZaloPayWaiting = false;
                 _paymentSuccess = true;
               });
-              debugPrint('[ZaloPay] ✅ ZaloPay API polling phát hiện SUCCESS (lần thử $attempts)');
+              debugPrint(
+                '[ZaloPay] ✅ ZaloPay API polling phát hiện SUCCESS (lần thử $attempts)',
+              );
             }
           }
         }
@@ -949,6 +978,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                         _selectedMethod == 'BANK_TRANSFER',
                                     onSelected: (val) {
                                       if (val) {
+                                        _pollingTimer?.cancel();
                                         setState(() {
                                           _selectedMethod = 'BANK_TRANSFER';
                                           _isZaloPayWaiting = false;
@@ -998,6 +1028,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                         setState(() {
                                           _selectedMethod = 'ZALOPAY';
                                         });
+                                        if (!_isZaloPayWaiting) {
+                                          _startZaloPayPayment();
+                                        }
                                       }
                                     },
                                     selectedColor: const Color(
@@ -1186,27 +1219,18 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                         color: Colors.grey.shade200,
                                       ),
                                     ),
-                                    child: Image.network(
-                                      'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(_zaloPayQrCode!)}',
-                                      width: 180,
-                                      height: 180,
-                                      fit: BoxFit.contain,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                            if (loadingProgress == null) {
-                                              return child;
-                                            }
-                                            return const SizedBox(
-                                              width: 180,
-                                              height: 180,
-                                              child: Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      color: Color(0xFF0070BA),
-                                                    ),
-                                              ),
-                                            );
-                                          },
+                                    child: QrImageView(
+                                      data: _zaloPayQrCode!,
+                                      size: 180,
+                                      eyeStyle: const QrEyeStyle(
+                                        eyeShape: QrEyeShape.square,
+                                        color: Color(0xFF0070BA),
+                                      ),
+                                      dataModuleStyle: const QrDataModuleStyle(
+                                        dataModuleShape:
+                                            QrDataModuleShape.square,
+                                        color: Colors.black,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -1250,6 +1274,36 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                   width: double.infinity,
                                   height: 48,
                                   child: ElevatedButton.icon(
+                                    onPressed: _openZaloPayCheckout,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0070BA),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.open_in_new,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      context.tr(
+                                        vi: 'THANH TOÁN NGAY',
+                                        en: 'PAY NOW',
+                                      ),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton.icon(
                                     onPressed: _checkZaloPayStatus,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF0070BA),
@@ -1278,6 +1332,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                 const SizedBox(height: 8),
                                 TextButton(
                                   onPressed: () {
+                                    _pollingTimer?.cancel();
                                     setState(() {
                                       _isZaloPayWaiting = false;
                                     });
@@ -1630,7 +1685,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                             ),
                             const Row(
                               children: [
-                                Icon(Icons.wallet, size: 16, color: Color(0xFF0070BA)),
+                                Icon(
+                                  Icons.wallet,
+                                  size: 16,
+                                  color: Color(0xFF0070BA),
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'ZaloPay',
@@ -1661,7 +1720,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF00C853).withValues(alpha: 0.1),
+                                color: const Color(
+                                  0xFF00C853,
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -1682,7 +1743,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
               ),
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,

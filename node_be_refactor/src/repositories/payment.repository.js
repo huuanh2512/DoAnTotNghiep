@@ -65,6 +65,15 @@ class PaymentRepository {
       .populate(bookingPopulate);
   }
 
+  async updateOne(query, updateData, options = {}) {
+    return await Payment.findOneAndUpdate(query, updateData, {
+      new: true,
+      session: options.session
+    })
+      .populate('user_id')
+      .populate(bookingPopulate);
+  }
+
   async updateByBookingId(bookingId, updateData, options = {}) {
     return await Payment.findOneAndUpdate(
       { booking_id: bookingId },

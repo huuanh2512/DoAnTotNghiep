@@ -30,6 +30,8 @@ dependencies:
   android_intent_plus: ^5.1.0  # Explicit Android Intent (mở thẳng ZaloPay Sandbox)
   webview_flutter: ^4.10.0     # In-app WebView để hiển thị ZaloPay gateway
 
+  qr_flutter: ^4.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
