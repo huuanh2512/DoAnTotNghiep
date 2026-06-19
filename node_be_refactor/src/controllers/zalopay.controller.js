@@ -249,11 +249,34 @@ const queryOrder = async (req, res) => {
       }
     }
 
+    if (result.returnCode === 2) {
+      await paymentRepository.updateOne(
+        {
+          _id: payment_id,
+          transaction_id: app_trans_id,
+          status: 'PENDING',
+        },
+        {
+          transaction_id: '',
+          zalopay_order_url: '',
+          zalopay_deeplink_url: '',
+          zalopay_qr_code: '',
+          zalopay_created_at: null,
+        }
+      );
+      console.warn(
+        `[ZaloPay] Payment ${payment_id} was rejected by the gateway and can be retried.`
+      );
+    }
+
     return res.status(200).json({
       success:     true,
       is_paid:     result.isPaid,
       return_code: result.returnCode,
       message:     result.message,
+      sub_return_code: result.subReturnCode,
+      sub_message: result.subMessage,
+      retryable: result.returnCode === 2,
     });
   } catch (error) {
     console.error('[ZaloPay] queryOrder controller error:', error);

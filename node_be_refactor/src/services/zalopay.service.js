@@ -203,12 +203,19 @@ class ZaloPayService {
 
     try {
       const res = await this._post('/query', params);
-      console.log(`[ZaloPay] Query response: return_code=${res.return_code}`);
+      console.log(
+        `[ZaloPay] Query response: return_code=${res.return_code}, `
+        + `sub_return_code=${res.sub_return_code ?? ''}, `
+        + `message=${res.return_message || ''}, `
+        + `sub_message=${res.sub_return_message || ''}`
+      );
 
       return {
         isPaid:     res.return_code === 1,
         returnCode: res.return_code,
         message:    res.return_message || '',
+        subReturnCode: res.sub_return_code ?? null,
+        subMessage: res.sub_return_message || '',
       };
     } catch (err) {
       console.error('[ZaloPay] Query order error:', err.message);

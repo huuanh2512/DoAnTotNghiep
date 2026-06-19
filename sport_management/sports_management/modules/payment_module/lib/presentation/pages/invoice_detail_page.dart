@@ -987,6 +987,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                         setState(() {
                                           _selectedMethod = 'BANK_TRANSFER';
                                           _isZaloPayWaiting = false;
+                                          _zaloPayTransId = null;
+                                          _zaloPayQrCode = null;
+                                          _zaloPayOrderUrl = null;
                                         });
                                       }
                                     },
@@ -1340,6 +1343,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
                                     _pollingTimer?.cancel();
                                     setState(() {
                                       _isZaloPayWaiting = false;
+                                      _zaloPayTransId = null;
+                                      _zaloPayQrCode = null;
+                                      _zaloPayOrderUrl = null;
                                     });
                                   },
                                   child: Text(
