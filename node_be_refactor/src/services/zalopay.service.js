@@ -134,14 +134,18 @@ class ZaloPayService {
           ? `zalopay://zalopay.vn/v2/order?zptoken=${zpTransToken}`
           : res.order_url; // fallback về web nếu không có token
 
+        if (!res.qr_code) {
+          console.warn('[ZaloPay] Sandbox did not return qr_code; using order_url for the QR fallback.');
+        }
+
         return {
           order_url:      res.order_url,
           deeplink_url:   deeplinkUrl,
           zp_trans_token: zpTransToken,
           app_trans_id:   appTransId,
-          // Sandbox may omit qr_code. The deep link still carries the
-          // ZaloPay transaction token and can be rendered as a QR locally.
-          qr_code:        res.qr_code || deeplinkUrl || res.order_url || null,
+          // A gateway URL is scannable from another device, unlike a custom
+          // zalopay:// deep link which is intended for the current device.
+          qr_code:        res.qr_code || res.order_url || deeplinkUrl || null,
         };
       }
 

@@ -46,6 +46,9 @@ const createOrder = async (req, res) => {
       && payment.transaction_id
       && payment.zalopay_order_url
     ) {
+      const cachedQrCode = payment.zalopay_qr_code?.startsWith('zalopay://')
+        ? ''
+        : payment.zalopay_qr_code;
       return res.status(200).json({
         success: true,
         message: 'Existing ZaloPay order returned',
@@ -53,9 +56,9 @@ const createOrder = async (req, res) => {
         deeplink_url: payment.zalopay_deeplink_url,
         app_trans_id: payment.transaction_id,
         qr_code:
-          payment.zalopay_qr_code
-          || payment.zalopay_deeplink_url
+          cachedQrCode
           || payment.zalopay_order_url
+          || payment.zalopay_deeplink_url
           || null,
       });
     }

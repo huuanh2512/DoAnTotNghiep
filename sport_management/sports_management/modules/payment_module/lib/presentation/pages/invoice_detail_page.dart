@@ -532,16 +532,17 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage>
 
       if (response != null && response['app_trans_id'] != null) {
         final transId = response['app_trans_id'] as String;
-        final orderUrl = response['order_url'] as String? ?? '';
+        final String orderUrl = (response['order_url'] as String?) ?? '';
         final qrCode =
             response['qr_code'] as String? ??
-            response['deeplink_url'] as String? ??
-            orderUrl;
+            (orderUrl.isNotEmpty
+                ? orderUrl
+                : response['deeplink_url'] as String?);
 
         setState(() {
           _isZaloPayWaiting = true;
           _zaloPayTransId = transId;
-          _zaloPayQrCode = qrCode.isNotEmpty ? qrCode : null;
+          _zaloPayQrCode = qrCode?.isNotEmpty == true ? qrCode : null;
           _zaloPayOrderUrl = orderUrl;
         });
 
