@@ -46,21 +46,40 @@ const createOrder = async (req, res) => {
       && payment.transaction_id
       && payment.zalopay_order_url
     ) {
-      const cachedQrCode = payment.zalopay_qr_code?.startsWith('zalopay://')
-        ? ''
-        : payment.zalopay_qr_code;
-      return res.status(200).json({
-        success: true,
-        message: 'Existing ZaloPay order returned',
-        order_url: payment.zalopay_order_url,
-        deeplink_url: payment.zalopay_deeplink_url,
-        app_trans_id: payment.transaction_id,
-        qr_code:
-          cachedQrCode
-          || payment.zalopay_order_url
-          || payment.zalopay_deeplink_url
-          || null,
-      });
+      const cachedOrder = await zaloPayService.queryOrder(payment.transaction_id);
+      if (cachedOrder.returnCode !== 2) {
+        const cachedQrCode = payment.zalopay_qr_code?.startsWith('zalopay://')
+          ? ''
+          : payment.zalopay_qr_code;
+        return res.status(200).json({
+          success: true,
+          message: 'Existing ZaloPay order returned',
+          order_url: payment.zalopay_order_url,
+          deeplink_url: payment.zalopay_deeplink_url,
+          app_trans_id: payment.transaction_id,
+          qr_code:
+            cachedQrCode
+            || payment.zalopay_order_url
+            || payment.zalopay_deeplink_url
+            || null,
+        });
+      }
+
+      await paymentRepository.updateOne(
+        {
+          _id: paymentId,
+          transaction_id: payment.transaction_id,
+          status: 'PENDING',
+        },
+        {
+          transaction_id: '',
+          zalopay_order_url: '',
+          zalopay_deeplink_url: '',
+          zalopay_qr_code: '',
+          zalopay_created_at: null,
+        }
+      );
+      console.warn(`[ZaloPay] Discarded failed cached order for payment ${paymentId}.`);
     }
 
     const bookingId = payment.booking_id?._id?.toString() || payment.booking_id?.toString();
