@@ -2,6 +2,7 @@ import axios from 'axios';
 import { authStorage, UserSession } from '../utils/auth_storage';
 import { mockDB, MockBooking, MockPayment, createDefaultSlots } from './mock_db';
 import { firebaseAuth } from '../firebase/firebase_auth';
+import { signOut } from 'firebase/auth';
 
 const configuredApiUrl = process.env.REACT_APP_API_URL || 'https://doantotnghiep-f3bh.onrender.com/api/v1';
 const API_BASE_URL =
@@ -168,7 +169,9 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh token expired or failed
+        // The refresh request bypasses apiClient, so it cannot recurse. A rejected
+        // Firebase refresh invalidates both identity and the local API session.
+        await signOut(firebaseAuth).catch(() => undefined);
         authStorage.clear();
         window.location.href = '/sign-in';
         return Promise.reject(refreshError);
