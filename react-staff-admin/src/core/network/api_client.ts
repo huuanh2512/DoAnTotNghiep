@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { authStorage, UserSession } from '../utils/auth_storage';
 import { mockDB, MockBooking, MockPayment, createDefaultSlots } from './mock_db';
+import { firebaseAuth } from '../firebase/firebase_auth';
 
 const configuredApiUrl = process.env.REACT_APP_API_URL || 'https://doantotnghiep-f3bh.onrender.com/api/v1';
 const API_BASE_URL =
@@ -155,11 +156,11 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        const refreshToken = authStorage.getRefreshToken();
-        if (!refreshToken) throw new Error('No refresh token');
-        
-        // Call refresh token endpoint
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, { refreshToken });
+        const firebaseUser = firebaseAuth.currentUser;
+        if (!firebaseUser) throw new Error('No Firebase session');
+        const response = await axios.post(`${API_BASE_URL}/auth/firebase/refresh`, {
+          firebaseIdToken: await firebaseUser.getIdToken(true),
+        });
         const { accessToken } = response.data;
         authStorage.setAccessToken(accessToken);
         

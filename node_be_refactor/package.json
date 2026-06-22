@@ -8,6 +8,7 @@
     "start": "node src/main.js",
     "dev": "nodemon src/main.js",
     "migrate:email-verification": "node scripts/backfill-email-verification.js",
+    "migrate:firebase-auth": "node scripts/import-users-to-firebase.js",
     "test:email-verification": "node --test scripts/email-verification-otp.test.js",
     "smoke:matching": "node scripts/matching-smoke.js",
     "smoke:booking-access": "node scripts/booking-access-smoke.js",

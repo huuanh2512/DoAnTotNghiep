@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { loginUseCase } from '../../../../core/di/injection';
 import { authStorage } from '../../../../core/utils/auth_storage';
 import { apiClient } from '../../../../core/network/api_client';
+import { firebaseAuth } from '../../../../core/firebase/firebase_auth';
+import { reload, sendEmailVerification } from 'firebase/auth';
 
 const { Title, Text } = Typography;
 
@@ -73,11 +75,15 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const verifyEmail = async (values: { otp: string }) => {
+  const verifyEmail = async (_values: { otp: string }) => {
     if (!verificationEmail) return;
     setOtpLoading(true);
     try {
-      await apiClient.post('/auth/verify-email', { email: verificationEmail, otp: values.otp });
+      const user = firebaseAuth.currentUser;
+      if (!user) throw new Error('Phiên Firebase đã hết hạn. Vui lòng đăng nhập lại.');
+      await reload(user);
+      if (!firebaseAuth.currentUser?.emailVerified) throw new Error('Email chưa được xác thực. Hãy mở liên kết Firebase trong hộp thư.');
+      await apiClient.post('/auth/firebase/complete-email-verification', { firebaseIdToken: await firebaseAuth.currentUser.getIdToken(true) });
       message.success('Xác thực email thành công. Hãy đăng nhập.');
       form.setFieldsValue({ email: verificationEmail });
       setVerificationEmail(null);
@@ -92,8 +98,10 @@ const LoginPage: React.FC = () => {
     if (!verificationEmail) return;
     setOtpLoading(true);
     try {
-      const response = await apiClient.post('/auth/resend-verification', { email: verificationEmail });
-      message.success(response.data?.message || 'Đã gửi lại mã xác thực.');
+      const user = firebaseAuth.currentUser;
+      if (!user) throw new Error('Phiên Firebase đã hết hạn. Vui lòng đăng nhập lại.');
+      await sendEmailVerification(user);
+      message.success('Đã gửi lại liên kết xác thực Firebase.');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Không thể gửi lại mã xác thực.');
     } finally {
@@ -142,13 +150,10 @@ const LoginPage: React.FC = () => {
         )}
 
         {verificationEmail ? (
-          <Form layout="vertical" onFinish={verifyEmail} autoComplete="one-time-code" requiredMark={false}>
-            <Alert type="info" showIcon className="mb-4" message={`Nhập mã OTP đã gửi đến ${verificationEmail}`} />
-            <Form.Item name="otp" label="Mã OTP 6 chữ số" rules={[{ required: true, pattern: /^\d{6}$/, message: 'Nhập đúng 6 chữ số.' }]}>
-              <Input inputMode="numeric" maxLength={6} size="large" />
-            </Form.Item>
-            <Button type="primary" htmlType="submit" block loading={otpLoading}>Xác thực email</Button>
-            <Button type="link" block loading={otpLoading} onClick={resendVerification}>Gửi lại mã</Button>
+          <Form layout="vertical" onFinish={verifyEmail} requiredMark={false}>
+            <Alert type="info" showIcon className="mb-4" message={`Mở liên kết Firebase đã gửi đến ${verificationEmail}, sau đó quay lại đây.`} />
+            <Button type="primary" htmlType="submit" block loading={otpLoading}>Tôi đã xác thực</Button>
+            <Button type="link" block loading={otpLoading} onClick={resendVerification}>Gửi lại liên kết</Button>
             <Button type="text" block onClick={() => setVerificationEmail(null)}>Quay lại đăng nhập</Button>
           </Form>
         ) : <Form

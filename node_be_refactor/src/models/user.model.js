@@ -25,8 +25,10 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: false,
+    default: null
   },
+  firebaseUid: { type: String, unique: true, sparse: true, default: null },
   role: {
     type: String,
     enum: ['CUSTOMER', 'STAFF', 'ADMIN'],
@@ -34,7 +36,7 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['PENDING_OTP', 'ACTIVE', 'INACTIVE', 'BANNED'],
+    enum: ['PENDING_OTP', 'PENDING_EMAIL', 'ACTIVE', 'INACTIVE', 'BANNED'],
     default: 'PENDING_OTP'
   },
   profile: {
@@ -59,6 +61,8 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  authMigrationStatus: { type: String, default: null },
+  authMigratedAt: { type: Date, default: null },
   emailVerificationOtpHash: {
     type: String,
     default: null

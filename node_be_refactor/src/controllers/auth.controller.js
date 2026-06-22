@@ -65,6 +65,34 @@ const resendVerification = async (req, res) => {
   }
 };
 
+const firebaseRegister = async (req, res) => {
+  try {
+    const { firebaseIdToken, fullName, phone } = req.body;
+    const result = await userAuthService.firebaseRegister(firebaseIdToken, { fullName, phone });
+    return sendSuccess(res, result, 'Firebase account registered. Verify your email to continue.', 'FIREBASE_REGISTERED');
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({ success: false, code: error.code || 'FIREBASE_REGISTER_ERROR', message: error.message, ...(error.data ? { data: error.data } : {}) });
+  }
+};
+
+const firebaseCompleteEmailVerification = async (req, res) => {
+  try {
+    const result = await userAuthService.firebaseCompleteEmailVerification(req.body.firebaseIdToken);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({ success: false, code: error.code || 'FIREBASE_VERIFICATION_ERROR', message: error.message, ...(error.data ? { data: error.data } : {}) });
+  }
+};
+
+const firebaseLogin = async (req, res) => {
+  try {
+    const result = await userAuthService.firebaseLogin(req.body.firebaseIdToken);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.statusCode || 401).json({ success: false, code: error.code || 'FIREBASE_AUTH_FAILED', message: error.message, ...(error.data ? { data: error.data } : {}) });
+  }
+};
+
 const refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -197,6 +225,9 @@ module.exports = {
   signIn,
   verifyEmail,
   resendVerification,
+  firebaseRegister,
+  firebaseCompleteEmailVerification,
+  firebaseLogin,
   refreshToken,
   signOut,
   forgotPassword,

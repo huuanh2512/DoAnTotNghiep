@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const userRepository = require('../repositories/user.repository');
 const mailService = require('./mail.service');
+const { getFirebaseAdmin } = require('../config/firebase-admin');
 
 class UserAuthService {  
   _error(message, code, statusCode = 400, data = null) {
@@ -67,6 +68,70 @@ class UserAuthService {
         name: user.facility_id.name || ''
       } : null
     };
+  }
+
+  _issueFirebaseSession(user) {
+    const accessToken = jwt.sign(
+      { id: user._id, firebaseUid: user.firebaseUid, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_FIREBASE_EXPIRES_IN || '15m' }
+    );
+    const decoded = jwt.decode(accessToken);
+    return { result: { success: true, message: 'Firebase authentication successful' }, accessToken, expiresAt: new Date(decoded.exp * 1000).toISOString(), user: this._formatUserResponse(user) };
+  }
+
+  async _firebaseIdentity(firebaseIdToken, requireVerified = false) {
+    if (!firebaseIdToken || typeof firebaseIdToken !== 'string') throw this._error('Firebase ID token is required', 'MISSING_FIREBASE_TOKEN', 400);
+    let decoded;
+    try {
+      decoded = await getFirebaseAdmin().auth().verifyIdToken(firebaseIdToken, true);
+    } catch (error) {
+      throw this._error('Firebase ID token is invalid or expired', 'INVALID_FIREBASE_TOKEN', 401);
+    }
+    const email = decoded.email?.trim().toLowerCase();
+    if (!decoded.uid || !email) throw this._error('Firebase token does not contain an email identity', 'INVALID_FIREBASE_IDENTITY', 401);
+    if (requireVerified && decoded.email_verified !== true) throw this._error('Email has not been verified', 'EMAIL_NOT_VERIFIED', 403, { email });
+    return { uid: decoded.uid, email, emailVerified: decoded.email_verified === true };
+  }
+
+  async firebaseRegister(firebaseIdToken, profile = {}) {
+    const identity = await this._firebaseIdentity(firebaseIdToken);
+    const byUid = await userRepository.findByFirebaseUid(identity.uid);
+    if (byUid) {
+      if (byUid.email !== identity.email) throw this._error('Firebase identity does not match the existing user', 'FIREBASE_IDENTITY_CONFLICT', 409);
+      return { email: byUid.email, status: byUid.status, accepted: true };
+    }
+    const byEmail = await userRepository.findByEmail(identity.email);
+    if (byEmail) {
+      if (byEmail.firebaseUid && byEmail.firebaseUid !== identity.uid) throw this._error('Email is already linked to another Firebase identity', 'FIREBASE_IDENTITY_CONFLICT', 409);
+      throw this._error('This legacy account must be imported before it can use Firebase', 'LEGACY_MIGRATION_REQUIRED', 409);
+    }
+    const user = await userRepository.create({
+      email: identity.email, firebaseUid: identity.uid, status: identity.emailVerified ? 'ACTIVE' : 'PENDING_EMAIL',
+      emailVerifiedAt: identity.emailVerified ? new Date() : null,
+      authMigrationStatus: 'FIREBASE_NATIVE', authMigratedAt: new Date(),
+      profile: { name: profile.fullName || profile.name || '', phone: profile.phone || '' }
+    });
+    return { email: user.email, status: user.status, accepted: true };
+  }
+
+  async firebaseCompleteEmailVerification(firebaseIdToken) {
+    const identity = await this._firebaseIdentity(firebaseIdToken, true);
+    const user = await userRepository.findByFirebaseUid(identity.uid);
+    if (!user || user.email !== identity.email) throw this._error('Firebase account is not linked to a Sport Energy profile', 'FIREBASE_PROFILE_NOT_FOUND', 404);
+    if (['INACTIVE', 'BANNED'].includes(user.status)) throw this._error('This account is not active', 'ACCOUNT_INACTIVE', 403);
+    if (user.status !== 'ACTIVE' || !user.emailVerifiedAt) {
+      user.status = 'ACTIVE'; user.emailVerifiedAt = new Date(); await user.save();
+    }
+    return this._issueFirebaseSession(user);
+  }
+
+  async firebaseLogin(firebaseIdToken) {
+    const identity = await this._firebaseIdentity(firebaseIdToken, true);
+    const user = await userRepository.findByFirebaseUid(identity.uid);
+    if (!user || user.email !== identity.email) throw this._error('Firebase account is not linked to a Sport Energy profile', 'FIREBASE_PROFILE_NOT_FOUND', 404);
+    if (user.status !== 'ACTIVE' || !user.emailVerifiedAt) throw this._error('Email has not been verified or account is inactive', 'EMAIL_NOT_VERIFIED', 403);
+    return this._issueFirebaseSession(user);
   }
 
   async register(email, password, profile = {}) {

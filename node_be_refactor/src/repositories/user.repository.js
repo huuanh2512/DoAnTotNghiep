@@ -10,6 +10,10 @@ class UserRepository {
     return await User.findOne({ email });
   }
 
+  async findByFirebaseUid(firebaseUid) {
+    return await User.findOne({ firebaseUid });
+  }
+
   async findById(id) {
     return await User.findById(id);
   }
