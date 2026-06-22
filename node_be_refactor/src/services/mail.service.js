@@ -1,9 +1,15 @@
 const nodemailer = require('nodemailer');
+const dns = require('node:dns');
+
+const lookupIpv4 = (hostname, _options, callback) => {
+  dns.lookup(hostname, { family: 4 }, callback);
+};
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   family: 4,
+  lookup: lookupIpv4,
   secure: process.env.SMTP_SECURE === 'true', // true for port 465, false for other ports
   connectionTimeout: 10000,
   greetingTimeout: 10000,
