@@ -107,7 +107,16 @@ class UserAuthService {
       await mailService.sendAccountVerificationOtpEmail(createdUser.email, otpData.otp);
     } catch (error) {
       // Keep a pending account for safe retry; never report a successful registration.
-      console.error('[EmailVerification] Registration email delivery failed:', error.message);
+      console.error('[EmailVerification] Registration email delivery failed:', {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        syscall: error.syscall,
+        address: error.address,
+        port: error.port,
+        command: error.command,
+        responseCode: error.responseCode
+      });
       await userRepository.updateById(createdUser._id, {
         ...this._clearVerificationOtp(),
         emailVerificationLastSentAt: null
@@ -282,7 +291,16 @@ class UserAuthService {
     try {
       await mailService.sendAccountVerificationOtpEmail(user.email, otpData.otp);
     } catch (error) {
-      console.error('[EmailVerification] Resend email delivery failed:', error.message);
+      console.error('[EmailVerification] Resend email delivery failed:', {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        syscall: error.syscall,
+        address: error.address,
+        port: error.port,
+        command: error.command,
+        responseCode: error.responseCode
+      });
       throw this._error('Không thể gửi email xác thực. Vui lòng thử lại.', 'EMAIL_DELIVERY_FAILED', 503);
     }
     await userRepository.updateById(user._id, {

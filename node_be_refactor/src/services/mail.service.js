@@ -1,19 +1,46 @@
 const nodemailer = require('nodemailer');
 const dns = require('node:dns');
+const net = require('node:net');
 
-const lookupIpv4 = (hostname, _options, callback) => {
-  dns.lookup(hostname, { family: 4 }, callback);
+// Render's outbound network does not provide IPv6. Nodemailer resolves both
+// address families internally and can otherwise select an unreachable IPv6
+// address for smtp.gmail.com. Open the connection through an IPv4 A record
+// while keeping the hostname intact for STARTTLS/SNI.
+const getIpv4Socket = (options, callback) => {
+  dns.resolve4(options.host, (resolveError, addresses) => {
+    if (resolveError) return callback(resolveError);
+    if (!addresses?.length) return callback(new Error(`No IPv4 address found for ${options.host}`));
+
+    const socket = net.connect({ host: addresses[Math.floor(Math.random() * addresses.length)], port: Number(options.port) });
+    let settled = false;
+    const finish = (error, result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      callback(error, result);
+    };
+    const timeout = setTimeout(() => {
+      socket.destroy();
+      finish(new Error(`SMTP IPv4 connection timed out after ${options.connectionTimeout || 10000}ms`));
+    }, options.connectionTimeout || 10000);
+
+    socket.once('error', error => {
+      finish(error);
+    });
+    socket.once('connect', () => {
+      finish(null, { connection: socket });
+    });
+  });
 };
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  family: 4,
-  lookup: lookupIpv4,
   secure: process.env.SMTP_SECURE === 'true', // true for port 465, false for other ports
   connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 15000,
+  getSocket: getIpv4Socket,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
