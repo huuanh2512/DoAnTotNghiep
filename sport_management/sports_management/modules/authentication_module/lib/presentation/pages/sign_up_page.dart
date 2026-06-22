@@ -78,6 +78,16 @@ class _SignUpPageState extends State<SignUpPage> {
           );
         }
         if (state is AuthFailureState) {
+          if (state.code == 'EMAIL_NOT_VERIFIED') {
+            context.go(
+              '/verify-email',
+              extra: <String, String>{
+                'email': _emailController.text.trim(),
+                'password': _passwordController.text,
+              },
+            );
+            return;
+          }
           AppPopup.show(
             context,
             message: state.message,
@@ -407,7 +417,6 @@ class _SignUpPageState extends State<SignUpPage> {
                               const SizedBox(height: 24),
 
                               // Info Badge
-                            
                               const SizedBox(height: 24),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,

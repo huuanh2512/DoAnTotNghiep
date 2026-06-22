@@ -73,6 +73,14 @@ class UserAuthService {
     email = email.trim().toLowerCase();
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
+      if (existingUser.status === 'PENDING_OTP') {
+        throw this._error(
+          'Email chưa được xác thực. Bạn có thể gửi lại mã OTP.',
+          'EMAIL_NOT_VERIFIED',
+          409,
+          { email: existingUser.email }
+        );
+      }
       throw new Error('Email already exists');
     }
 
