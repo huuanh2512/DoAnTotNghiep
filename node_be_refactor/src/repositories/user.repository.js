@@ -18,6 +18,13 @@ class UserRepository {
     return await User.findByIdAndUpdate(id, updateData, { new: true });
   }
 
+  async findOneAndUpdate(query, updateData, options = {}) {
+    return await User.findOneAndUpdate(query, updateData, {
+      new: true,
+      ...options
+    });
+  }
+
   async updateStatus(id, status) {
     return await User.findByIdAndUpdate(id, { status }, { new: true });
   }

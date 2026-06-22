@@ -21,6 +21,7 @@ const connectDB = async () => {
                 password: hashedPassword,
                 role: 'ADMIN',
                 status: 'ACTIVE',
+                emailVerifiedAt: new Date(),
                 profile: {
                     name: 'System Admin',
                     phone: '',

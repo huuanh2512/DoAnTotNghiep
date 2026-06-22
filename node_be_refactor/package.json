@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/main.js",
     "dev": "nodemon src/main.js",
+    "migrate:email-verification": "node scripts/backfill-email-verification.js",
+    "test:email-verification": "node --test scripts/email-verification-otp.test.js",
     "smoke:matching": "node scripts/matching-smoke.js",
     "smoke:booking-access": "node scripts/booking-access-smoke.js",
     "smoke:court-report": "node scripts/court-performance-report-smoke.js",

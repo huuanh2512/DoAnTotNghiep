@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "429863562631",
-    "project_id": "sports-management-1cb94",
-    "storage_bucket": "sports-management-1cb94.firebasestorage.app"
+    "project_number": "528314116258",
+    "project_id": "doantotnghiep-844f6",
+    "storage_bucket": "doantotnghiep-844f6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:429863562631:android:1bdf44fee9592a7a74f722",
+        "mobilesdk_app_id": "1:528314116258:android:9cc6bac868a504a5b1cffb",
         "android_client_info": {
           "package_name": "com.example.sports_management"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBJbrjwM24AdIYXvVDDn0gQbt3GZPB_SSU"
+          "current_key": "AIzaSyBiRL83U1QLX_-lSDOAmxgmxNu3070m6Hg"
         }
       ],
       "services": {

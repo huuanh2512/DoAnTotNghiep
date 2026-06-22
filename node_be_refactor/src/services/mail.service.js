@@ -10,6 +10,26 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const sender = () => process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@sportenergy.com';
+
+const sendAccountVerificationOtpEmail = async (email, otp) => {
+  const mailOptions = {
+    from: `"Sport Energy" <${sender()}>`,
+    to: email,
+    subject: 'Mã xác thực tài khoản Sport Energy',
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:auto">
+        <h2 style="color:#FF5600">Xác thực tài khoản Sport Energy</h2>
+        <p>Chào bạn,</p>
+        <p>Mã xác thực tài khoản của bạn là:</p>
+        <p style="font-size:28px;font-weight:bold;letter-spacing:6px;color:#FF5600">${otp}</p>
+        <p>Mã có hiệu lực trong <strong>10 phút</strong> và chỉ dùng một lần.</p>
+        <p>Không chia sẻ mã này với bất kỳ ai. Nếu bạn không tạo tài khoản, hãy bỏ qua email này.</p>
+      </div>`
+  };
+  return transporter.sendMail(mailOptions);
+};
+
 const sendVerificationEmail = async (email, otp) => {
   const htmlTemplate = `
     <!DOCTYPE html>
@@ -49,7 +69,7 @@ const sendVerificationEmail = async (email, otp) => {
   `;
 
   const mailOptions = {
-    from: `"Sport Energy" <${process.env.SMTP_USER || 'no-reply@sportenergy.com'}>`,
+    from: `"Sport Energy" <${sender()}>`,
     to: email,
     subject: 'Mã xác thực đặt lại mật khẩu - Sport Energy',
     html: htmlTemplate,
@@ -96,7 +116,7 @@ const sendPasswordChangedEmail = async (email) => {
   `;
 
   const mailOptions = {
-    from: `"Sport Energy" <${process.env.SMTP_USER || 'no-reply@sportenergy.com'}>`,
+    from: `"Sport Energy" <${sender()}>`,
     to: email,
     subject: 'Cập nhật bảo mật: Mật khẩu tài khoản đã thay đổi - Sport Energy',
     html: htmlTemplate,
@@ -106,6 +126,7 @@ const sendPasswordChangedEmail = async (email) => {
 };
 
 module.exports = {
+  sendAccountVerificationOtpEmail,
   sendVerificationEmail,
   sendPasswordChangedEmail,
 };

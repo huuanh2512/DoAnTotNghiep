@@ -54,6 +54,31 @@ const userSchema = new mongoose.Schema({
   resetPasswordOtpExpires: {
     type: Date,
     default: null
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null
+  },
+  emailVerificationOtpHash: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpiresAt: {
+    type: Date,
+    default: null
+  },
+  emailVerificationAttempts: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  emailVerificationLastSentAt: {
+    type: Date,
+    default: null
+  },
+  emailVerificationLockedUntil: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

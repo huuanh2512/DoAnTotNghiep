@@ -68,6 +68,35 @@ class AuthService {
     }
   }
 
+  Future<BaseResponse<dynamic>> verifyEmail({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/auth/verify-email',
+        data: {'email': email, 'otp': otp},
+      );
+      return BaseResponse.fromJson(response.data, (json) => json);
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
+  }
+
+  Future<BaseResponse<dynamic>> resendVerification({
+    required String email,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/auth/resend-verification',
+        data: {'email': email},
+      );
+      return BaseResponse.fromJson(response.data, (json) => json);
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
+  }
+
   Future<BaseResponse<dynamic>> forgotPassword({required String email}) async {
     try {
       final response = await _dioClient.dio.post(

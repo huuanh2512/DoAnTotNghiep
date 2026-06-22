@@ -1,9 +1,55 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const userRepository = require('../repositories/user.repository');
 const mailService = require('./mail.service');
 
 class UserAuthService {  
+  _error(message, code, statusCode = 400, data = null) {
+    const error = new Error(message);
+    error.code = code;
+    error.statusCode = statusCode;
+    error.data = data;
+    return error;
+  }
+
+  _otpPepper() {
+    return process.env.EMAIL_OTP_PEPPER || process.env.JWT_SECRET;
+  }
+
+  _createOtp() {
+    return crypto.randomInt(100000, 1000000).toString();
+  }
+
+  _hashOtp(otp) {
+    const pepper = this._otpPepper();
+    if (!pepper) throw this._error('Email verification is not configured', 'EMAIL_VERIFICATION_UNAVAILABLE', 503);
+    return crypto.createHmac('sha256', pepper).update(otp).digest('hex');
+  }
+
+  _otpData() {
+    const otp = this._createOtp();
+    return {
+      otp,
+      hash: this._hashOtp(otp),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    };
+  }
+
+  _clearVerificationOtp() {
+    return {
+      emailVerificationOtpHash: null,
+      emailVerificationExpiresAt: null,
+      emailVerificationAttempts: 0,
+      emailVerificationLockedUntil: null
+    };
+  }
+
+  _cooldownRemaining(user) {
+    if (!user.emailVerificationLastSentAt) return 0;
+    return Math.max(0, 60 - Math.ceil((Date.now() - new Date(user.emailVerificationLastSentAt).getTime()) / 1000));
+  }
+
   _formatUserResponse(user) {
     return {
       id: user._id.toString(),
@@ -24,6 +70,7 @@ class UserAuthService {
   }
 
   async register(email, password, profile = {}) {
+    email = email.trim().toLowerCase();
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
       throw new Error('Email already exists');
@@ -32,18 +79,33 @@ class UserAuthService {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const otpData = this._otpData();
     const createdUser = await userRepository.create({
       email: email,
       password: hashedPassword,
+      status: 'PENDING_OTP',
+      emailVerifiedAt: null,
+      emailVerificationOtpHash: otpData.hash,
+      emailVerificationExpiresAt: otpData.expiresAt,
+      emailVerificationAttempts: 0,
+      emailVerificationLastSentAt: new Date(),
       profile: {
         name: profile.fullName || profile.name || '',
         phone: profile.phone || ''
       }
     });
 
+    try {
+      await mailService.sendAccountVerificationOtpEmail(createdUser.email, otpData.otp);
+    } catch (error) {
+      // Keep a pending account for safe retry; never report a successful registration.
+      console.error('[EmailVerification] Registration email delivery failed:', error.message);
+      throw this._error('Không thể gửi email xác thực. Vui lòng thử gửi lại.', 'EMAIL_DELIVERY_FAILED', 503, { email: createdUser.email });
+    }
+
     return {
       success: true,
-      message: 'Registration successful',
+      message: 'Đăng ký thành công. Vui lòng kiểm tra email để lấy mã xác thực.',
       data: {
         userId: createdUser._id.toString(),
         email: createdUser.email,
@@ -62,19 +124,24 @@ class UserAuthService {
   }
 
   async signIn(email, password) {
+    email = email.trim().toLowerCase();
     // Populate để lấy thông tin cơ sở nạp vào response cho Flutter
     const user = await userRepository.findByEmail(email);
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error('Email hoặc mật khẩu không đúng');
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      throw new Error('Invalid email or password');
+      throw new Error('Email hoặc mật khẩu không đúng');
     }
 
     if (user.status === 'BANNED') {
       throw new Error('Account is banned');
+    }
+
+    if (user.status === 'PENDING_OTP' || !user.emailVerifiedAt) {
+      throw this._error('Email chưa được xác thực', 'EMAIL_NOT_VERIFIED', 403, { email: user.email });
     }
 
     const accessToken = jwt.sign(
@@ -115,6 +182,9 @@ class UserAuthService {
       if (user.status === 'BANNED') {
         throw new Error('Account is banned');
       }
+      if (user.status === 'PENDING_OTP' || !user.emailVerifiedAt) {
+        throw this._error('Email chưa được xác thực', 'EMAIL_NOT_VERIFIED', 403, { email: user.email });
+      }
 
       const newAccessToken = jwt.sign(
         { id: user._id, role: user.role },
@@ -141,6 +211,75 @@ class UserAuthService {
 
   async signOut(userId) {
     return true;
+  }
+
+  async verifyEmail(email, otp) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userRepository.findByEmail(normalizedEmail);
+    if (!user || user.status !== 'PENDING_OTP') {
+      throw this._error('Mã xác thực không hợp lệ hoặc đã hết hạn', 'INVALID_EMAIL_VERIFICATION_OTP');
+    }
+    if (user.emailVerificationLockedUntil && new Date(user.emailVerificationLockedUntil) > new Date()) {
+      throw this._error('Mã xác thực đã bị khóa. Vui lòng gửi mã mới.', 'EMAIL_VERIFICATION_LOCKED');
+    }
+    if (!user.emailVerificationOtpHash || !user.emailVerificationExpiresAt || new Date(user.emailVerificationExpiresAt) <= new Date()) {
+      throw this._error('Mã xác thực đã hết hạn. Vui lòng gửi mã mới.', 'EMAIL_VERIFICATION_EXPIRED');
+    }
+
+    const matches = crypto.timingSafeEqual(
+      Buffer.from(user.emailVerificationOtpHash, 'hex'),
+      Buffer.from(this._hashOtp(otp), 'hex')
+    );
+    if (!matches) {
+      const attempts = user.emailVerificationAttempts + 1;
+      const update = attempts >= 5
+        ? { ...this._clearVerificationOtp(), emailVerificationLockedUntil: new Date(Date.now() + 10 * 60 * 1000) }
+        : { emailVerificationAttempts: attempts };
+      await userRepository.updateById(user._id, update);
+      throw this._error(
+        attempts >= 5 ? 'Bạn đã nhập sai quá nhiều lần. Vui lòng gửi mã mới.' : 'Mã xác thực không đúng.',
+        attempts >= 5 ? 'EMAIL_VERIFICATION_LOCKED' : 'INVALID_EMAIL_VERIFICATION_OTP'
+      );
+    }
+
+    const verifiedAt = new Date();
+    const verifiedUser = await userRepository.findOneAndUpdate(
+      {
+        _id: user._id,
+        status: 'PENDING_OTP',
+        emailVerificationOtpHash: user.emailVerificationOtpHash,
+        emailVerificationExpiresAt: { $gt: new Date() }
+      },
+      { status: 'ACTIVE', emailVerifiedAt: verifiedAt, ...this._clearVerificationOtp() }
+    );
+    if (!verifiedUser) throw this._error('Mã xác thực không còn hợp lệ. Vui lòng gửi mã mới.', 'INVALID_EMAIL_VERIFICATION_OTP');
+    return { email: verifiedUser.email, emailVerifiedAt: verifiedAt };
+  }
+
+  async resendEmailVerification(email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userRepository.findByEmail(normalizedEmail);
+    // Deliberately neutral so this endpoint does not disclose account existence.
+    if (!user || user.status !== 'PENDING_OTP') return { email: normalizedEmail, cooldownSeconds: 0, accepted: true };
+    const cooldownSeconds = this._cooldownRemaining(user);
+    if (cooldownSeconds > 0) {
+      throw this._error('Vui lòng chờ trước khi gửi lại mã.', 'EMAIL_VERIFICATION_COOLDOWN', 429, { cooldownSeconds });
+    }
+    const otpData = this._otpData();
+    try {
+      await mailService.sendAccountVerificationOtpEmail(user.email, otpData.otp);
+    } catch (error) {
+      console.error('[EmailVerification] Resend email delivery failed:', error.message);
+      throw this._error('Không thể gửi email xác thực. Vui lòng thử lại.', 'EMAIL_DELIVERY_FAILED', 503);
+    }
+    await userRepository.updateById(user._id, {
+      emailVerificationOtpHash: otpData.hash,
+      emailVerificationExpiresAt: otpData.expiresAt,
+      emailVerificationAttempts: 0,
+      emailVerificationLockedUntil: null,
+      emailVerificationLastSentAt: new Date()
+    });
+    return { email: user.email, cooldownSeconds: 60, accepted: true };
   }
 
   async forgotPassword(email) {

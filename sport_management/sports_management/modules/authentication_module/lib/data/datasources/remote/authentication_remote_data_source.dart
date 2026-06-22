@@ -37,6 +37,7 @@ class AuthenticationRemoteDataSourceImpl
       if (!result.success) {
         return UserResult(
           isSuccess: false,
+          code: result.code,
           error: result.message ?? 'Đăng ký thất bại.',
         );
       }
@@ -58,6 +59,7 @@ class AuthenticationRemoteDataSourceImpl
       if (!result.success) {
         return UserResult(
           isSuccess: false,
+          code: result.code,
           error: result.message ?? 'Đăng nhập thất bại.',
         );
       }
@@ -124,7 +126,7 @@ class AuthenticationRemoteDataSourceImpl
     final Map<String, dynamic>? data = rawData as Map<String, dynamic>?;
 
     final Map<String, dynamic>? result =
-        data?['result'] as Map<String, dynamic>?;
+        (data?['result'] as Map<String, dynamic>?) ?? data;
 
     final bool success = result?['success'] == true;
 
@@ -135,7 +137,10 @@ class AuthenticationRemoteDataSourceImpl
       );
     }
 
-    final Map<String, dynamic>? user = data?['user'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? user =
+        (data?['user'] as Map<String, dynamic>?) ??
+        ((data?['data'] as Map<String, dynamic>?)?['user']
+            as Map<String, dynamic>?);
 
     final Map<String, dynamic>? profile =
         user?['profile'] as Map<String, dynamic>?;

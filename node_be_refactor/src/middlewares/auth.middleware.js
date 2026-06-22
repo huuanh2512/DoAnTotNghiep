@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { sendError } = require('../utils/response.util');
+const User = require('../models/user.model');
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,6 +14,11 @@ const verifyToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Gắn thông tin user (id, role) vào req để các controller sau dùng
+    const user = await User.findById(decoded.id).select('status emailVerifiedAt role');
+    if (!user || user.status !== 'ACTIVE' || !user.emailVerifiedAt) {
+      return sendError(res, 403, 'Email chưa được xác thực', 'EMAIL_NOT_VERIFIED');
+    }
+    req.user = { ...decoded, role: user.role };
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

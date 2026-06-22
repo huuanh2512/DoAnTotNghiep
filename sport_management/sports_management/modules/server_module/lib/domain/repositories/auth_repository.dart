@@ -17,6 +17,13 @@ abstract class AuthRepository {
 
   Future<BaseResponse<dynamic>> signOut({required String userId});
 
+  Future<BaseResponse<dynamic>> verifyEmail({
+    required String email,
+    required String otp,
+  });
+
+  Future<BaseResponse<dynamic>> resendVerification({required String email});
+
   Future<BaseResponse<dynamic>> forgotPassword({required String email});
 
   Future<BaseResponse<dynamic>> resetPassword({

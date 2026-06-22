@@ -4,6 +4,7 @@ import { MailOutlined, LockOutlined, InfoCircleOutlined } from '@ant-design/icon
 import { useNavigate } from 'react-router-dom';
 import { loginUseCase } from '../../../../core/di/injection';
 import { authStorage } from '../../../../core/utils/auth_storage';
+import { apiClient } from '../../../../core/network/api_client';
 
 const { Title, Text } = Typography;
 
@@ -11,6 +12,8 @@ const LoginPage: React.FC = () => {
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const brandLogoSrc = `${process.env.PUBLIC_URL}/sport-energy-logo.png`;
@@ -58,9 +61,43 @@ const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[DEBUG LOGIN] Exception caught during login process:', err);
+      const responseData = err.response?.data;
+      if (responseData?.code === 'EMAIL_NOT_VERIFIED') {
+        setVerificationEmail(responseData?.data?.email || values.email);
+        setErrorMsg(responseData.message || 'Email chưa được xác thực.');
+        return;
+      }
       setErrorMsg(err.message || err.response?.data?.message || 'Có lỗi xảy ra khi đăng nhập');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const verifyEmail = async (values: { otp: string }) => {
+    if (!verificationEmail) return;
+    setOtpLoading(true);
+    try {
+      await apiClient.post('/auth/verify-email', { email: verificationEmail, otp: values.otp });
+      message.success('Xác thực email thành công. Hãy đăng nhập.');
+      form.setFieldsValue({ email: verificationEmail });
+      setVerificationEmail(null);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Xác thực email thất bại.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!verificationEmail) return;
+    setOtpLoading(true);
+    try {
+      const response = await apiClient.post('/auth/resend-verification', { email: verificationEmail });
+      message.success(response.data?.message || 'Đã gửi lại mã xác thực.');
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Không thể gửi lại mã xác thực.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -104,7 +141,17 @@ const LoginPage: React.FC = () => {
           />
         )}
 
-        <Form
+        {verificationEmail ? (
+          <Form layout="vertical" onFinish={verifyEmail} autoComplete="one-time-code" requiredMark={false}>
+            <Alert type="info" showIcon className="mb-4" message={`Nhập mã OTP đã gửi đến ${verificationEmail}`} />
+            <Form.Item name="otp" label="Mã OTP 6 chữ số" rules={[{ required: true, pattern: /^\d{6}$/, message: 'Nhập đúng 6 chữ số.' }]}>
+              <Input inputMode="numeric" maxLength={6} size="large" />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" block loading={otpLoading}>Xác thực email</Button>
+            <Button type="link" block loading={otpLoading} onClick={resendVerification}>Gửi lại mã</Button>
+            <Button type="text" block onClick={() => setVerificationEmail(null)}>Quay lại đăng nhập</Button>
+          </Form>
+        ) : <Form
           form={form}
           layout="vertical"
           onFinish={handleLogin}
@@ -152,7 +199,7 @@ const LoginPage: React.FC = () => {
               Đăng nhập Portal
             </Button>
           </Form.Item>
-        </Form>
+        </Form>}
 
         {/* Quick Testing accounts container */}
         {/* <div className="mt-6 pt-6 border-t border-semantic-border/40 dark:border-semantic-borderDark/40">

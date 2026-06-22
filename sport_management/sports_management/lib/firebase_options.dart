@@ -50,11 +50,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBJbrjwM24AdIYXvVDDn0gQbt3GZPB_SSU',
-    appId: '1:429863562631:android:1bdf44fee9592a7a74f722',
-    messagingSenderId: '429863562631',
-    projectId: 'sports-management-1cb94',
-    storageBucket: 'sports-management-1cb94.firebasestorage.app',
+    apiKey: 'AIzaSyBiRL83U1QLX_-lSDOAmxgmxNu3070m6Hg',
+    appId: '1:528314116258:android:9cc6bac868a504a5b1cffb',
+    messagingSenderId: '528314116258',
+    projectId: 'doantotnghiep-844f6',
+    storageBucket: 'doantotnghiep-844f6.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

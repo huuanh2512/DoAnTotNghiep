@@ -99,6 +99,7 @@ class _SignInPageState extends State<SignInPage> {
 
         if (state is AuthFailureState) {
           final isUnverified =
+              state.code == 'EMAIL_NOT_VERIFIED' ||
               state.message.toLowerCase().contains('email chưa xác thực') ||
               state.message.toLowerCase().contains('verify email') ||
               state.message.toLowerCase().contains('not verified') ||

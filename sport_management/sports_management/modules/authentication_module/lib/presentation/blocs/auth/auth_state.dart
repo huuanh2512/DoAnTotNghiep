@@ -39,10 +39,11 @@ class AuthSuccess extends AuthState {
 }
 
 class AuthFailureState extends AuthState {
-  const AuthFailureState(this.message);
+  const AuthFailureState(this.message, {this.code});
 
   final String message;
+  final String? code;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, code];
 }

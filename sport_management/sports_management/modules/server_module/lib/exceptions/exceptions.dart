@@ -9,11 +9,13 @@ class ExceptionHandler {
     }
 
     if (error is DioException) {
-      if (error.response?.data != null && error.response?.data is Map<String, dynamic>) {
+      if (error.response?.data != null &&
+          error.response?.data is Map<String, dynamic>) {
         final data = error.response!.data as Map<String, dynamic>;
         return BaseResponse<T>(
           success: false,
           message: data['message'] ?? 'Network error',
+          code: data['code'] ?? data['errorCode'],
         );
       }
       return BaseResponse<T>(

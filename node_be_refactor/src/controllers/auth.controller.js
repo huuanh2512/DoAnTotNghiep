@@ -12,7 +12,12 @@ const register = async (req, res) => {
     // Custom trả về để lồng success/message vào trong
     return res.status(200).json(result);
   } catch (error) {
-    return sendError(res, 500, error.message, 'REGISTER_ERROR');
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      code: error.code || 'REGISTER_ERROR',
+      message: error.message,
+      ...(error.data ? { data: error.data } : {})
+    });
   }
 };
 
@@ -27,7 +32,36 @@ const signIn = async (req, res) => {
     return res.status(200).json(authData);
   } catch (error) {
     console.error("LỖI ĐĂNG NHẬP:", error);
-    return sendError(res, 401, error.message, 'AUTH_FAILED');
+    return res.status(error.statusCode || 401).json({
+      success: false,
+      code: error.code || 'AUTH_FAILED',
+      message: error.message,
+      ...(error.data ? { data: error.data } : {})
+    });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp || !/^\d{6}$/.test(String(otp))) {
+      return sendError(res, 400, 'Email và mã xác thực 6 chữ số là bắt buộc.', 'MISSING_OR_INVALID_OTP');
+    }
+    const result = await userAuthService.verifyEmail(email, String(otp));
+    return sendSuccess(res, result, 'Xác thực email thành công.', 'EMAIL_VERIFIED');
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({ success: false, code: error.code || 'EMAIL_VERIFICATION_ERROR', message: error.message, ...(error.data ? { data: error.data } : {}) });
+  }
+};
+
+const resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return sendError(res, 400, 'Email là bắt buộc.', 'MISSING_FIELDS');
+    const result = await userAuthService.resendEmailVerification(email);
+    return sendSuccess(res, result, 'Nếu tài khoản đang chờ xác thực, mã mới đã được gửi.', 'EMAIL_VERIFICATION_RESENT');
+  } catch (error) {
+    return res.status(error.statusCode || 400).json({ success: false, code: error.code || 'EMAIL_VERIFICATION_RESEND_ERROR', message: error.message, ...(error.data ? { data: error.data } : {}) });
   }
 };
 
@@ -161,6 +195,8 @@ const changePassword = async (req, res) => {
 module.exports = {
   register,
   signIn,
+  verifyEmail,
+  resendVerification,
   refreshToken,
   signOut,
   forgotPassword,

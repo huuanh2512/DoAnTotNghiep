@@ -67,6 +67,21 @@ class _ServerAuthRepositoryAdapter implements server_module.AuthRepository {
   }
 
   @override
+  Future<server_module.BaseResponse<dynamic>> verifyEmail({
+    required String email,
+    required String otp,
+  }) {
+    return _authService.verifyEmail(email: email, otp: otp);
+  }
+
+  @override
+  Future<server_module.BaseResponse<dynamic>> resendVerification({
+    required String email,
+  }) {
+    return _authService.resendVerification(email: email);
+  }
+
+  @override
   Future<server_module.BaseResponse<dynamic>> forgotPassword({
     required String email,
   }) {

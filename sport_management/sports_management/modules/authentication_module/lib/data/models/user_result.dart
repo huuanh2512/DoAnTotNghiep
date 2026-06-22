@@ -4,6 +4,7 @@ class UserResult extends Equatable {
   const UserResult({
     required this.isSuccess,
     this.error,
+    this.code,
     this.userId,
     this.email,
     this.name,
@@ -17,6 +18,7 @@ class UserResult extends Equatable {
 
   final bool isSuccess;
   final String? error;
+  final String? code;
   final String? userId;
   final String? email;
   final String? name;
@@ -31,6 +33,7 @@ class UserResult extends Equatable {
     return UserResult(
       isSuccess: json['isSuccess'] as bool? ?? false,
       error: json['error'] as String?,
+      code: json['code'] as String?,
       userId: json['userId'] as String?,
       email: json['email'] as String?,
       name: json['name'] as String?,
@@ -49,6 +52,7 @@ class UserResult extends Equatable {
     return {
       'isSuccess': isSuccess,
       'error': error,
+      'code': code,
       'userId': userId,
       'email': email,
       'name': name,
@@ -64,6 +68,7 @@ class UserResult extends Equatable {
   UserResult copyWith({
     bool? isSuccess,
     String? error,
+    String? code,
     String? userId,
     String? email,
     String? name,
@@ -77,6 +82,7 @@ class UserResult extends Equatable {
     return UserResult(
       isSuccess: isSuccess ?? this.isSuccess,
       error: error ?? this.error,
+      code: code ?? this.code,
       userId: userId ?? this.userId,
       email: email ?? this.email,
       name: name ?? this.name,
@@ -91,8 +97,17 @@ class UserResult extends Equatable {
 
   @override
   List<Object?> get props => [
-        isSuccess, error, userId, email, name,
-        avatarUrl, role, status, accessToken,
-        refreshToken, expiresAt,
-      ];
+    isSuccess,
+    error,
+    code,
+    userId,
+    email,
+    name,
+    avatarUrl,
+    role,
+    status,
+    accessToken,
+    refreshToken,
+    expiresAt,
+  ];
 }
