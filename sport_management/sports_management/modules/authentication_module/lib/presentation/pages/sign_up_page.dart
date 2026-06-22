@@ -78,12 +78,15 @@ class _SignUpPageState extends State<SignUpPage> {
           );
         }
         if (state is AuthFailureState) {
-          if (state.code == 'EMAIL_NOT_VERIFIED') {
+          if (state.code == 'EMAIL_NOT_VERIFIED' ||
+              state.code == 'EMAIL_DELIVERY_FAILED') {
             context.go(
               '/verify-email',
               extra: <String, String>{
                 'email': _emailController.text.trim(),
                 'password': _passwordController.text,
+                if (state.code == 'EMAIL_DELIVERY_FAILED')
+                  'deliveryFailed': 'true',
               },
             );
             return;

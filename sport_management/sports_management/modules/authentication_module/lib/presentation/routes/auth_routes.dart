@@ -12,42 +12,47 @@ final class AuthRoutes {
   const AuthRoutes._();
 
   static List<GoRoute> get routes => [
-        GoRoute(
-          name: 'sign-in',
-          path: '/sign-in',
-          builder: (context, state) => BlocProvider(
-            create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
-            child: const SignInPage(),
+    GoRoute(
+      name: 'sign-in',
+      path: '/sign-in',
+      builder: (context, state) => BlocProvider(
+        create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
+        child: const SignInPage(),
+      ),
+    ),
+    GoRoute(
+      name: 'sign-up',
+      path: '/sign-up',
+      builder: (context, state) => BlocProvider(
+        create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
+        child: const SignUpPage(),
+      ),
+    ),
+    GoRoute(
+      name: 'verify-email',
+      path: '/verify-email',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, String>?;
+        final email = extra?['email'] ?? '';
+        final password = extra?['password'] ?? '';
+        final deliveryFailed = extra?['deliveryFailed'] == 'true';
+        return BlocProvider(
+          create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
+          child: VerifyEmailPage(
+            email: email,
+            password: password,
+            deliveryFailed: deliveryFailed,
           ),
-        ),
-        GoRoute(
-          name: 'sign-up',
-          path: '/sign-up',
-          builder: (context, state) => BlocProvider(
-            create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
-            child: const SignUpPage(),
-          ),
-        ),
-        GoRoute(
-          name: 'verify-email',
-          path: '/verify-email',
-          builder: (context, state) {
-            final extra = state.extra as Map<String, String>?;
-            final email = extra?['email'] ?? '';
-            final password = extra?['password'] ?? '';
-            return BlocProvider(
-              create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
-              child: VerifyEmailPage(email: email, password: password),
-            );
-          },
-        ),
-        GoRoute(
-          name: 'reset-password',
-          path: '/reset-password',
-          builder: (context, state) => BlocProvider(
-            create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
-            child: const ResetPasswordPage(),
-          ),
-        ),
-      ];
+        );
+      },
+    ),
+    GoRoute(
+      name: 'reset-password',
+      path: '/reset-password',
+      builder: (context, state) => BlocProvider(
+        create: (_) => GetIt.I<AuthBloc>()..add(const AuthStarted()),
+        child: const ResetPasswordPage(),
+      ),
+    ),
+  ];
 }

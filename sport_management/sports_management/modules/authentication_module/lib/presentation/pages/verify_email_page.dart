@@ -7,10 +7,16 @@ import 'package:go_router/go_router.dart';
 import 'package:server_module/server_module.dart';
 
 class VerifyEmailPage extends StatefulWidget {
-  const VerifyEmailPage({super.key, required this.email, this.password = ''});
+  const VerifyEmailPage({
+    super.key,
+    required this.email,
+    this.password = '',
+    this.deliveryFailed = false,
+  });
 
   final String email;
   final String password;
+  final bool deliveryFailed;
 
   @override
   State<VerifyEmailPage> createState() => _VerifyEmailPageState();
@@ -153,6 +159,14 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                     'Nhập mã gồm 6 chữ số đã gửi đến\n${widget.email}',
                     textAlign: TextAlign.center,
                   ),
+                  if (widget.deliveryFailed) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Chưa thể gửi mã lần đầu. Vui lòng bấm “Gửi lại mã xác thực”.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
                   const SizedBox(height: 28),
                   TextField(
                     controller: _otpController,

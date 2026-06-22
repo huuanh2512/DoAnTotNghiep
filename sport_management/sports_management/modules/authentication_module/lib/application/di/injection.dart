@@ -369,11 +369,11 @@ Future<void> initInjection() async {
   // Bloc
   sl.registerFactory<AuthBloc>(
     () => AuthBloc(
-      signInUseCase: sl<SignInUseCase>(),
-      signUpUseCase: sl<SignUpUseCase>(),
-      signOutUseCase: sl<SignOutUseCase>(),
-      refreshSessionUseCase: sl<RefreshSessionUseCase>(),
-      resetPasswordUseCase: sl<ResetPasswordUseCase>(),
+      sl<SignInUseCase>(),
+      sl<SignUpUseCase>(),
+      sl<SignOutUseCase>(),
+      sl<RefreshSessionUseCase>(),
+      sl<ResetPasswordUseCase>(),
     ),
   );
 }

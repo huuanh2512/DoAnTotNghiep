@@ -15,18 +15,13 @@ import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  AuthBloc({
-    required SignInUseCase signInUseCase,
-    required SignUpUseCase signUpUseCase,
-    required SignOutUseCase signOutUseCase,
-    required RefreshSessionUseCase refreshSessionUseCase,
-    required ResetPasswordUseCase resetPasswordUseCase,
-  }) : _signInUseCase = signInUseCase,
-       _signUpUseCase = signUpUseCase,
-       _signOutUseCase = signOutUseCase,
-       _refreshSessionUseCase = refreshSessionUseCase,
-       _resetPasswordUseCase = resetPasswordUseCase,
-       super(const AuthInitial()) {
+  AuthBloc(
+    this._signInUseCase,
+    this._signUpUseCase,
+    this._signOutUseCase,
+    this._refreshSessionUseCase,
+    this._resetPasswordUseCase,
+  ) : super(const AuthInitial()) {
     on<AuthStarted>((event, emit) => emit(const AuthUnauthenticated()));
     on<AuthSignInRequested>(_onSignIn);
     on<AuthSignUpRequested>(_onSignUp);
