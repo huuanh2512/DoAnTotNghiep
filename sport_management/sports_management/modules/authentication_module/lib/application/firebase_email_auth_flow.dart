@@ -38,6 +38,27 @@ class FirebaseEmailAuthFlow {
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
     await user.sendEmailVerification();
   }
+  
+  static Future<void> sendPasswordReset(String email) =>
+      _firebase.sendPasswordResetEmail(email: email.trim().toLowerCase());
+
+  static Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _firebase.currentUser;
+    if (user?.email == null) {
+      throw FirebaseAuthException(code: 'no-current-user');
+    }
+    await user!.reauthenticateWithCredential(
+      EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      ),
+    );
+    await user.updatePassword(newPassword);
+  }
+
 
   static Future<UserResult> completeVerification() async {
     final user = _firebase.currentUser;
@@ -81,6 +102,23 @@ class FirebaseEmailAuthFlow {
     }
     return _persist(response.data);
   }
+
+  static Future<UserResult> refreshSession() async {
+    final user = _firebase.currentUser;
+    if (user == null) throw FirebaseAuthException(code: 'no-current-user');
+    final response = await GetIt.I<AuthService>().firebaseLogin(
+      (await user.getIdToken(true))!,
+    );
+    if (!response.success) {
+      throw FirebaseAuthException(
+        code: response.code ?? 'backend-refresh-failed',
+        message: response.message,
+      );
+    }
+    return _persist(response.data);
+  }
+
+  static Future<void> signOut() => _firebase.signOut();
 
   static Future<UserResult> _persist(dynamic raw) async {
     final data = raw is Map

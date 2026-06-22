@@ -15,7 +15,7 @@ export class AuthRemoteDataSource {
     const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
     if (!credential.user.emailVerified) {
       await sendEmailVerification(credential.user);
-      const error: any = new Error('Email chưa xác thực. Firebase đã gửi lại liên kết xác thực.');
+      const error: any = new Error('Email chưa xác thực. Sport Energy đã gửi lại liên kết xác thực.');
       error.response = { data: { code: 'EMAIL_NOT_VERIFIED', message: error.message } };
       throw error;
     }

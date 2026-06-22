@@ -12,7 +12,9 @@ const app = express();
 const httpServer = http.createServer(app);
 const port = process.env.PORT || 3000;
 const host = process.env.HOST || '0.0.0.0';
+const dns = require('node:dns');
 
+dns.setDefaultResultOrder('ipv4first');
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

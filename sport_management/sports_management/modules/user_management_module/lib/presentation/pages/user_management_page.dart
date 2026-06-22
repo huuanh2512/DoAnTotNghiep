@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_module/server_module.dart';
 import 'package:facility_module/facility_module.dart';
+import 'package:authentication_module/application/firebase_email_auth_flow.dart';
 import 'package:notification_module/notification_module.dart';
 import '../cubit/user_management_cubit.dart';
 import '../cubit/user_management_state.dart';
@@ -544,8 +545,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final emailController = TextEditingController();
-    final passwordController = TextEditingController(text: '123456');
-    String selectedRole = 'CUSTOMER';
+    String selectedRole = 'STAFF';
     String? selectedFacilityId = _facilities.isNotEmpty
         ? _facilities.first.id
         : null;
@@ -665,27 +665,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  // Password field
-                  TextFormField(
-                    controller: passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Mật khẩu *',
-                      hintText: 'Nhập mật khẩu...',
-                      prefixIcon: const Icon(Icons.lock_outlined),
-                      helperText: 'Có thể chỉnh sửa hoặc dùng 123456 mặc định',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Vui lòng nhập mật khẩu';
-                      }
-                      if (value.length < 6) {
-                        return 'Mật khẩu phải có ít nhất 6 ký tự';
-                      }
-                      return null;
-                    },
+                  const Text(
+                    'Người dùng sẽ nhận email Firebase để tự đặt mật khẩu.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   // Role dropdown
@@ -705,14 +687,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ? const Color(0xFF1E1E1E)
                         : Colors.white,
                     items: const [
-                      DropdownMenuItem(
-                        value: 'CUSTOMER',
-                        child: Text(
-                          'CUSTOMER (Khách hàng)',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
                       DropdownMenuItem(
                         value: 'STAFF',
                         child: Text(
@@ -797,12 +771,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   Navigator.pop(ctx);
-                  _cubit.registerUser(
+                  final provisioned = await _cubit.provisionFirebaseUser(
                     email: emailController.text.trim(),
-                    password: passwordController.text,
                     role: selectedRole,
                     name: nameController.text.trim(),
                     phone: phoneController.text.trim(),
@@ -810,6 +783,31 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ? selectedFacilityId
                         : null,
                   );
+                  if (!provisioned) return;
+                  try {
+                    await FirebaseEmailAuthFlow.sendPasswordReset(
+                      emailController.text,
+                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Đã gửi email đặt mật khẩu Firebase cho người dùng mới.',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (_) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Tài khoản đã được tạo, nhưng chưa gửi được email đặt mật khẩu. Hãy thử gửi lại từ màn hình Quên mật khẩu.',
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(

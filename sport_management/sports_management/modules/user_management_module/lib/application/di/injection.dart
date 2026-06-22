@@ -7,6 +7,7 @@ import '../../domain/usecases/update_user_role_usecase.dart';
 import '../../domain/usecases/update_user_status_usecase.dart';
 import '../../domain/usecases/assign_facility_usecase.dart';
 import '../../domain/usecases/update_user_usecase.dart';
+import '../../domain/usecases/provision_firebase_user_usecase.dart';
 
 final sl = GetIt.instance;
 
@@ -53,6 +54,12 @@ Future<void> initInjection() async {
   if (!sl.isRegistered<UpdateUserUseCase>()) {
     sl.registerLazySingleton<UpdateUserUseCase>(
       () => UpdateUserUseCase(sl<AdminUserRepositoryImpl>()),
+    );
+  }
+
+  if (!sl.isRegistered<ProvisionFirebaseUserUseCase>()) {
+    sl.registerLazySingleton<ProvisionFirebaseUserUseCase>(
+      () => ProvisionFirebaseUserUseCase(sl<AdminUserRepositoryImpl>()),
     );
   }
 }

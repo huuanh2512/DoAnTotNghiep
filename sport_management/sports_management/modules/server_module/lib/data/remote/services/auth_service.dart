@@ -107,8 +107,8 @@ class AuthService {
         '/auth/firebase/register',
         data: {
           'firebaseIdToken': firebaseIdToken,
-          if (fullName != null) 'fullName': fullName,
-          if (phone != null) 'phone': phone,
+          if (fullName?.trim().isNotEmpty == true) 'fullName': fullName!.trim(),
+          if (phone?.trim().isNotEmpty == true) 'phone': phone!.trim(),
         },
       );
       return BaseResponse.fromJson(response.data, (json) => json);

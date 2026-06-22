@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:server_module/server_module.dart';
 import 'package:user_management_module/data/datasources/remote/user_management_remote_data_source.dart';
 import 'package:user_management_module/data/repositories/admin_user_repository_impl.dart';
@@ -7,7 +6,7 @@ import 'package:user_management_module/domain/usecases/get_users_usecase.dart';
 import 'package:user_management_module/domain/usecases/update_user_role_usecase.dart';
 import 'package:user_management_module/domain/usecases/update_user_status_usecase.dart';
 import 'package:user_management_module/domain/usecases/assign_facility_usecase.dart';
-import 'package:user_management_module/domain/usecases/update_user_usecase.dart';
+import 'package:user_management_module/domain/usecases/provision_firebase_user_usecase.dart';
 import 'package:user_management_module/presentation/cubit/user_management_cubit.dart';
 import 'package:user_management_module/presentation/cubit/user_management_state.dart';
 
@@ -38,12 +37,17 @@ class FakeRemoteDataSource implements UserManagementRemoteDataSource {
   }
 
   @override
-  Future<BaseResponse<dynamic>> updateUser(String id, Map<String, dynamic> data) async {
+  Future<BaseResponse<dynamic>> updateUser(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     lastUserId = id;
     lastUpdateData = data;
     return BaseResponse(
       success: shouldSucceed,
-      data: shouldSucceed ? {'_id': id, 'email': 'test@test.com', 'profile': data['profile']} : null,
+      data: shouldSucceed
+          ? {'_id': id, 'email': 'test@test.com', 'profile': data['profile']}
+          : null,
       message: shouldSucceed ? null : 'Error',
     );
   }
@@ -60,7 +64,10 @@ class FakeRemoteDataSource implements UserManagementRemoteDataSource {
   }
 
   @override
-  Future<BaseResponse<dynamic>> updateUserStatus(String id, String status) async {
+  Future<BaseResponse<dynamic>> updateUserStatus(
+    String id,
+    String status,
+  ) async {
     lastUserId = id;
     lastStatus = status;
     return BaseResponse(
@@ -71,7 +78,10 @@ class FakeRemoteDataSource implements UserManagementRemoteDataSource {
   }
 
   @override
-  Future<BaseResponse<dynamic>> assignFacility(String id, String facilityId) async {
+  Future<BaseResponse<dynamic>> assignFacility(
+    String id,
+    String facilityId,
+  ) async {
     lastUserId = id;
     lastFacilityId = facilityId;
     return BaseResponse(
@@ -80,43 +90,38 @@ class FakeRemoteDataSource implements UserManagementRemoteDataSource {
       message: shouldSucceed ? null : 'Error',
     );
   }
-}
-
-class MockAuthService implements AuthService {
-  bool shouldSucceed = true;
-  String? lastEmail;
-  String? lastPassword;
 
   @override
-  Future<BaseResponse<dynamic>> register(AuthRegisterRequest request) async {
-    lastEmail = request.email;
-    lastPassword = request.password;
-    if (shouldSucceed) {
-      return BaseResponse(
-        success: true,
-        data: {
-          'user': {'id': 'mocked_user_id_123', 'email': request.email}
-        },
-      );
-    } else {
-      return BaseResponse(success: false, message: 'Email already exists');
-    }
+  Future<BaseResponse<dynamic>> provisionFirebaseUser({
+    required String email,
+    required String role,
+    required Map<String, dynamic> profile,
+    String? facilityId,
+  }) async {
+    lastRole = role;
+    lastFacilityId = facilityId;
+    lastUpdateData = profile;
+    return BaseResponse(
+      success: shouldSucceed,
+      data: shouldSucceed
+          ? {
+              'user': {'email': email, 'role': role},
+            }
+          : null,
+      message: shouldSucceed ? null : 'Email already exists',
+    );
   }
-
-  @override
-  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
-  group('UserManagementCubit registerUser tests', () {
+  group('UserManagementCubit Firebase provisioning tests', () {
     late FakeRemoteDataSource fakeDataSource;
     late AdminUserRepositoryImpl repository;
     late GetUsersUseCase getUsersUseCase;
     late UpdateUserRoleUseCase updateUserRoleUseCase;
     late UpdateUserStatusUseCase updateUserStatusUseCase;
     late AssignFacilityUseCase assignFacilityUseCase;
-    late UpdateUserUseCase updateUserUseCase;
-    late MockAuthService mockAuthService;
+    late ProvisionFirebaseUserUseCase provisionFirebaseUserUseCase;
     late UserManagementCubit cubit;
 
     setUp(() {
@@ -126,19 +131,14 @@ void main() {
       updateUserRoleUseCase = UpdateUserRoleUseCase(repository);
       updateUserStatusUseCase = UpdateUserStatusUseCase(repository);
       assignFacilityUseCase = AssignFacilityUseCase(repository);
-      updateUserUseCase = UpdateUserUseCase(repository);
-      mockAuthService = MockAuthService();
-
-      final getIt = GetIt.instance;
-      getIt.reset();
-      getIt.registerSingleton<AuthService>(mockAuthService);
+      provisionFirebaseUserUseCase = ProvisionFirebaseUserUseCase(repository);
 
       cubit = UserManagementCubit(
         getUsersUseCase,
         updateUserRoleUseCase,
         updateUserStatusUseCase,
         assignFacilityUseCase,
-        updateUserUseCase,
+        provisionFirebaseUserUseCase,
       );
     });
 
@@ -146,51 +146,48 @@ void main() {
       cubit.close();
     });
 
-    test('should register user and update status, profile, and role successfully', () async {
-      // Act
-      await cubit.registerUser(
-        email: 'new_staff@test.com',
-        password: 'password123',
-        role: 'STAFF',
-        name: 'New Staff Name',
-        phone: '0987654321',
-        facilityId: 'facility_abc',
-      );
+    test(
+      'should provision a STAFF user through the Firebase endpoint',
+      () async {
+        // Act
+        final provisioned = await cubit.provisionFirebaseUser(
+          email: 'new_staff@test.com',
+          role: 'STAFF',
+          name: 'New Staff Name',
+          phone: '0987654321',
+          facilityId: 'facility_abc',
+        );
 
-      // Assert
-      expect(mockAuthService.lastEmail, 'new_staff@test.com');
-      expect(mockAuthService.lastPassword, 'password123');
-
-      expect(fakeDataSource.lastUserId, 'mocked_user_id_123');
-      expect(fakeDataSource.lastStatus, 'ACTIVE');
-
-      expect(fakeDataSource.lastUpdateData, {
-        'profile': {
+        // Assert
+        expect(provisioned, isTrue);
+        expect(fakeDataSource.lastUpdateData, {
           'name': 'New Staff Name',
           'phone': '0987654321',
-        }
-      });
+        });
+        expect(fakeDataSource.lastRole, 'STAFF');
+        expect(fakeDataSource.lastFacilityId, 'facility_abc');
 
-      expect(fakeDataSource.lastRole, 'STAFF');
-      expect(fakeDataSource.lastFacilityId, 'facility_abc');
+        expect(cubit.state, isA<UserManagementLoaded>());
+      },
+    );
 
-      expect(cubit.state, isA<UserManagementLoaded>());
-    });
-
-    test('should fail if register fails', () async {
+    test('should fail if Firebase provisioning fails', () async {
       // Arrange
-      mockAuthService.shouldSucceed = false;
+      fakeDataSource.shouldSucceed = false;
 
       // Act
-      await cubit.registerUser(
+      final provisioned = await cubit.provisionFirebaseUser(
         email: 'staff_fail@test.com',
-        password: 'password123',
         role: 'STAFF',
       );
 
       // Assert
+      expect(provisioned, isFalse);
       expect(cubit.state, isA<UserManagementError>());
-      expect((cubit.state as UserManagementError).message, contains('Email already exists'));
+      expect(
+        (cubit.state as UserManagementError).message,
+        contains('Email already exists'),
+      );
     });
   });
 }

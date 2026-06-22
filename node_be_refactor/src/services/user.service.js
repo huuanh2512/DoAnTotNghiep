@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const userRepository = require('../repositories/user.repository');
+const crypto = require('crypto');
+const { getFirebaseAdmin } = require('../config/firebase-admin');
 
 class UserService {
   _businessError(message, statusCode = 400, code = 'USER_ERROR') {
@@ -106,7 +108,7 @@ class UserService {
   }
 
   async updateUserStatus(userId, status) {
-    const validStatuses = ['PENDING_OTP', 'ACTIVE', 'INACTIVE', 'BANNED'];
+    const validStatuses = ['PENDING_OTP', 'PENDING_EMAIL', 'ACTIVE', 'INACTIVE', 'BANNED'];
     if (!validStatuses.includes(status)) throw new Error('Invalid status');
 
     const user = await userRepository.updateStatus(userId, status);
@@ -122,6 +124,24 @@ class UserService {
     });
     if (!user) throw new Error('User not found');
     return true;
+  }
+
+  async provisionFirebaseUser({ email, role, profile = {}, facilityId = null }) {
+    if (!['STAFF', 'ADMIN'].includes(role)) throw this._businessError('Only STAFF or ADMIN can be provisioned', 400, 'INVALID_ROLE');
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await userRepository.findByEmail(normalizedEmail);
+    if (existing?.firebaseUid) throw this._businessError('Email is already provisioned', 409, 'EMAIL_EXISTS');
+    if (existing) throw this._businessError('Legacy profile exists; migrate it instead of provisioning a new identity', 409, 'LEGACY_MIGRATION_REQUIRED');
+    const auth = getFirebaseAdmin().auth();
+    const temporaryPassword = crypto.randomBytes(32).toString('base64url');
+    const firebaseUser = await auth.createUser({ email: normalizedEmail, password: temporaryPassword, displayName: profile.name || undefined, emailVerified: false });
+    try {
+      const user = await userRepository.create({ email: normalizedEmail, firebaseUid: firebaseUser.uid, role, status: 'PENDING_EMAIL', profile: { name: profile.name || '', phone: profile.phone || '' }, facility_id: facilityId || null, authMigrationStatus: 'FIREBASE_PROVISIONED', authMigratedAt: new Date() });
+      return this._formatUserResponse(user);
+    } catch (error) {
+      await auth.deleteUser(firebaseUser.uid).catch(rollbackError => console.error('[Provision] Firebase rollback failed:', rollbackError.message));
+      throw error;
+    }
   }
 }
 

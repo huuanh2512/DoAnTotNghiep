@@ -21,5 +21,6 @@ router.get('/', requireRole(['ADMIN']), userController.queryUsers);
 router.put('/:id/role', requireRole(['ADMIN']), userController.updateUserRole);
 router.put('/:id/status', requireRole(['ADMIN']), userController.updateUserStatus);
 router.post('/:id/assign-facility', requireRole(['ADMIN']), userController.assignUserFacility);
+router.post('/provision-firebase', requireRole(['ADMIN']), userController.provisionFirebaseUser);
 
 module.exports = router;

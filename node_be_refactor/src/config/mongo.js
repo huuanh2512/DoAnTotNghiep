@@ -13,7 +13,7 @@ const connectDB = async () => {
     console.log('MongoDB connected successfully');
 
     const adminExist = await User.findOne({ role: 'ADMIN' });
-        if (!adminExist) {
+        if (!adminExist && process.env.ALLOW_DEVELOPMENT_SEED === 'true') {
             const hashedPassword = await bcrypt.hash('123456', 10);
             
             await User.create({

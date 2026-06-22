@@ -5,9 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app_module/app_module.dart';
 import 'package:app_module/router/route_paths.dart';
 import 'package:notification_module/notification_module.dart';
-import 'package:authentication_module/data/models/sign_in_request.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_bloc.dart';
-import 'package:authentication_module/presentation/blocs/auth/auth_event.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_state.dart';
 import 'package:authentication_module/application/firebase_email_auth_flow.dart';
 
@@ -25,6 +23,7 @@ class _SignInPageState extends State<SignInPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isFirebaseSigningIn = false;
 
   @override
   void dispose() {
@@ -69,6 +68,7 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<void> _submitSignIn() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isFirebaseSigningIn = true);
       try {
         await FirebaseEmailAuthFlow.signIn(
           email: _emailController.text.trim(),
@@ -91,6 +91,8 @@ class _SignInPageState extends State<SignInPage> {
             tone: AppPopupTone.danger,
           );
         }
+      } finally {
+        if (mounted) setState(() => _isFirebaseSigningIn = false);
       }
     }
   }
@@ -154,7 +156,8 @@ class _SignInPageState extends State<SignInPage> {
                   ),
                   child: BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
-                      final isLoading = state is AuthLoading;
+                      final isLoading =
+                          state is AuthLoading || _isFirebaseSigningIn;
 
                       return Form(
                         key: _formKey,

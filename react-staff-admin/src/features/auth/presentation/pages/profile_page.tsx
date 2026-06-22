@@ -12,6 +12,8 @@ import {
 } from '@ant-design/icons';
 import { authStorage, UserSession } from '../../../../core/utils/auth_storage';
 import { apiClient } from '../../../../core/network/api_client';
+import { firebaseAuth } from '../../../../core/firebase/firebase_auth';
+import { EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
 
 const { Title, Text } = Typography;
 
@@ -215,7 +217,7 @@ const ProfilePage: React.FC = () => {
   const handleSendOtp = async () => {
     setSendingOtp(true);
     try {
-      await apiClient.post('/auth/forgot-password', { email: user.email });
+      if (user?.email) await sendPasswordResetEmail(firebaseAuth, user.email);
       message.success('Mã OTP đã được gửi đến email tài khoản.');
     } catch (e: any) {
       message.error(e.response?.data?.message || 'Không thể gửi OTP.');
@@ -227,10 +229,10 @@ const ProfilePage: React.FC = () => {
   const handleChangePassword = async (values: any) => {
     setSavingPassword(true);
     try {
-      await apiClient.post('/auth/change-password', {
-        otp: values.otp,
-        newPassword: values.newPassword,
-      });
+      const currentUser = firebaseAuth.currentUser;
+      if (!currentUser?.email) throw new Error('Firebase session expired');
+      await reauthenticateWithCredential(currentUser, EmailAuthProvider.credential(currentUser.email, values.currentPassword));
+      await updatePassword(currentUser, values.newPassword);
       message.success('Đổi mật khẩu thành công.');
       setPasswordOpen(false);
       passwordForm.resetFields();
@@ -433,7 +435,7 @@ const ProfilePage: React.FC = () => {
         </Text>
         <Form form={passwordForm} layout="vertical" onFinish={handleChangePassword} className="mt-4">
           <Form.Item
-            name="otp"
+            name="currentPassword"
             label="Mã OTP"
             rules={[
               { required: true, message: 'Vui lòng nhập OTP.' },

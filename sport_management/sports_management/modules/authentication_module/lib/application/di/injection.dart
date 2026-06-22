@@ -361,7 +361,6 @@ Future<void> initInjection() async {
   sl.registerLazySingleton<SessionManager>(
     () => SessionManager(
       localDataSource: sl<AuthenticationLocalDataSource>(),
-      refreshSessionUseCase: sl<RefreshSessionUseCase>(),
       clearLocalSessionUseCase: sl<ClearLocalSessionUseCase>(),
     ),
   );

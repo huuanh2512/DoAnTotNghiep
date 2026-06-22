@@ -110,6 +110,19 @@ class AdminUserRepositoryImpl implements UserRepository {
     return _mapToUserResponse(response);
   }
 
+  Future<BaseResponse<dynamic>> provisionFirebaseUser({
+    required String email,
+    required String role,
+    required String name,
+    required String phone,
+    String? facilityId,
+  }) => _remoteDataSource.provisionFirebaseUser(
+    email: email,
+    role: role,
+    profile: {'name': name, 'phone': phone},
+    facilityId: facilityId,
+  );
+
   BaseResponse<UserEntity> _mapToUserResponse(BaseResponse<dynamic> response) {
     if (!response.success || response.data == null) {
       return BaseResponse<UserEntity>(

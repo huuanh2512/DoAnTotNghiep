@@ -25,7 +25,10 @@ class UserService {
     }
   }
 
-  Future<BaseResponse<dynamic>> updateUser(String id, Map<String, dynamic> data) async {
+  Future<BaseResponse<dynamic>> updateUser(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final response = await _dioClient.dio.put('/user/$id', data: data);
       return BaseResponse.fromJson(response.data, (json) => json);
@@ -46,7 +49,10 @@ class UserService {
     }
   }
 
-  Future<BaseResponse<dynamic>> updateUserStatus(String id, String status) async {
+  Future<BaseResponse<dynamic>> updateUserStatus(
+    String id,
+    String status,
+  ) async {
     try {
       final response = await _dioClient.dio.put(
         '/user/$id/status',
@@ -58,11 +64,38 @@ class UserService {
     }
   }
 
-  Future<BaseResponse<dynamic>> assignFacility(String id, String facilityId) async {
+  Future<BaseResponse<dynamic>> assignFacility(
+    String id,
+    String facilityId,
+  ) async {
     try {
       final response = await _dioClient.dio.post(
         '/user/$id/assign-facility',
         data: {'facilityId': facilityId},
+      );
+      return BaseResponse.fromJson(response.data, (json) => json);
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
+  }
+
+  /// Creates a Firebase identity. The app then sends its password-reset email,
+  /// so a temporary password is never exposed to an administrator.
+  Future<BaseResponse<dynamic>> provisionFirebaseUser({
+    required String email,
+    required String role,
+    required Map<String, dynamic> profile,
+    String? facilityId,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/user/provision-firebase',
+        data: {
+          'email': email.trim().toLowerCase(),
+          'role': role,
+          'profile': profile,
+          if (facilityId?.trim().isNotEmpty == true) 'facilityId': facilityId,
+        },
       );
       return BaseResponse.fromJson(response.data, (json) => json);
     } catch (error) {

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const userRepository = require('../repositories/user.repository');
 const mailService = require('./mail.service');
 const { getFirebaseAdmin } = require('../config/firebase-admin');
+const { isFirebaseActive } = require('../config/auth-mode');
 
 class UserAuthService {  
   _error(message, code, statusCode = 400, data = null) {
@@ -300,6 +301,7 @@ class UserAuthService {
   }
 
   async verifyEmail(email, otp) {
+    if (isFirebaseActive()) throw this._error('Legacy OTP email verification is disabled. Use Firebase verification link.', 'LEGACY_EMAIL_OTP_DISABLED', 410);
     const normalizedEmail = email.trim().toLowerCase();
     const user = await userRepository.findByEmail(normalizedEmail);
     if (!user || user.status !== 'PENDING_OTP') {
@@ -343,6 +345,7 @@ class UserAuthService {
   }
 
   async resendEmailVerification(email) {
+    if (isFirebaseActive()) throw this._error('Legacy OTP email verification is disabled. Use Firebase verification link.', 'LEGACY_EMAIL_OTP_DISABLED', 410);
     const normalizedEmail = email.trim().toLowerCase();
     console.info(`[EmailVerification] Resend requested for ${normalizedEmail}`);
     const user = await userRepository.findByEmail(normalizedEmail);

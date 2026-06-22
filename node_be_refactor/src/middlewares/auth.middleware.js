@@ -14,9 +14,12 @@ const verifyToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Gắn thông tin user (id, role) vào req để các controller sau dùng
-    const user = await User.findById(decoded.id).select('status emailVerifiedAt role');
+    const user = await User.findById(decoded.id).select('status emailVerifiedAt role firebaseUid');
     if (!user || user.status !== 'ACTIVE' || !user.emailVerifiedAt) {
       return sendError(res, 403, 'Email chưa được xác thực', 'EMAIL_NOT_VERIFIED');
+    }
+    if (decoded.firebaseUid && decoded.firebaseUid !== user.firebaseUid) {
+      return sendError(res, 401, 'Unauthorized: Firebase identity no longer matches user', 'FIREBASE_IDENTITY_MISMATCH');
     }
     req.user = { ...decoded, role: user.role };
     next();

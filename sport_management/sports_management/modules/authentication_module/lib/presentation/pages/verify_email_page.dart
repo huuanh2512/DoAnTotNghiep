@@ -17,7 +17,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   bool _checking = false;
   Future<void> _resend() async {
     setState(() => _sending = true);
-    try { await FirebaseEmailAuthFlow.resendVerification(); if (mounted) AppPopup.show(context, message: 'Đã gửi lại liên kết xác thực Firebase.', tone: AppPopupTone.success); }
+    try { await FirebaseEmailAuthFlow.resendVerification(); if (mounted) AppPopup.show(context, message: 'Đã gửi lại liên kết xác thực Sport Energy.', tone: AppPopupTone.success); }
     catch (error) { if (mounted) AppPopup.show(context, message: error.toString(), tone: AppPopupTone.danger); }
     finally { if (mounted) setState(() => _sending = false); }
   }
@@ -31,7 +31,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(child: Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
       const Icon(Icons.mark_email_read_outlined, size: 72), const SizedBox(height: 20), const Text('Xác thực Email', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 12),
-      Text('Firebase đã gửi liên kết xác thực đến\n${widget.email}', textAlign: TextAlign.center), const SizedBox(height: 24),
+      Text('Sport Energy đã gửi liên kết xác thực đến\n${widget.email}', textAlign: TextAlign.center), const SizedBox(height: 24),
       FilledButton(onPressed: _checking ? null : _complete, child: Text(_checking ? 'Đang kiểm tra...' : 'Tôi đã xác thực')),
       TextButton(onPressed: _sending ? null : _resend, child: Text(_sending ? 'Đang gửi...' : 'Gửi lại liên kết')),
       TextButton(onPressed: () => context.go('/sign-in'), child: const Text('Quay lại đăng nhập')),

@@ -20,6 +20,8 @@ dependencies:
     path: ../facility_module
   notification_module:
     path: ../notification_module
+  authentication_module:
+    path: ../authentication_module
 
 dev_dependencies:
   flutter_test:

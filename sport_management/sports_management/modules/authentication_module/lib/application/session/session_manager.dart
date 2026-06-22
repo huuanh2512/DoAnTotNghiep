@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import '../firebase_email_auth_flow.dart';
 import '../../data/datasources/local/authentication_local_data_source.dart';
-import '../../domain/usecases/refresh_session_usecase.dart';
 import '../../domain/usecases/clear_local_session_usecase.dart';
 
 /// Callback được gọi khi phiên đăng nhập hết hạn hoàn toàn.
@@ -16,17 +16,13 @@ typedef SessionExpiredCallback = void Function();
 class SessionManager {
   SessionManager({
     required AuthenticationLocalDataSource localDataSource,
-    required RefreshSessionUseCase refreshSessionUseCase,
     required ClearLocalSessionUseCase clearLocalSessionUseCase,
     // ignore: prefer_initializing_formals
-  })  : _localDataSource = localDataSource,
-        // ignore: prefer_initializing_formals
-        _refreshSessionUseCase = refreshSessionUseCase,
-        // ignore: prefer_initializing_formals
-        _clearLocalSessionUseCase = clearLocalSessionUseCase;
+  }) : _localDataSource = localDataSource,
+       // ignore: prefer_initializing_formals
+       _clearLocalSessionUseCase = clearLocalSessionUseCase;
 
   final AuthenticationLocalDataSource _localDataSource;
-  final RefreshSessionUseCase _refreshSessionUseCase;
   final ClearLocalSessionUseCase _clearLocalSessionUseCase;
 
   Timer? _timer;
@@ -80,7 +76,6 @@ class SessionManager {
       }
 
       final accessToken = user.accessToken;
-      final refreshToken = user.refreshToken;
 
       if (accessToken == null || accessToken.isEmpty) {
         debugPrint('[SessionManager] ⚠ Access token không tồn tại.');
@@ -94,29 +89,29 @@ class SessionManager {
 
       if (expiryTime == null) {
         // Không thể xác định expiry → bỏ qua lần này
-        debugPrint('[SessionManager] ℹ Không thể xác định expiry của access token, bỏ qua.');
+        debugPrint(
+          '[SessionManager] ℹ Không thể xác định expiry của access token, bỏ qua.',
+        );
         return true;
       }
 
       final remaining = expiryTime.difference(now);
-      debugPrint('[SessionManager] ℹ Thời gian còn lại của token: ${remaining.inMinutes} phút.');
+      debugPrint(
+        '[SessionManager] ℹ Thời gian còn lại của token: ${remaining.inMinutes} phút.',
+      );
 
       if (remaining.isNegative) {
         // Access token đã hết hạn → thử refresh bằng refresh token
-        debugPrint('[SessionManager] ⚠ Access token đã hết hạn. Thử refresh...');
-        if (refreshToken == null || refreshToken.isEmpty) {
-          await _expireSession();
-          return false;
-        }
-        return await _doRefresh(refreshToken);
+        debugPrint(
+          '[SessionManager] ⚠ Access token đã hết hạn. Thử refresh...',
+        );
+        return await _doRefresh();
       } else if (remaining < _refreshThreshold) {
         // Token sắp hết hạn trong vòng 60 phút → proactive refresh
-        debugPrint('[SessionManager] 🔄 Token sắp hết hạn (còn ${remaining.inMinutes} phút). Tự động refresh...');
-        if (refreshToken == null || refreshToken.isEmpty) {
-          // Không có refresh token nhưng access token vẫn còn → không làm gì
-          return true;
-        }
-        return await _doRefresh(refreshToken);
+        debugPrint(
+          '[SessionManager] 🔄 Token sắp hết hạn (còn ${remaining.inMinutes} phút). Tự động refresh...',
+        );
+        return await _doRefresh();
       }
 
       // Token vẫn còn hạn sử dụng lâu
@@ -127,30 +122,16 @@ class SessionManager {
     }
   }
 
-  Future<bool> _doRefresh(String refreshToken) async {
+  Future<bool> _doRefresh() async {
     _isRefreshing = true;
     try {
-      final result = await _refreshSessionUseCase(refreshToken);
-      return result.fold(
-        (failure) {
-          debugPrint('[SessionManager] ❌ Refresh thất bại: ${failure.message}');
-          _expireSession();
-          return false;
-        },
-        (user) {
-          if (user.isSuccess) {
-            debugPrint('[SessionManager] ✅ Refresh token thành công. Token mới đã được lưu.');
-            return true;
-          } else {
-            debugPrint('[SessionManager] ❌ Refresh trả về lỗi: ${user.error}');
-            _expireSession();
-            return false;
-          }
-        },
-      );
+      await FirebaseEmailAuthFlow.refreshSession();
+      debugPrint('[SessionManager] Firebase session refreshed.');
+      return true;
     } catch (e) {
       debugPrint('[SessionManager] ❌ Lỗi khi refresh token: $e');
-      return true; // Giữ session, thử lại sau
+      await _expireSession();
+      return false;
     } finally {
       _isRefreshing = false;
     }
@@ -159,6 +140,7 @@ class SessionManager {
   Future<void> _expireSession() async {
     debugPrint('[SessionManager] 🚫 Phiên đăng nhập hết hạn. Đăng xuất...');
     stopChecking();
+    await FirebaseEmailAuthFlow.signOut();
     await _clearLocalSessionUseCase(); // Either<Failure, void> — bỏ qua lỗi
     onSessionExpired?.call();
   }

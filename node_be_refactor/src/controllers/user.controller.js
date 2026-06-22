@@ -94,11 +94,21 @@ const assignUserFacility = async (req, res) => {
   }
 };
 
+const provisionFirebaseUser = async (req, res) => {
+  try {
+    const { email, role, profile, facilityId } = req.body;
+    if (!email || !role) return sendError(res, 400, 'Email and role are required', 'MISSING_FIELDS');
+    const user = await userService.provisionFirebaseUser({ email, role, profile, facilityId });
+    return sendSuccess(res, { user }, 'Firebase user provisioned. Send Firebase password reset email to finish setup.', 'FIREBASE_USER_PROVISIONED');
+  } catch (error) { return sendError(res, error.statusCode || 400, error.message, error.code || 'PROVISION_ERROR'); }
+};
+
 module.exports = {
   queryUsers,
   getUserProfile,
   updateUserProfile,
   updateUserRole,
   updateUserStatus,
-  assignUserFacility
+  assignUserFacility,
+  provisionFirebaseUser
 };

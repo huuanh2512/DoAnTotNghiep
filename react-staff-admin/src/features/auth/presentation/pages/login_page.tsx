@@ -36,7 +36,6 @@ const LoginPage: React.FC = () => {
 
       // Save tokens and user session
       authStorage.setAccessToken(result.accessToken);
-      authStorage.setRefreshToken(result.refreshToken);
       authStorage.setUser({
         _id: result.user.id,
         email: result.user.email,
@@ -80,9 +79,9 @@ const LoginPage: React.FC = () => {
     setOtpLoading(true);
     try {
       const user = firebaseAuth.currentUser;
-      if (!user) throw new Error('Phiên Firebase đã hết hạn. Vui lòng đăng nhập lại.');
+      if (!user) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       await reload(user);
-      if (!firebaseAuth.currentUser?.emailVerified) throw new Error('Email chưa được xác thực. Hãy mở liên kết Firebase trong hộp thư.');
+      if (!firebaseAuth.currentUser?.emailVerified) throw new Error('Email chưa được xác thực. Hãy mở liên kết Sport Energy trong hộp thư.');
       await apiClient.post('/auth/firebase/complete-email-verification', { firebaseIdToken: await firebaseAuth.currentUser.getIdToken(true) });
       message.success('Xác thực email thành công. Hãy đăng nhập.');
       form.setFieldsValue({ email: verificationEmail });
@@ -99,7 +98,7 @@ const LoginPage: React.FC = () => {
     setOtpLoading(true);
     try {
       const user = firebaseAuth.currentUser;
-      if (!user) throw new Error('Phiên Firebase đã hết hạn. Vui lòng đăng nhập lại.');
+      if (!user) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       await sendEmailVerification(user);
       message.success('Đã gửi lại liên kết xác thực Firebase.');
     } catch (err: any) {
@@ -151,7 +150,7 @@ const LoginPage: React.FC = () => {
 
         {verificationEmail ? (
           <Form layout="vertical" onFinish={verifyEmail} requiredMark={false}>
-            <Alert type="info" showIcon className="mb-4" message={`Mở liên kết Firebase đã gửi đến ${verificationEmail}, sau đó quay lại đây.`} />
+            <Alert type="info" showIcon className="mb-4" message={`Mở liên kết Sport Energy đã gửi đến ${verificationEmail}, sau đó quay lại đây.`} />
             <Button type="primary" htmlType="submit" block loading={otpLoading}>Tôi đã xác thực</Button>
             <Button type="link" block loading={otpLoading} onClick={resendVerification}>Gửi lại liên kết</Button>
             <Button type="text" block onClick={() => setVerificationEmail(null)}>Quay lại đăng nhập</Button>

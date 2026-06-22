@@ -4,9 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_module/app_module.dart';
 import 'package:notification_module/notification_module.dart';
-import 'package:authentication_module/data/models/sign_up_request.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_bloc.dart';
-import 'package:authentication_module/presentation/blocs/auth/auth_event.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_state.dart';
 import 'package:authentication_module/application/firebase_email_auth_flow.dart';
 
