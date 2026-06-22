@@ -97,25 +97,50 @@ class AuthService {
     }
   }
 
-  Future<BaseResponse<dynamic>> firebaseRegister({required String firebaseIdToken, String? fullName, String? phone}) async {
+  Future<BaseResponse<dynamic>> firebaseRegister({
+    required String firebaseIdToken,
+    String? fullName,
+    String? phone,
+  }) async {
     try {
-      final response = await _dioClient.dio.post('/auth/firebase/register', data: {'firebaseIdToken': firebaseIdToken, if (fullName != null) 'fullName': fullName, if (phone != null) 'phone': phone});
+      final response = await _dioClient.dio.post(
+        '/auth/firebase/register',
+        data: {
+          'firebaseIdToken': firebaseIdToken,
+          if (fullName != null) 'fullName': fullName,
+          if (phone != null) 'phone': phone,
+        },
+      );
       return BaseResponse.fromJson(response.data, (json) => json);
-    } catch (error) { return ExceptionHandler.handle<dynamic>(error); }
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
   }
 
-  Future<BaseResponse<dynamic>> firebaseCompleteEmailVerification(String firebaseIdToken) async {
+  Future<BaseResponse<dynamic>> firebaseCompleteEmailVerification(
+    String firebaseIdToken,
+  ) async {
     try {
-      final response = await _dioClient.dio.post('/auth/firebase/complete-email-verification', data: {'firebaseIdToken': firebaseIdToken});
+      final response = await _dioClient.dio.post(
+        '/auth/firebase/complete-email-verification',
+        data: {'firebaseIdToken': firebaseIdToken},
+      );
       return BaseResponse.fromJson(response.data, (json) => json);
-    } catch (error) { return ExceptionHandler.handle<dynamic>(error); }
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
   }
 
   Future<BaseResponse<dynamic>> firebaseLogin(String firebaseIdToken) async {
     try {
-      final response = await _dioClient.dio.post('/auth/firebase/login', data: {'firebaseIdToken': firebaseIdToken});
+      final response = await _dioClient.dio.post(
+        '/auth/firebase/login',
+        data: {'firebaseIdToken': firebaseIdToken},
+      );
       return BaseResponse.fromJson(response.data, (json) => json);
-    } catch (error) { return ExceptionHandler.handle<dynamic>(error); }
+    } catch (error) {
+      return ExceptionHandler.handle<dynamic>(error);
+    }
   }
 
   Future<BaseResponse<dynamic>> forgotPassword({required String email}) async {

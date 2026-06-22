@@ -9,6 +9,7 @@ import 'package:authentication_module/data/models/sign_in_request.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_bloc.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_event.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_state.dart';
+import 'package:authentication_module/application/firebase_email_auth_flow.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -66,16 +67,31 @@ class _SignInPageState extends State<SignInPage> {
     return error;
   }
 
-  void _submitSignIn() {
+  Future<void> _submitSignIn() async {
     if (_formKey.currentState!.validate()) {
-      context.read<AuthBloc>().add(
-        AuthSignInRequested(
-          SignInRequest(
-            username: _emailController.text.trim(),
-            password: _passwordController.text,
-          ),
-        ),
-      );
+      try {
+        await FirebaseEmailAuthFlow.signIn(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (!mounted) return;
+        context.goNamed(RoutePaths.homeName);
+      } catch (error) {
+        if (!mounted) return;
+        final unverified = error.toString().contains('email-not-verified');
+        if (unverified) {
+          context.go(
+            '/verify-email',
+            extra: <String, String>{'email': _emailController.text.trim()},
+          );
+        } else {
+          AppPopup.show(
+            context,
+            message: _localizeAuthErrorMessage(context, error.toString()),
+            tone: AppPopupTone.danger,
+          );
+        }
+      }
     }
   }
 

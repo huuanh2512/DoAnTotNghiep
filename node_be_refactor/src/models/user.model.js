@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema({
   },
   authMigrationStatus: { type: String, default: null },
   authMigratedAt: { type: Date, default: null },
+  migration: {
+    testActivationAt: { type: Date, default: null },
+    testActivationSource: { type: String, default: null }
+  },
   emailVerificationOtpHash: {
     type: String,
     default: null

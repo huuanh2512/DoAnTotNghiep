@@ -8,6 +8,7 @@ import 'package:authentication_module/data/models/sign_up_request.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_bloc.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_event.dart';
 import 'package:authentication_module/presentation/blocs/auth/auth_state.dart';
+import 'package:authentication_module/application/firebase_email_auth_flow.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -36,18 +37,28 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  void _onSignUp() {
+  Future<void> _onSignUp() async {
     if (_formKey.currentState!.validate()) {
-      context.read<AuthBloc>().add(
-        AuthSignUpRequested(
-          SignUpRequest(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-            fullName: _fullNameController.text.trim(),
-            phone: _phoneController.text.trim(),
-          ),
-        ),
-      );
+      try {
+        await FirebaseEmailAuthFlow.register(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          fullName: _fullNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+        );
+        if (!mounted) return;
+        context.go(
+          '/verify-email',
+          extra: <String, String>{'email': _emailController.text.trim()},
+        );
+      } catch (error) {
+        if (!mounted) return;
+        AppPopup.show(
+          context,
+          message: error.toString(),
+          tone: AppPopupTone.danger,
+        );
+      }
     }
   }
 

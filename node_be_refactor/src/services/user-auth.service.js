@@ -77,7 +77,7 @@ class UserAuthService {
       { expiresIn: process.env.JWT_FIREBASE_EXPIRES_IN || '15m' }
     );
     const decoded = jwt.decode(accessToken);
-    return { result: { success: true, message: 'Firebase authentication successful' }, accessToken, expiresAt: new Date(decoded.exp * 1000).toISOString(), user: this._formatUserResponse(user) };
+    return { success: true, result: { success: true, message: 'Firebase authentication successful' }, accessToken, expiresAt: new Date(decoded.exp * 1000).toISOString(), user: this._formatUserResponse(user) };
   }
 
   async _firebaseIdentity(firebaseIdToken, requireVerified = false) {
