@@ -67,6 +67,9 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     final response = await GetIt.I<AuthService>().resendVerification(
       email: widget.email,
     );
+    debugPrint(
+      '[EmailVerification] resend response: success=${response.success}, code=${response.code}, message=${response.message}',
+    );
     if (!mounted) return;
     setState(() => _isSending = false);
     final cooldown = _cooldownFromResponse(response);

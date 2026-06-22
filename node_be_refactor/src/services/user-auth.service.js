@@ -108,6 +108,10 @@ class UserAuthService {
     } catch (error) {
       // Keep a pending account for safe retry; never report a successful registration.
       console.error('[EmailVerification] Registration email delivery failed:', error.message);
+      await userRepository.updateById(createdUser._id, {
+        ...this._clearVerificationOtp(),
+        emailVerificationLastSentAt: null
+      });
       throw this._error('Không thể gửi email xác thực. Vui lòng thử gửi lại.', 'EMAIL_DELIVERY_FAILED', 503, { email: createdUser.email });
     }
 
@@ -266,6 +270,7 @@ class UserAuthService {
 
   async resendEmailVerification(email) {
     const normalizedEmail = email.trim().toLowerCase();
+    console.info(`[EmailVerification] Resend requested for ${normalizedEmail}`);
     const user = await userRepository.findByEmail(normalizedEmail);
     // Deliberately neutral so this endpoint does not disclose account existence.
     if (!user || user.status !== 'PENDING_OTP') return { email: normalizedEmail, cooldownSeconds: 0, accepted: true };
