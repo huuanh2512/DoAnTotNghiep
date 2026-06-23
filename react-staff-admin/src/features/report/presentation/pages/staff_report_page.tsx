@@ -219,12 +219,13 @@ const StaffReportPage: React.FC = () => {
     setLoading(true);
     setFallbackReason('');
     try {
-      const response = await reportApi.getCourtPerformanceReport({
+      const response = await reportApi.getAdvancedPerformanceReport({
         facilityId,
         courtId,
         sportId,
         dateFrom: range[0].format('YYYY-MM-DD'),
         dateTo: range[1].format('YYYY-MM-DD'),
+        include: 'summary,courtStats,sportStats,dailyStats,peakHours,customerStats',
       });
       setReport(response);
     } catch (error: any) {

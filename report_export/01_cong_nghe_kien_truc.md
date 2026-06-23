@@ -3,443 +3,480 @@
 ## 2.1 Công nghệ sử dụng
 
 ### Flutter / Dart
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Framework phát triển ứng dụng di động Android cho CUSTOMER |
-| **Phiên bản SDK** | Dart SDK `^3.12.0` |
-| **File chứng minh** | `sports_management/pubspec.yaml` |
-| **Ưu điểm** | Hot reload, UI đẹp, cross-platform, BLoC pattern rõ ràng |
-| **Hạn chế** | Chỉ deploy Android, chưa test iOS |
-
-**Thư viện Flutter chính:**
-| Thư viện | Phiên bản | Mục đích |
-|----------|-----------|---------|
-| `flutter_bloc` | ^8.1.6 | State management (BLoC/Cubit pattern) |
-| `go_router` | ^14.2.0 | Navigation/Routing |
-| `get_it` | ^8.0.2 | Dependency Injection |
-| `dio` | ^5.7.0 | HTTP Client gọi API |
-| `socket_io_client` | ^2.0.3 | Kết nối WebSocket real-time |
-| `firebase_messaging` | ^15.1.3 | Push notification FCM |
-| `firebase_auth` | ^5.3.1 | Firebase Auth |
-| `flutter_local_notifications` | ^18.0.1 | Hiển thị thông báo local |
-| `flutter_secure_storage` | ^9.2.2 | Lưu trữ token bảo mật |
-| `shared_preferences` | ^2.3.0 | Lưu trữ cài đặt |
-| `cached_network_image` | ^3.4.1 | Cache hình ảnh từ URL |
-| `dartz` | ^0.10.1 | Functional programming (Either) |
-| `equatable` | ^2.0.5 | So sánh object |
-| `freezed` | ^2.5.7 | Code generation (immutable models) |
-| `json_serializable` | ^6.9.0 | JSON serialization |
-| `intl` | ^0.19.0 | Định dạng ngày giờ, số |
-| `image_picker` | ^1.1.2 | Chọn ảnh từ thư viện/camera |
-| `url_launcher` | ^6.3.0 | Mở URL/deeplink |
-
----
+- **Vai trò**: Xây dựng ứng dụng mobile đa nền tảng (Android chính, iOS về kỹ thuật)
+- **File chứng minh**: `pubspec.yaml` — `flutter: sdk: flutter`, `flutter_bloc: ^8.1.6`
+- **Phiên bản SDK**: Dart `^3.12.0`, Flutter Material Design
+- **Ưu điểm**: Single codebase cho Android & iOS, widget-based UI linh hoạt, BLoC pattern giúp tách biệt business logic và UI
+- **Hạn chế**: App size lớn hơn native, webview ZaloPay cần thư viện bổ sung
 
 ### React / TypeScript
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Framework phát triển Web Admin cho ADMIN và STAFF |
-| **Framework** | Create React App (react-scripts 5.0.1) |
-| **File chứng minh** | `react-staff-admin/package.json` |
-| **Ưu điểm** | Phân chia feature rõ ràng, phân quyền route, TypeScript type-safe |
-| **Hạn chế** | CRA không tối ưu production build bằng Vite |
+- **Vai trò**: Web Admin dashboard cho STAFF và ADMIN
+- **File chứng minh**: `package.json` — `react: ^19.2.6`, `typescript: ^4.9.5`
+- **Thư viện UI**: Ant Design (`antd: ^6.4.3`), TailwindCSS (`tailwindcss: ^3.4.17`)
+- **State/Data**: TanStack React Query (`@tanstack/react-query: ^5.100.14`)
+- **Ưu điểm**: TypeScript giúp type-safe, Ant Design có sẵn nhiều component admin phù hợp, React Query tối ưu cache/fetch
+- **Hạn chế**: Bundle size lớn do Ant Design, cần cấu hình build tối ưu
 
-**Thư viện React chính:**
-| Thư viện | Phiên bản | Mục đích |
-|----------|-----------|---------|
-| `antd` | ^6.4.3 | UI Component Library (Ant Design) |
-| `@ant-design/icons` | ^6.2.3 | Icon library |
-| `react-router-dom` | ^7.15.1 | Client-side routing |
-| `@tanstack/react-query` | ^5.100.14 | Server state management, caching |
-| `axios` | ^1.16.1 | HTTP Client gọi API |
-| `recharts` | ^3.8.1 | Biểu đồ báo cáo |
-| `socket.io-client` | ^4.7.5 | Real-time notifications |
-| `tailwindcss` | ^3.4.17 | Utility CSS |
-| `lucide-react` | ^1.16.0 | Icon library bổ sung |
-| `typescript` | ^4.9.5 | Type safety |
-
----
-
-### Node.js / Express.js
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | REST API Backend, WebSocket Server, Cron Job Runner |
-| **Phiên bản** | Node.js (CommonJS modules) |
-| **Entry point** | `node_be_refactor/src/main.js` |
-| **Ưu điểm** | Non-blocking I/O, dễ mở rộng, hệ sinh thái npm phong phú |
-| **Hạn chế** | Single-threaded, cron job phụ thuộc vào server không ngủ |
-
-**Thư viện Node.js chính:**
-| Thư viện | Phiên bản | Mục đích |
-|----------|-----------|---------|
-| `express` | ^4.19.2 | Web framework, routing, middleware |
-| `mongoose` | ^8.24.0 | ODM cho MongoDB |
-| `jsonwebtoken` | ^9.0.3 | Tạo/xác thực JWT |
-| `bcrypt` | ^6.0.0 | Mã hóa mật khẩu |
-| `cors` | ^2.8.5 | Cross-Origin Resource Sharing |
-| `dotenv` | ^16.4.5 | Quản lý biến môi trường |
-| `socket.io` | ^4.7.2 | WebSocket real-time |
-| `firebase-admin` | ^13.10.0 | Push notification (FCM), Firebase Admin |
-| `node-cron` | ^4.2.1 | Cron job scheduler |
-| `cloudinary` | ^1.41.3 | Upload và quản lý media |
-| `multer` | ^2.1.1 | Xử lý file upload (multipart/form-data) |
-| `multer-storage-cloudinary` | ^4.0.0 | Storage adapter cho Cloudinary |
-| `nodemailer` | ^8.0.10 | Gửi email OTP đặt lại mật khẩu |
-| `nodemon` | ^3.1.0 | Auto-restart server khi dev |
-
----
+### Node.js / Express
+- **Vai trò**: RESTful API backend, xử lý toàn bộ business logic
+- **File chứng minh**: `package.json` — `express: ^4.19.2`, `main: src/main.js`
+- **Ưu điểm**: Non-blocking I/O phù hợp xử lý nhiều request đồng thời, hệ sinh thái npm phong phú
+- **Hạn chế**: Single-threaded, cần cluster hoặc PM2 khi scale
 
 ### MongoDB / Mongoose
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Cơ sở dữ liệu NoSQL chính |
-| **ODM** | Mongoose v8.24.0 |
-| **File chứng minh** | `src/config/mongo.js`, tất cả file `*.model.js` |
-| **Ưu điểm** | Schema linh hoạt, embed document, dễ mở rộng |
-| **Hạn chế** | Không hỗ trợ transaction phức tạp như SQL, cần quản lý index thủ công |
-
----
+- **Vai trò**: Cơ sở dữ liệu NoSQL lưu toàn bộ dữ liệu hệ thống
+- **File chứng minh**: `package.json` — `mongoose: ^8.24.0`, `src/config/mongo.js`
+- **Ưu điểm**: Schema linh hoạt phù hợp hệ thống booking có nhiều nested subdocument (slot_config, matching_config, exception_dates); index phong phú tối ưu query
+- **Hạn chế**: Không hỗ trợ ACID transaction đầy đủ như RDBMS (Mongoose session transactions có nhưng phức tạp hơn)
 
 ### Firebase Admin / FCM
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Push notification đến thiết bị di động, Firebase Auth |
-| **File chứng minh** | `firebase-admin` trong `package.json`, `firebase_options.dart`, `firebase_messaging` trong Flutter |
-| **Cấu hình** | `src/config/serviceAccountKey.json.template` (cần file thật để hoạt động) |
-| **Ưu điểm** | Push notification kể cả khi app đóng, xác thực qua Firebase |
-| **Hạn chế** | Cần file `serviceAccountKey.json` thật mới push được; hiện có template |
-
----
+- **Vai trò**: Gửi push notification qua Firebase Cloud Messaging, xác thực email
+- **File chứng minh**: `package.json` — `firebase-admin: ^13.10.0`, `src/config/firebase-admin.js`
+- **Flutter side**: `firebase_core: ^3.6.0`, `firebase_auth: ^5.3.1`, `firebase_messaging: ^15.1.3`
+- **Chú ý**: Cần `serviceAccountKey.json` để hoạt động (có template tại `src/config/serviceAccountKey.json.template`), chưa cấu hình production key
+- **Ưu điểm**: Độ tin cậy cao, miễn phí cho lượng thông báo vừa phải
+- **Hạn chế**: Cần serviceAccountKey production để deploy thật
 
 ### Socket.IO
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Real-time notification cho người dùng đang online |
-| **File Backend** | `src/services/socket-io.service.js` |
-| **File Flutter** | `socket_io_client: ^2.0.3` trong pubspec.yaml |
-| **Events** | `notification_received`, `new_notification`, `matching_session_updated`, `join_matching_room`, `ping/pong` |
-| **Ưu điểm** | Thông báo tức thì, hỗ trợ rooms (per-user, room_staff, room_admin, room_matching) |
-| **Hạn chế** | Socket kết nối phụ thuộc vào server không ngủ (vấn đề với Render Free Tier) |
+- **Vai trò**: Realtime notification trong app — thông báo ngay khi booking được duyệt, matching session cập nhật
+- **File chứng minh**: `package.json` — `socket.io: ^4.7.2`, `src/services/socket-io.service.js`
+- **Flutter side**: `socket_io_client: ^2.0.3` trong pubspec.yaml
+- **React side**: `socket.io-client: ^4.7.5` trong package.json
+- **Events**: `notification_received`, `new_notification`, `matching_session_updated`, `join_matching_room`, `leave_matching_room`, `ping/pong`
+- **Ưu điểm**: Realtime, fallback về polling nếu WebSocket không hỗ trợ
+- **Hạn chế**: Sticky session cần thiết khi scale horizontally
 
----
-
-### ZaloPay
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Cổng thanh toán điện tử |
-| **File Backend** | `src/services/zalopay.service.js`, `src/controllers/zalopay.controller.js` |
-| **Endpoints** | `POST /api/v1/zalopay/create-order`, `POST /api/v1/zalopay/callback`, `POST /api/v1/zalopay/query` |
-| **Ưu điểm** | Thanh toán thật, webhook callback, xác thực HMAC |
-| **Hạn chế** | Cần môi trường sandbox/production để test đầy đủ |
-
----
-
-### node-cron / Cron Jobs
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Tự động hóa tác vụ nền |
-| **File chứng minh** | `src/utils/cron-*.js` |
-| **Cron đang chạy** | 4 cron jobs (matchmaker, fixed-scheduler, auto-cancel, auto-complete) |
-| **Rủi ro** | Render Free Tier sleep sau 15 phút không có request → cron bị dừng |
-
----
+### JWT (JSON Web Token)
+- **Vai trò**: Xác thực và phân quyền API
+- **File chứng minh**: `package.json` — `jsonwebtoken: ^9.0.3`, `src/middlewares/auth.middleware.js`
+- **Cơ chế**: Access Token + Refresh Token, verify trong mỗi request
+- **Ưu điểm**: Stateless, dễ scale
+- **Hạn chế**: Token revocation phức tạp (cần blacklist hoặc short expiry)
 
 ### Cloudinary
-| Thuộc tính | Chi tiết |
-|------------|----------|
-| **Vai trò** | Lưu trữ và quản lý ảnh (avatar, ảnh sân) |
-| **File chứng minh** | `src/services/upload.service.js`, `src/middlewares/upload.middleware.js` |
-| **Endpoint** | `POST /api/v1/upload` |
+- **Vai trò**: Upload và lưu trữ ảnh (avatar, ảnh cơ sở)
+- **File chứng minh**: `package.json` — `cloudinary: ^1.41.3`, `multer-storage-cloudinary: ^4.0.0`
+- **Ưu điểm**: CDN toàn cầu, transform ảnh on-the-fly
+- **Hạn chế**: Free tier giới hạn dung lượng
+
+### node-cron
+- **Vai trò**: Lên lịch các tác vụ tự động theo thời gian
+- **File chứng minh**: `package.json` — `node-cron: ^4.2.1`
+- **Các cron đang chạy**: auto-cancel-bookings, auto-complete-bookings, matchmaker, fixed-scheduler
+- **Ưu điểm**: Đơn giản, không cần queue bên ngoài
+- **Hạn chế**: Single-server, nếu server restart giữa chừng job có thể bỏ lỡ; không phù hợp khi scale multi-instance
+
+### ZaloPay SDK
+- **Vai trò**: Thanh toán trực tuyến qua cổng ZaloPay (Sandbox hiện tại)
+- **File chứng minh**: `src/services/zalopay.service.js`, `src/controllers/zalopay.controller.js`, `android_intent_plus`, `webview_flutter` trong pubspec.yaml
+- **Cơ chế**: Tạo order → redirect deeplink/webview → ZaloPay callback → cập nhật payment
+- **Ưu điểm**: Phổ biến tại Việt Nam
+- **Hạn chế**: Đang dùng Sandbox, cần merchant credentials production để go-live
+
+### Nodemailer
+- **Vai trò**: Gửi email OTP xác thực khi đăng ký
+- **File chứng minh**: `package.json` — `nodemailer: ^8.0.10`, `src/services/mail.service.js`
+
+### bcrypt
+- **Vai trò**: Hash mật khẩu người dùng
+- **File chứng minh**: `package.json` — `bcrypt: ^6.0.0`
+
+### get_it (Flutter)
+- **Vai trò**: Dependency Injection container
+- **File chứng minh**: `pubspec.yaml` — `get_it: ^8.0.2`, `lib/injection/`
+
+### go_router (Flutter)
+- **Vai trò**: Routing khai báo cho Flutter app
+- **File chứng minh**: `pubspec.yaml` — `go_router: ^14.2.0`, `lib/router/route_paths.dart`
+
+### dio (Flutter)
+- **Vai trò**: HTTP client cho Flutter, thay thế http package
+- **File chứng minh**: `pubspec.yaml` — `dio: ^5.7.0`
+
+### flutter_secure_storage (Flutter)
+- **Vai trò**: Lưu trữ an toàn Access Token, Refresh Token
+- **File chứng minh**: `pubspec.yaml` — `flutter_secure_storage: ^9.2.2`
+
+### Recharts (React)
+- **Vai trò**: Vẽ biểu đồ báo cáo doanh thu, hiệu suất sân
+- **File chứng minh**: `package.json` — `recharts: ^3.8.1`
+
+### dartz (Flutter)
+- **Vai trò**: Functional programming types (Either, Option) để xử lý lỗi trong domain layer
+- **File chứng minh**: `pubspec.yaml` — `dartz: ^0.10.1`
 
 ---
 
 ## 2.2 Kiến trúc tổng thể
 
-Hệ thống được xây dựng theo mô hình **Client-Server đa tầng**, với Backend đóng vai trò trung tâm phục vụ nhiều loại client:
+Hệ thống được xây dựng theo mô hình kiến trúc **Client-Server đa tầng** với các thành phần độc lập có thể mở rộng riêng lẻ:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     CLIENT LAYER                            │
-│                                                             │
-│  ┌─────────────────────┐   ┌─────────────────────────────┐ │
-│  │   Flutter Android   │   │   React Web Admin (SPA)     │ │
-│  │   (CUSTOMER App)    │   │   (ADMIN + STAFF Portal)    │ │
-│  └──────────┬──────────┘   └──────────────┬──────────────┘ │
-│             │                             │                 │
-└─────────────┼─────────────────────────────┼─────────────────┘
-              │  HTTP REST API              │  HTTP REST API
-              │  WebSocket (Socket.IO)      │  WebSocket (Socket.IO)
-              │                             │
-┌─────────────▼─────────────────────────────▼─────────────────┐
-│                     BACKEND LAYER                            │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │            Node.js / Express.js Server               │   │
-│  │                                                     │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │   │
-│  │  │  REST API   │  │  Socket.IO  │  │ Cron Jobs  │  │   │
-│  │  │  /api/v1/*  │  │  Real-time  │  │  (4 jobs)  │  │   │
-│  │  └─────────────┘  └─────────────┘  └────────────┘  │   │
-│  └─────────────────────────────────────────────────────┘   │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-        ┌──────────────┼──────────────────┐
-        │              │                  │
-┌───────▼──────┐ ┌─────▼──────┐ ┌────────▼───────┐
-│   MongoDB    │ │  Firebase  │ │   Cloudinary   │
-│  (Database)  │ │   (FCM)    │ │ (Media Storage)│
-└──────────────┘ └────────────┘ └────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        CLIENT LAYER                                  │
+│  ┌────────────────────┐          ┌─────────────────────────────────┐ │
+│  │   Flutter Android  │          │    React Web Admin              │ │
+│  │  (CUSTOMER + một   │          │    (ADMIN + STAFF)              │ │
+│  │  phần STAFF/ADMIN) │          │    TypeScript + Ant Design      │ │
+│  │  BLoC/Cubit, dio,  │          │    TanStack Query, Recharts     │ │
+│  │  go_router, get_it │          │    React Router DOM v7          │ │
+│  └────────┬───────────┘          └─────────────┬───────────────────┘ │
+└───────────┼──────────────────────────────────── ┼───────────────────┘
+            │ HTTPS REST API                       │ HTTPS REST API
+            │ WebSocket (Socket.IO)                │ WebSocket (Socket.IO)
+            ▼                                      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        BACKEND LAYER                                 │
+│  Node.js + Express.js (RESTful API)                                  │
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  Routes → Controllers → Services → Repositories → Models        │ │
+│  ├─────────────────────────────────────────────────────────────────┤ │
+│  │  Middlewares: JWT Auth, Role Guard, Multer Upload                │ │
+│  ├─────────────────────────────────────────────────────────────────┤ │
+│  │  Cron Jobs: AutoCancel | AutoComplete | Matchmaker | FixedSched │ │
+│  ├─────────────────────────────────────────────────────────────────┤ │
+│  │  Socket.IO: Realtime Notification Service                        │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└───────────────────┬────────────────┬────────────────────────────────┘
+                    │                │
+         ┌──────────▼──────┐  ┌─────▼──────────┐
+         │   MongoDB        │  │  Firebase Admin │
+         │  (Mongoose ODM)  │  │  FCM + Auth     │
+         └──────────────────┘  └────────────────┘
+                    │
+         ┌──────────▼──────┐
+         │   Cloudinary     │
+         │  (Image Storage) │
+         └──────────────────┘
+                    │
+         ┌──────────▼──────┐
+         │   ZaloPay        │
+         │  (Payment Gate)  │
+         └──────────────────┘
 ```
 
-**Mô tả luồng chính:**
-1. **Flutter App** gửi HTTP request đến Backend API và kết nối WebSocket để nhận thông báo real-time
-2. **React Web Admin** gửi HTTP request đến Backend API; STAFF/ADMIN nhận thông báo qua Socket.IO rooms `room_staff`, `room_admin`
-3. **Backend** xử lý nghiệp vụ, lưu dữ liệu vào MongoDB, gửi push notification qua Firebase FCM cho thiết bị offline
-4. **Cron Jobs** chạy tự động để sinh lịch cố định, ghép trận, hủy booking quá hạn
-5. **ZaloPay** tích hợp webhook callback để cập nhật trạng thái payment
+**Mô tả luồng hoạt động tổng quát:**
+1. Client (Flutter/React) gửi HTTPS request đến Backend API (`/api/v1/...`)
+2. Middleware JWT xác thực token, middleware Role Guard kiểm tra quyền
+3. Controller nhận request, gọi Service xử lý business logic
+4. Service gọi Repository để thao tác MongoDB qua Mongoose
+5. Kết quả trả về JSON response chuẩn hóa
+6. Các sự kiện quan trọng (booking confirmed, matching updated) kích hoạt Socket.IO emit đến client đang kết nối
+7. FCM push notification được gửi đến thiết bị mobile qua Firebase Admin SDK
+8. Cron jobs chạy định kỳ để tự động hóa: hủy booking quá hạn, hoàn thành booking đã qua giờ, ghép trận tự động, sinh lịch cố định
 
 ---
 
 ## 2.3 Kiến trúc Backend
 
-Backend được tổ chức theo mô hình **Layered Architecture** (tầng hóa):
+**Pattern**: Controller → Service → Repository → Model (phân lớp rõ ràng)
 
+### Cây thư mục Backend (rút gọn)
 ```
-node_be_refactor/src/
-├── main.js                         # Entry point: khởi tạo Express, Socket.IO, Cron
-├── config/
-│   ├── mongo.js                    # Kết nối MongoDB
-│   └── serviceAccountKey.json.template  # Cấu hình Firebase (template)
-├── routes/
-│   ├── index.js                    # Router tổng hợp, API tracker UI
-│   ├── auth.routes.js              # /api/v1/auth/*
-│   ├── user.routes.js              # /api/v1/user/*
-│   ├── facility.routes.js          # /api/v1/facility/*
-│   ├── sport.routes.js             # /api/v1/sport/*
-│   ├── court.routes.js             # /api/v1/court/*
-│   ├── court-blocks.routes.js      # /api/v1/court-blocks/*
-│   ├── booking.routes.js           # /api/v1/booking/*
-│   ├── payment.routes.js           # /api/v1/payment/*
-│   ├── fixed-schedule.routes.js    # /api/v1/fixed-schedule/*
-│   ├── matching.routes.js          # /api/v1/matching/*
-│   ├── notification.routes.js      # /api/v1/notification/*
-│   ├── reports.routes.js           # /api/v1/reports/*
-│   ├── review.routes.js            # /api/v1/review/*
-│   ├── upload.routes.js            # /api/v1/upload/*
-│   └── zalopay.routes.js           # /api/v1/zalopay/*
-├── controllers/                    # Nhận request, trả response, gọi service
-│   ├── auth.controller.js
-│   ├── booking.controller.js
-│   ├── court-blocks.controller.js
-│   ├── court.controller.js
-│   ├── facility.controller.js
-│   ├── fcm.controller.js
-│   ├── fixed-schedule.controller.js
-│   ├── matching.controller.js
-│   ├── notification.controller.js
-│   ├── payment.controller.js
-│   ├── reports.controller.js
-│   ├── review.controller.js
-│   ├── sport.controller.js
-│   ├── upload.controller.js
-│   ├── user.controller.js
-│   └── zalopay.controller.js
-├── services/                       # Business logic
-│   ├── booking.service.js          # (~34KB) Xử lý booking, conflict check
-│   ├── fixed-schedule.service.js   # (~78KB) Sinh booking từ lịch cố định
-│   ├── matching.service.js         # (~70KB) Thuật toán ghép trận
-│   ├── payment.service.js          # (~20KB) Xử lý payment
-│   ├── report.service.js           # (~41KB) Tổng hợp báo cáo
-│   ├── notification.helper.js      # (~16KB) Helper gửi thông báo
-│   ├── socket-io.service.js        # WebSocket service
-│   ├── fcm.service.js              # Firebase Cloud Messaging
-│   ├── zalopay.service.js          # ZaloPay integration
-│   ├── court-availability.service.js # Kiểm tra slot sân còn trống
-│   ├── court-block.service.js      # Quản lý khóa sân
-│   ├── court.service.js            # CRUD sân
-│   ├── facility.service.js         # CRUD cơ sở
-│   ├── sport.service.js            # CRUD môn thể thao
-│   ├── user-auth.service.js        # Auth logic (login, register, OTP)
-│   ├── user.service.js             # User profile
-│   ├── mail.service.js             # Gửi email OTP
-│   ├── review.service.js           # Đánh giá
-│   ├── upload.service.js           # Upload Cloudinary
-│   ├── user-schedule-conflict.service.js  # Kiểm tra xung đột lịch của user
-│   └── booking-price.service.js    # Tính giá booking
-├── repositories/
-│   └── fixed-schedule.repository.js  # Query phức tạp cho fixed schedule
-├── models/                         # MongoDB Schema (Mongoose)
-│   ├── user.model.js
-│   ├── facility.model.js
-│   ├── sport.model.js
-│   ├── court.model.js              # Bao gồm courtSlotSchema, slotConfigSchema
-│   ├── court-block.model.js
-│   ├── booking.model.js
-│   ├── payment.model.js
-│   ├── fixed-schedule.model.js
-│   ├── matching.model.js           # Bao gồm matchingMemberSchema, matchingTeamSchema
-│   ├── match-queue.model.js
-│   ├── notification.model.js
-│   └── review.model.js
-├── middlewares/
-│   ├── auth.middleware.js          # verifyToken, requireRole
-│   └── upload.middleware.js        # Multer + Cloudinary storage
-└── utils/
-    ├── cron-matchmaker.js          # Cron: */1 phút – ghép trận tự động
-    ├── cron-fixed-scheduler.js     # Cron: 00:05 hàng ngày – sinh booking cố định
-    ├── cron-auto-cancel-bookings.js # Cron: */1 phút – hủy booking quá hạn
-    ├── cron-auto-complete-bookings.js # Cron: tự động hoàn thành booking
-    ├── booking-time.util.js        # Utility tính toán thời gian slot
-    └── response.util.js            # Chuẩn hóa response format
+node_be_refactor/
+├── src/
+│   ├── main.js                          # Entry point, khởi tạo Express + Socket.IO + Cron
+│   ├── config/
+│   │   ├── mongo.js                     # Kết nối MongoDB
+│   │   ├── firebase-admin.js            # Khởi tạo Firebase Admin SDK
+│   │   └── auth-mode.js                 # Chế độ xác thực (JWT/Firebase)
+│   ├── routes/
+│   │   ├── index.js                     # Router tổng hợp, tự động map file .routes.js
+│   │   ├── auth.routes.js               # POST /register, /sign-in, /verify-email...
+│   │   ├── booking.routes.js            # CRUD booking, /cancel, /status
+│   │   ├── court.routes.js              # CRUD court, slot-config
+│   │   ├── court-blocks.routes.js       # Quản lý block/bảo trì sân
+│   │   ├── facility.routes.js           # CRUD facility
+│   │   ├── fixed-schedule.routes.js     # Lịch cố định: approve, reject, pause, resume...
+│   │   ├── matching.routes.js           # Session, queue join/leave, member update
+│   │   ├── notification.routes.js       # Danh sách, đánh dấu đã đọc
+│   │   ├── payment.routes.js            # CRUD payment, update status
+│   │   ├── reports.routes.js            # advanced-performance, court-performance
+│   │   ├── review.routes.js             # CRUD review
+│   │   ├── sport.routes.js              # CRUD sport
+│   │   ├── upload.routes.js             # Upload ảnh Cloudinary
+│   │   ├── user.routes.js               # Profile, role, status, FCM token
+│   │   └── zalopay.routes.js            # create-order, query, callback
+│   ├── controllers/                     # Nhận request, validate, gọi service
+│   │   ├── auth.controller.js
+│   │   ├── booking.controller.js
+│   │   ├── court-blocks.controller.js
+│   │   ├── court.controller.js
+│   │   ├── facility.controller.js
+│   │   ├── fcm.controller.js
+│   │   ├── fixed-schedule.controller.js
+│   │   ├── matching.controller.js
+│   │   ├── notification.controller.js
+│   │   ├── payment.controller.js
+│   │   ├── reports.controller.js
+│   │   ├── review.controller.js
+│   │   ├── sport.controller.js
+│   │   ├── upload.controller.js
+│   │   ├── user.controller.js
+│   │   └── zalopay.controller.js
+│   ├── services/                        # Business logic
+│   │   ├── booking.service.js           # (38KB) Booking lifecycle, conflict check, auto cancel/complete
+│   │   ├── booking-price.service.js     # Tính giá booking theo slot
+│   │   ├── court-availability.service.js# Kiểm tra availability của sân
+│   │   ├── court-block.service.js       # Quản lý block/bảo trì
+│   │   ├── court.service.js             # CRUD court + slot config
+│   │   ├── facility.service.js          # CRUD facility + staff assignment
+│   │   ├── fcm.service.js               # Gửi FCM notification
+│   │   ├── fixed-schedule.service.js    # (77KB) Fixed schedule logic, booking generation
+│   │   ├── mail.service.js              # Gửi email OTP
+│   │   ├── matching.service.js          # (70KB) Matching session, queue, auto-match algorithm
+│   │   ├── notification.helper.js       # Helper tạo notification + socket emit
+│   │   ├── notification.service.js      # CRUD notification
+│   │   ├── payment.service.js           # Payment state machine, ZaloPay integration
+│   │   ├── report.service.js            # (41KB) Tổng hợp báo cáo doanh thu, hiệu suất
+│   │   ├── review.service.js            # CRUD review
+│   │   ├── socket-io.service.js         # Socket.IO events, room management
+│   │   ├── sport.service.js             # CRUD sport
+│   │   ├── upload.service.js            # Cloudinary upload
+│   │   ├── user-auth.service.js         # Đăng ký, đăng nhập, OTP, JWT
+│   │   ├── user-schedule-conflict.service.js # Kiểm tra conflict lịch của user
+│   │   ├── user.service.js              # CRUD user profile
+│   │   └── zalopay.service.js           # ZaloPay API integration
+│   ├── repositories/                    # Truy vấn MongoDB
+│   │   ├── booking.repository.js
+│   │   ├── court.repository.js
+│   │   ├── facility.repository.js
+│   │   ├── fixed-schedule.repository.js
+│   │   ├── match-queue.repository.js
+│   │   ├── matching.repository.js
+│   │   ├── notification.repository.js
+│   │   ├── payment.repository.js
+│   │   ├── review.repository.js
+│   │   ├── sport.repository.js
+│   │   └── user.repository.js
+│   ├── models/                          # Mongoose Schema
+│   │   ├── user.model.js
+│   │   ├── facility.model.js
+│   │   ├── sport.model.js
+│   │   ├── court.model.js               # Bao gồm SlotConfig + CourtSlot
+│   │   ├── court-block.model.js
+│   │   ├── booking.model.js
+│   │   ├── payment.model.js
+│   │   ├── notification.model.js
+│   │   ├── matching.model.js            # MatchingSession + Member + Team
+│   │   ├── match-queue.model.js
+│   │   ├── fixed-schedule.model.js      # FixedSchedule + ExceptionDate + MatchingConfig
+│   │   └── review.model.js
+│   ├── middlewares/
+│   │   ├── auth.middleware.js           # verifyToken, requireRole
+│   │   └── upload.middleware.js         # Multer + Cloudinary
+│   └── utils/
+│       ├── booking-time.util.js         # Xử lý thời gian booking (minutes)
+│       ├── cron-auto-cancel-bookings.js # Cron: */1 * * * * — hủy PENDING quá hạn
+│       ├── cron-auto-complete-bookings.js # Cron: */1 * * * * — hoàn thành booking đã qua giờ
+│       ├── cron-fixed-scheduler.js      # Cron: 5 0 * * * — sinh booking lịch cố định
+│       ├── cron-matchmaker.js           # Cron: */1 * * * * — ghép trận tự động
+│       ├── cron-status.js               # Tracking trạng thái cron jobs
+│       └── response.util.js             # Chuẩn hóa response format
+└── package.json
 ```
 
 ---
 
 ## 2.4 Kiến trúc Flutter
 
-Flutter được tổ chức theo mô hình **Feature-First Module Architecture** kết hợp **Clean Architecture (Domain/Data/Presentation)**:
+**Pattern**: Clean Architecture với BLoC/Cubit, tổ chức theo Feature Module
 
+### Cây thư mục Flutter (rút gọn)
 ```
-sports_management/
+sport_management/sports_management/
 ├── lib/
-│   ├── main.dart                   # Entry point, khởi tạo Firebase, DI
-│   ├── app.dart                    # MaterialApp, theme
-│   ├── firebase_options.dart       # Cấu hình Firebase
-│   ├── core/                       # Core utilities dùng chung
-│   ├── injection/                  # Dependency Injection (get_it)
+│   ├── main.dart                        # Entry point, khởi tạo Firebase, DI
+│   ├── app.dart                         # MaterialApp, theme, GoRouter
+│   ├── firebase_options.dart            # Firebase config (tự sinh)
+│   ├── core/
+│   │   ├── services/                    # ApiService (Dio), SocketIO service
+│   │   ├── theme/                       # AppTheme, colors, typography
+│   │   └── widgets/                     # Shared widgets
+│   ├── injection/                       # get_it DI container setup
 │   └── router/
-│       ├── app_router.dart         # GoRouter configuration
-│       └── route_paths.dart        # Tất cả route paths constants
-└── modules/
-    ├── app_module/                 # Module khởi động app
-    ├── server_module/              # API client (Dio), base network
-    ├── authentication_module/
-    │   └── lib/
-    │       ├── data/               # Repository impl, API datasource
-    │       ├── domain/             # Entity, UseCase, Repository interface
-    │       ├── presentation/
-    │       │   ├── pages/          # SignInPage, SignUpPage, ResetPasswordPage
-    │       │   └── cubit/ (or bloc/)
-    │       └── application/        # DI
-    ├── home_module/
-    │   └── lib/presentation/       # HomePage (main tab)
-    ├── booking_module/
-    │   └── lib/
-    │       ├── data/
-    │       ├── domain/
-    │       └── presentation/
-    │           └── pages/
-    │               ├── court_booking_page.dart        # (~65KB) Màn hình đặt sân
-    │               ├── booking_history_page.dart      # (~22KB) Lịch sử đặt sân
-    │               ├── booking_detail_page.dart       # (~26KB) Chi tiết booking
-    │               └── booking_catalog_full_page.dart # Danh mục sân
-    ├── matching_module/
-    │   └── lib/
-    │       ├── data/
-    │       ├── domain/
-    │       ├── di/
-    │       └── presentation/
-    │           └── pages/
-    │               ├── create_matching_session_page.dart  # (~85KB) Tạo phiên ghép trận
-    │               ├── matching_explorer_page.dart        # (~37KB) Tìm kiếm phiên ghép trận
-    │               ├── matching_detail_page.dart          # (~38KB) Chi tiết phiên ghép trận
-    │               └── auto_matching_lobby_page.dart      # (~30KB) Lobby ghép tự động
-    ├── payment_module/
-    │   └── lib/presentation/       # Màn hình hóa đơn, thanh toán ZaloPay
-    ├── notification_module/
-    │   └── lib/
-    │       ├── core/               # FCM setup, local notification handler
-    │       └── presentation/       # Danh sách thông báo
-    ├── facility_module/
-    │   └── lib/presentation/       # Danh sách cơ sở, chi tiết sân
-    ├── user_management_module/
-    │   └── lib/presentation/       # Hồ sơ người dùng
-    └── review_module/
-        └── lib/presentation/       # Đánh giá dịch vụ
+│       ├── app_router.dart              # GoRouter configuration
+│       └── route_paths.dart             # Route path constants
+├── modules/                             # Feature modules (độc lập)
+│   ├── app_module/                      # Shell/navigation
+│   ├── authentication_module/
+│   │   └── lib/
+│   │       ├── application/             # BLoC/Cubit
+│   │       ├── data/                    # Repository impl, API datasource
+│   │       ├── domain/                  # Entities, Use cases, Repo interfaces
+│   │       └── presentation/
+│   │           ├── blocs/               # AuthBloc
+│   │           ├── pages/
+│   │           │   ├── sign_in_page.dart
+│   │           │   ├── sign_up_page.dart
+│   │           │   ├── verify_email_page.dart
+│   │           │   └── reset_password_page.dart
+│   │           └── routes/
+│   ├── booking_module/
+│   │   └── lib/
+│   │       ├── application/             # Cubit
+│   │       ├── data/
+│   │       ├── domain/
+│   │       └── presentation/
+│   │           ├── cubit/               # BookingCubit
+│   │           ├── pages/
+│   │           │   ├── booking_catalog_full_page.dart
+│   │           │   ├── booking_detail_page.dart
+│   │           │   ├── booking_history_page.dart
+│   │           │   └── court_booking_page.dart    # (65KB - màn hình đặt sân chính)
+│   │           ├── routes/
+│   │           ├── utils/
+│   │           └── widgets/
+│   ├── matching_module/
+│   │   └── lib/
+│   │       ├── data/
+│   │       ├── di/
+│   │       ├── domain/
+│   │       └── presentation/
+│   │           ├── bloc/                # MatchingBloc
+│   │           ├── pages/
+│   │           │   ├── auto_matching_lobby_page.dart
+│   │           │   ├── create_matching_session_page.dart  # (85KB)
+│   │           │   ├── matching_detail_page.dart
+│   │           │   └── matching_explorer_page.dart
+│   │           ├── routes/
+│   │           └── widgets/
+│   ├── payment_module/
+│   │   └── lib/
+│   │       ├── application/
+│   │       ├── data/
+│   │       ├── domain/
+│   │       └── presentation/
+│   │           ├── cubit/
+│   │           └── pages/
+│   │               ├── invoice_detail_page.dart   # (83KB - trang hóa đơn chi tiết)
+│   │               ├── mock_payment_page.dart
+│   │               ├── payment_tab_widget.dart
+│   │               └── zalopay_webview_page.dart
+│   ├── home_module/
+│   │   └── lib/presentation/
+│   │       ├── pages/
+│   │       │   ├── home_page.dart
+│   │       │   ├── customer_dashboard_section.dart  # (45KB)
+│   │       │   ├── staff_dashboard_section.dart     # (114KB - màn hình staff lớn nhất)
+│   │       │   ├── admin_dashboard_section.dart     # (30KB)
+│   │       │   ├── admin_booking_supervision_page.dart
+│   │       │   ├── admin_moderation_page.dart
+│   │       │   ├── admin_payment_supervision_page.dart
+│   │       │   ├── staff_court_report_page.dart
+│   │       │   ├── staff_court_slot_config_page.dart
+│   │       │   ├── staff_court_slot_config_detail_page.dart
+│   │       │   ├── staff_personal_information_page.dart
+│   │       │   └── system_settings_page.dart
+│   │       └── account/
+│   ├── notification_module/
+│   │   └── lib/presentation/
+│   │       ├── cubit/                   # NotificationCubit
+│   │       └── widgets/                 # NotificationListWidget
+│   ├── facility_module/                 # Màn hình xem cơ sở/sân cho CUSTOMER
+│   ├── user_management_module/          # Quản lý profile
+│   │   └── lib/presentation/
+│   │       └── pages/                   # ProfilePage, AccountPage
+│   ├── review_module/                   # Đánh giá sân
+│   └── server_module/                   # ApiService, endpoints constants
+└── pubspec.yaml
 ```
-
-**State Management:** BLoC/Cubit pattern (`flutter_bloc`)
-- Mỗi module có Cubit/BLoC riêng quản lý state
-- State sử dụng `equatable` để so sánh
-
-**Dependency Injection:** `get_it` (Service Locator)
-- Mỗi module có thư mục `di/` hoặc `application/` đăng ký dependencies
-
-**Navigation:** `go_router`
-- Tất cả route paths được định nghĩa tập trung trong `route_paths.dart`
 
 ---
 
 ## 2.5 Kiến trúc React Web Admin
 
-React Web Admin được tổ chức theo mô hình **Feature-Based Architecture** kết hợp **Clean Architecture**:
+**Pattern**: Feature-based với Clean Architecture (data/domain/presentation), Ant Design component library
 
+### Cây thư mục React (rút gọn)
 ```
-react-staff-admin/src/
-├── App.tsx                         # Root component
-├── index.tsx                       # React entry point
-├── core/
-│   ├── components/
-│   │   └── main_layout.tsx         # Layout chính (Sidebar + Header)
-│   ├── di/                         # Dependency Injection
-│   ├── network/                    # Axios instance, interceptors
-│   ├── routes/
-│   │   └── app_routes.tsx          # Định nghĩa tất cả routes + PrivateGuard
-│   ├── theme/                      # Ant Design theme config
-│   └── utils/
-│       └── auth_storage.ts         # LocalStorage auth utilities
-└── features/
-    ├── auth/
-    │   └── presentation/pages/
-    │       ├── login_page.tsx       # Trang đăng nhập
-    │       └── profile_page.tsx     # Trang hồ sơ
-    ├── booking/
-    │   └── presentation/pages/
-    │       ├── admin_supervision_page.tsx  # ADMIN: Giám sát booking
-    │       ├── staff_bookings_page.tsx     # STAFF: Danh sách booking
-    │       ├── staff_overview_page.tsx     # STAFF: Tổng quan ngày
-    │       └── booking_detail_page.tsx     # Chi tiết booking (Admin+Staff)
-    ├── facility/
-    │   └── presentation/pages/
-    │       ├── admin_facilities_page.tsx   # Quản lý cơ sở
-    │       ├── admin_courts_page.tsx       # Quản lý sân (Admin)
-    │       ├── admin_sports_page.tsx       # Quản lý môn thể thao (Admin)
-    │       ├── staff_courts_page.tsx       # Quản lý sân (Staff)
-    │       ├── staff_sports_page.tsx       # Quản lý môn thể thao (Staff)
-    │       └── staff_slots_page.tsx        # Quản lý slot giờ
-    ├── payment/
-    │   └── presentation/pages/
-    │       └── staff_cashier_page.tsx      # Thu ngân
-    ├── fixed_schedule/
-    │   └── presentation/pages/
-    │       ├── fixed_schedule_list_page.tsx    # Danh sách lịch cố định
-    │       └── fixed_schedule_detail_page.tsx  # Chi tiết lịch cố định
-    ├── matching/
-    │   └── presentation/pages/
-    │       ├── matching_list_page.tsx      # Danh sách phiên ghép trận
-    │       └── matching_detail_page.tsx    # Chi tiết phiên ghép trận
-    ├── report/
-    │   └── presentation/pages/
-    │       ├── admin_overview_page.tsx     # Dashboard báo cáo Admin
-    │       └── staff_report_page.tsx       # Báo cáo Staff
-    ├── notification/
-    │   └── presentation/pages/
-    │       ├── admin_notifications_page.tsx
-    │       └── staff_notifications_page.tsx
-    ├── user_management/
-    │   └── presentation/pages/
-    │       └── admin_users_page.tsx        # Quản lý người dùng
-    └── review/
-        └── presentation/pages/
-            ├── review_list_page.tsx        # Danh sách đánh giá
-            └── review_detail_page.tsx      # Chi tiết đánh giá
+react-staff-admin/
+├── src/
+│   ├── App.tsx                          # Root component, BrowserRouter
+│   ├── index.tsx                        # ReactDOM.render + QueryClientProvider
+│   ├── core/
+│   │   ├── components/
+│   │   │   └── main_layout.tsx          # Sidebar + TopBar layout wrapper
+│   │   ├── di/                          # Dependency config
+│   │   ├── firebase/                    # Firebase config cho React
+│   │   ├── network/                     # Axios instance, interceptors
+│   │   ├── routes/
+│   │   │   └── app_routes.tsx           # PrivateGuard, PublicGuard, all routes
+│   │   ├── theme/                       # Ant Design theme config
+│   │   └── utils/
+│   │       └── auth_storage.ts          # JWT storage, UserSession type
+│   └── features/
+│       ├── auth/presentation/pages/
+│       │   ├── login_page.tsx           # Đăng nhập STAFF/ADMIN
+│       │   └── profile_page.tsx         # Trang hồ sơ cá nhân
+│       ├── booking/presentation/pages/
+│       │   ├── admin_supervision_page.tsx  # Admin xem tổng quan booking
+│       │   ├── booking_detail_page.tsx     # Chi tiết booking (dùng cho cả admin/staff)
+│       │   ├── staff_bookings_page.tsx     # Staff quản lý booking
+│       │   └── staff_overview_page.tsx     # Staff dashboard overview
+│       ├── facility/presentation/pages/
+│       │   ├── admin_facilities_page.tsx   # Admin quản lý cơ sở
+│       │   ├── admin_courts_page.tsx       # Admin quản lý sân
+│       │   ├── admin_sports_page.tsx       # Admin quản lý môn thể thao
+│       │   ├── staff_courts_page.tsx       # Staff xem sân
+│       │   ├── staff_slots_page.tsx        # Staff cấu hình slot
+│       │   └── staff_sports_page.tsx       # Staff xem môn thể thao
+│       ├── fixed_schedule/presentation/pages/
+│       │   ├── fixed_schedule_list_page.tsx   # Danh sách lịch cố định
+│       │   └── fixed_schedule_detail_page.tsx # Chi tiết + approve/reject
+│       ├── matching/presentation/pages/
+│       │   ├── matching_list_page.tsx      # Danh sách matching sessions
+│       │   └── matching_detail_page.tsx    # Chi tiết session
+│       ├── payment/presentation/pages/
+│       │   └── staff_cashier_page.tsx      # Thu tiền mặt
+│       ├── report/presentation/pages/
+│       │   ├── admin_overview_page.tsx     # Dashboard tổng hợp cho ADMIN
+│       │   └── staff_report_page.tsx       # Báo cáo cho STAFF
+│       ├── notification/presentation/
+│       │   ├── pages/
+│       │   │   ├── admin_notifications_page.tsx
+│       │   │   └── staff_notifications_page.tsx
+│       │   └── components/
+│       ├── review/presentation/pages/
+│       │   ├── review_list_page.tsx        # Danh sách đánh giá
+│       │   └── review_detail_page.tsx
+│       └── user_management/presentation/pages/
+│           └── admin_users_page.tsx        # Admin quản lý người dùng
+└── package.json
 ```
 
-**Route Guard:**
-- `PrivateGuard`: Kiểm tra JWT + role, redirect về `/sign-in` nếu chưa đăng nhập
-- `PublicGuard`: Redirect về dashboard nếu đã đăng nhập
-- Phân quyền theo role: ADMIN/STAFF có menu và trang khác nhau
+### Route map React Web Admin
 
-**Server State:** `@tanstack/react-query` – cache và refetch dữ liệu tự động
-
-**UI Framework:** Ant Design 6 + TailwindCSS hybrid
+| Route URL | Component | Role | Mô tả |
+|-----------|-----------|------|-------|
+| `/sign-in` | `login_page.tsx` | Public | Đăng nhập |
+| `/admin/overview` | `admin_overview_page.tsx` | ADMIN | Dashboard tổng quan |
+| `/admin/facilities` | `admin_facilities_page.tsx` | ADMIN | Quản lý cơ sở |
+| `/admin/courts` | `admin_courts_page.tsx` | ADMIN | Quản lý sân |
+| `/admin/sports` | `admin_sports_page.tsx` | ADMIN | Quản lý môn thể thao |
+| `/admin/users` | `admin_users_page.tsx` | ADMIN | Quản lý người dùng |
+| `/admin/supervision` | `admin_supervision_page.tsx` | ADMIN | Giám sát booking |
+| `/admin/bookings/:id` | `booking_detail_page.tsx` | ADMIN | Chi tiết booking |
+| `/admin/fixed-schedules` | `fixed_schedule_list_page.tsx` | ADMIN | Lịch cố định |
+| `/admin/fixed-schedules/:id` | `fixed_schedule_detail_page.tsx` | ADMIN | Chi tiết lịch cố định |
+| `/admin/matching` | `matching_list_page.tsx` | ADMIN | Danh sách ghép trận |
+| `/admin/matching/:id` | `matching_detail_page.tsx` | ADMIN | Chi tiết ghép trận |
+| `/admin/reviews` | `review_list_page.tsx` | ADMIN | Đánh giá |
+| `/admin/reviews/:id` | `review_detail_page.tsx` | ADMIN | Chi tiết đánh giá |
+| `/admin/notifications` | `admin_notifications_page.tsx` | ADMIN | Thông báo |
+| `/admin/profile` | `profile_page.tsx` | ADMIN | Hồ sơ |
+| `/staff/overview` | `staff_overview_page.tsx` | STAFF | Dashboard STAFF |
+| `/staff/bookings` | `staff_bookings_page.tsx` | STAFF | Quản lý booking |
+| `/staff/bookings/:id` | `booking_detail_page.tsx` | STAFF | Chi tiết booking |
+| `/staff/fixed-schedules` | `fixed_schedule_list_page.tsx` | STAFF | Lịch cố định |
+| `/staff/fixed-schedules/:id` | `fixed_schedule_detail_page.tsx` | STAFF | Chi tiết lịch cố định |
+| `/staff/matching` | `matching_list_page.tsx` | STAFF | Ghép trận |
+| `/staff/matching/:id` | `matching_detail_page.tsx` | STAFF | Chi tiết ghép trận |
+| `/staff/reviews` | `review_list_page.tsx` | STAFF | Đánh giá |
+| `/staff/cashier` | `staff_cashier_page.tsx` | STAFF | Thu tiền mặt |
+| `/staff/operations/slots` | `staff_slots_page.tsx` | STAFF | Cấu hình slot |
+| `/staff/operations/courts` | `staff_courts_page.tsx` | STAFF | Quản lý sân |
+| `/staff/operations/sports` | `staff_sports_page.tsx` | STAFF | Môn thể thao |
+| `/staff/report` | `staff_report_page.tsx` | STAFF | Báo cáo |
+| `/staff/notifications` | `staff_notifications_page.tsx` | STAFF | Thông báo |
+| `/staff/profile` | `profile_page.tsx` | STAFF | Hồ sơ |

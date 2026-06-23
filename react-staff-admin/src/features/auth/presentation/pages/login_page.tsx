@@ -201,7 +201,7 @@ const LoginPage: React.FC = () => {
               loading={loading}
               className="bg-brand-orange hover:bg-brand-orange/90 border-none font-semibold h-[46px] rounded-md shadow-md shadow-brand-orange/20"
             >
-              Đăng nhập Portal
+              Đăng nhập
             </Button>
           </Form.Item>
         </Form>}
