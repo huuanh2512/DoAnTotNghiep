@@ -6,6 +6,7 @@ import { loginUseCase } from '../../../../core/di/injection';
 import { authStorage } from '../../../../core/utils/auth_storage';
 import { apiClient } from '../../../../core/network/api_client';
 import { firebaseAuth } from '../../../../core/firebase/firebase_auth';
+import { firebaseErrorMessage } from '../../../../core/firebase/firebase_error_message';
 import { reload, sendEmailVerification } from 'firebase/auth';
 
 const { Title, Text } = Typography;
@@ -68,7 +69,7 @@ const LoginPage: React.FC = () => {
         setErrorMsg(responseData.message || 'Email chưa được xác thực.');
         return;
       }
-      setErrorMsg(err.message || err.response?.data?.message || 'Có lỗi xảy ra khi đăng nhập');
+      setErrorMsg(firebaseErrorMessage(err, 'Không thể đăng nhập. Vui lòng thử lại.'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,7 @@ const LoginPage: React.FC = () => {
       form.setFieldsValue({ email: verificationEmail });
       setVerificationEmail(null);
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Xác thực email thất bại.');
+      setErrorMsg(firebaseErrorMessage(err, 'Xác thực email thất bại.'));
     } finally {
       setOtpLoading(false);
     }
@@ -102,7 +103,7 @@ const LoginPage: React.FC = () => {
       await sendEmailVerification(user);
       message.success('Đã gửi lại liên kết xác nhận email.');
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Không thể gửi lại mã xác thực.');
+      setErrorMsg(firebaseErrorMessage(err, 'Không thể gửi lại liên kết xác thực.'));
     } finally {
       setOtpLoading(false);
     }

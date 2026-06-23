@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:app_module/app_module.dart';
 import 'package:authentication_module/authentication_module.dart';
 import 'package:server_module/server_module.dart';
 import 'package:booking_module/booking_module.dart';
@@ -15,10 +16,14 @@ class StaffCourtReportPage extends StatefulWidget {
 }
 
 class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
+  static const _allSportsValue = '__all_sports__';
+
   bool _isLoading = true;
   String? _selectedFacilityId;
+  String? _selectedSportId;
   String? _selectedCourtId;
   List<FacilityEntity> _facilities = [];
+  List<SportEntity> _sports = [];
   List<CourtEntity> _courts = [];
   AdvancedPerformanceReportEntity? _report;
   String? _errorMessage;
@@ -86,11 +91,13 @@ class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
       }
 
       if (_selectedFacilityId != null) {
-        // 2. Fetch courts
+        // 2. Fetch courts and sports available for the selected facility.
         final getCourtsUseCase = GetIt.I<GetCourtsUseCase>();
+        final getSportsUseCase = GetIt.I<GetSportsUseCase>();
         final courtsResponse = await getCourtsUseCase(
           facilityId: _selectedFacilityId,
         );
+        final sportsResponse = await getSportsUseCase();
         if (courtsResponse.success && courtsResponse.data != null) {
           _courts = courtsResponse.data!;
         } else {
@@ -100,12 +107,37 @@ class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
           });
           return;
         }
+        if (sportsResponse.success && sportsResponse.data != null) {
+          _sports = sportsResponse.data!;
+        } else {
+          setState(() {
+            _errorMessage =
+                sportsResponse.message ??
+                'Không thể tải danh sách môn thể thao.';
+            _isLoading = false;
+          });
+          return;
+        }
+
+        final availableSportIds = _courts
+            .map((court) => court.sportId)
+            .whereType<String>()
+            .toSet();
+        if (_selectedSportId != null &&
+            !availableSportIds.contains(_selectedSportId)) {
+          _selectedSportId = null;
+        }
+        if (_selectedCourtId != null &&
+            !_courts.any((court) => court.id == _selectedCourtId)) {
+          _selectedCourtId = null;
+        }
 
         // 3. Fetch aggregate report
         final getReportUseCase = GetIt.I<GetAdvancedPerformanceReportUseCase>();
         final dateBounds = _dateBoundsForRange(_selectedRange);
         final reportResponse = await getReportUseCase(
           facilityId: _selectedFacilityId,
+          sportId: _selectedSportId,
           courtId: _selectedCourtId,
           dateFrom: dateBounds.$1,
           dateTo: dateBounds.$2,
@@ -190,6 +222,83 @@ class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
             _loadReportData();
           }
         },
+      ),
+    );
+  }
+
+  List<SportEntity> get _availableSports => _sports
+      .where(
+        (sport) => _courts.any((court) => court.sportId == sport.id),
+      )
+      .toList();
+
+  Future<void> _showSportFilterPopup() async {
+    final selected = await AppPopup.showSelection<String>(
+      context,
+      title: 'Chọn môn thể thao',
+      subtitle: 'Lọc báo cáo hiệu suất theo môn thể thao.',
+      icon: Icons.sports_soccer_outlined,
+      confirmLabel: 'Áp dụng',
+      searchHint: 'Tìm môn thể thao...',
+      selectedValue: _selectedSportId ?? _allSportsValue,
+      options: [
+        const AppPopupOption<String>(
+          value: _allSportsValue,
+          label: 'Tất cả môn thể thao',
+          icon: Icons.select_all_rounded,
+        ),
+        ..._availableSports.map(
+          (sport) => AppPopupOption<String>(
+            value: sport.id,
+            label: sport.name ?? 'Môn thể thao',
+            icon: Icons.sports_soccer_outlined,
+            imageUrl: sport.iconUrl,
+          ),
+        ),
+      ],
+    );
+    if (selected == null || !mounted) return;
+
+    setState(() {
+      _selectedSportId = selected == _allSportsValue ? null : selected;
+      _selectedCourtId = null;
+    });
+    _loadReportData();
+  }
+
+  Widget _buildSportFilterPopupButton() {
+    final matchingSports = _availableSports
+        .where((sport) => sport.id == _selectedSportId)
+        .toList();
+    final selectedSportName =
+        matchingSports.isEmpty ? null : matchingSports.first.name;
+    final isSelected = _selectedSportId != null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _showSportFilterPopup,
+        borderRadius: BorderRadius.circular(4),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: 'Lọc theo môn thể thao',
+            prefixIcon: const Icon(Icons.sports),
+            suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+            border: const OutlineInputBorder(),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: isSelected ? const Color(0xFFFF5600) : Colors.grey,
+              ),
+            ),
+          ),
+          child: Text(
+            selectedSportName ?? 'Tất cả môn thể thao',
+            style: TextStyle(
+              color: isSelected ? const Color(0xFFFF5600) : null,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -295,6 +404,7 @@ class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
                                       if (val != null) {
                                         setState(() {
                                           _selectedFacilityId = val;
+                                          _selectedSportId = null;
                                           _selectedCourtId = null;
                                         });
                                         _loadReportData();
@@ -310,8 +420,16 @@ class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
                       const SizedBox(height: 16),
                     ],
 
+                    if (_sports.isNotEmpty) ...[
+                      _buildSportFilterPopupButton(),
+                      const SizedBox(height: 16),
+                    ],
+
                     if (_courts.isNotEmpty) ...[
                       DropdownButtonFormField<String?>(
+                        key: ValueKey(
+                          'court-$_selectedFacilityId-$_selectedSportId',
+                        ),
                         initialValue: _selectedCourtId,
                         decoration: const InputDecoration(
                           labelText: 'Lọc theo sân',
@@ -322,12 +440,18 @@ class _StaffCourtReportPageState extends State<StaffCourtReportPage> {
                             value: null,
                             child: Text('Tất cả sân'),
                           ),
-                          ..._courts.map(
-                            (court) => DropdownMenuItem<String?>(
-                              value: court.id,
-                              child: Text(court.name ?? 'Sân đấu'),
-                            ),
-                          ),
+                          ..._courts
+                              .where(
+                                (court) =>
+                                    _selectedSportId == null ||
+                                    court.sportId == _selectedSportId,
+                              )
+                              .map(
+                                (court) => DropdownMenuItem<String?>(
+                                  value: court.id,
+                                  child: Text(court.name ?? 'Sân đấu'),
+                                ),
+                              ),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedCourtId = value);

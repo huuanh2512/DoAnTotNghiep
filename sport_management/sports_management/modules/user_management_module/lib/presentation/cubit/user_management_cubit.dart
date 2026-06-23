@@ -115,7 +115,9 @@ class UserManagementCubit extends Cubit<UserManagementState> {
       );
       if (!response.success) {
         emit(
-          UserManagementError(response.message ?? 'Không thể tạo tài khoản.'),
+          UserManagementError(
+            response.message ?? 'Không thể tạo tài khoản.',
+          ),
         );
         return false;
       }

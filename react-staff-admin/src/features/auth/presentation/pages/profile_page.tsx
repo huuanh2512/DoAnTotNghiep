@@ -13,6 +13,7 @@ import {
 import { authStorage, UserSession } from '../../../../core/utils/auth_storage';
 import { apiClient } from '../../../../core/network/api_client';
 import { firebaseAuth } from '../../../../core/firebase/firebase_auth';
+import { firebaseErrorMessage } from '../../../../core/firebase/firebase_error_message';
 import { EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, updatePassword } from 'firebase/auth';
 
 const { Title, Text } = Typography;
@@ -220,7 +221,7 @@ const ProfilePage: React.FC = () => {
       if (user?.email) await sendPasswordResetEmail(firebaseAuth, user.email);
       message.success('Mã OTP đã được gửi đến email tài khoản.');
     } catch (e: any) {
-      message.error(e.response?.data?.message || 'Không thể gửi OTP.');
+      message.error(firebaseErrorMessage(e, 'Không thể gửi email đặt lại mật khẩu.'));
     } finally {
       setSendingOtp(false);
     }
@@ -237,7 +238,7 @@ const ProfilePage: React.FC = () => {
       setPasswordOpen(false);
       passwordForm.resetFields();
     } catch (e: any) {
-      message.error(e.response?.data?.message || 'Không thể đổi mật khẩu.');
+      message.error(firebaseErrorMessage(e, 'Không thể đổi mật khẩu.'));
     } finally {
       setSavingPassword(false);
     }

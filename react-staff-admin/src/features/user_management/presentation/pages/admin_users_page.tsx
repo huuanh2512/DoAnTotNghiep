@@ -6,6 +6,7 @@ import { MockFacility } from '../../../../core/network/mock_db';
 import { apiClient } from '../../../../core/network/api_client';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { firebaseAuth } from '../../../../core/firebase/firebase_auth';
+import { firebaseErrorMessage } from '../../../../core/firebase/firebase_error_message';
 
 const { Title, Text } = Typography;
 type CreatableRole = 'STAFF' | 'ADMIN';
@@ -84,8 +85,13 @@ const AdminUsersPage: React.FC = () => {
       try {
         await sendPasswordResetEmail(firebaseAuth, values.email.trim().toLowerCase());
         message.success('Đã gửi lời mời tạo tài khoản. Người dùng cần thiết lập mật khẩu qua email, sau đó đăng nhập và xác nhận email để kích hoạt tài khoản.');
-      } catch (_) {
-        message.warning('Tài khoản đã được tạo nhưng chưa gửi được email thiết lập mật khẩu. Hãy dùng nút gửi lại email.');
+      } catch (error) {
+        message.warning(
+          firebaseErrorMessage(
+            error,
+            'Tài khoản đã được tạo nhưng chưa gửi được email thiết lập mật khẩu. Hãy dùng nút gửi lại email.',
+          ),
+        );
       }
       setIsModalOpen(false);
       form.resetFields();
@@ -101,8 +107,10 @@ const AdminUsersPage: React.FC = () => {
     try {
       await sendPasswordResetEmail(firebaseAuth, email.trim().toLowerCase());
       message.success('Đã gửi lại email thiết lập mật khẩu.');
-    } catch (_) {
-      message.error('Không thể gửi lại email thiết lập mật khẩu.');
+    } catch (error) {
+      message.error(
+        firebaseErrorMessage(error, 'Không thể gửi lại email thiết lập mật khẩu.'),
+      );
     }
   };
 
