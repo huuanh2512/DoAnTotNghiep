@@ -292,137 +292,161 @@ class _AutoMatchingLobbyPageState extends State<AutoMatchingLobbyPage> {
   }
 
   Widget _buildSearchingLobby(dynamic queue) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            context.tr(
-              vi: 'Hệ thống đang tìm trận...',
-              en: 'System is looking for a match...',
-            ),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr(
-              vi: 'Chúng tôi đang tìm những người chơi có cùng khung giờ rảnh và địa điểm.',
-              en: 'We are finding players with the same free hours and location.',
-            ),
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-          const SizedBox(height: 48),
-
-          // Radar pulse animation
-          const PulsingRadarWidget(size: 220),
-
-          const SizedBox(height: 48),
-          Text(
-            _formatDuration(_elapsedSeconds),
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Details summary
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSummaryRow(
-                  Icons.sports_soccer,
-                  context.tr(vi: 'Môn thể thao', en: 'Sport'),
-                  queue.sportName,
-                  imageUrl: queue.sportIconUrl,
-                ),
-                const SizedBox(height: 8),
-                _buildSummaryRow(
-                  Icons.location_on_outlined,
-                  context.tr(vi: 'Cơ sở', en: 'Facility'),
-                  queue.facilityName,
-                ),
-                const SizedBox(height: 8),
-                _buildSummaryRow(
-                  Icons.calendar_month_outlined,
-                  context.tr(vi: 'Ngày đấu', en: 'Date'),
-                  _formatDateString(queue.bookingDate?.toString() ?? ''),
-                ),
-                const SizedBox(height: 8),
-                _buildSummaryRow(
-                  Icons.access_time,
-                  context.tr(vi: 'Thời gian rảnh', en: 'Free Time'),
-                  queue.timeRange,
-                ),
-                if (queue.teamMode != 'INDIVIDUAL') ...[
-                  const SizedBox(height: 8),
-                  _buildSummaryRow(
-                    Icons.groups_outlined,
-                    context.tr(vi: 'Chế độ', en: 'Mode'),
-                    queue.teamMode == 'TEAM_VS_TEAM'
-                        ? context.tr(vi: 'Đội vs đội', en: 'Team vs team')
-                        : context.tr(vi: 'Ghép theo đội', en: 'Team fill'),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow(
-                    Icons.swap_horiz,
-                    context.tr(vi: 'Đội mong muốn', en: 'Preferred team'),
-                    _teamLabel(queue.preferredTeam),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow(
-                    Icons.person_outline,
-                    context.tr(
-                      vi: 'Số người đại diện',
-                      en: 'Represented players',
+    return SafeArea(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Column(
+                  children: [
+                    Text(
+                      context.tr(
+                        vi: 'Hệ thống đang tìm trận...',
+                        en: 'System is looking for a match...',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    '${queue.memberCount}',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow(
-                    Icons.format_list_numbered,
-                    context.tr(vi: 'Số người mỗi đội', en: 'Team size'),
-                    '${queue.teamSize ?? 0}',
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const Spacer(),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr(
+                        vi: 'Chúng tôi đang tìm những người chơi có cùng khung giờ rảnh và địa điểm.',
+                        en: 'We are finding players with the same free hours and location.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                    const SizedBox(height: 48),
 
-          // Leave queue button
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red, width: 1.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                    // Radar pulse animation
+                    const PulsingRadarWidget(size: 220),
+
+                    const SizedBox(height: 48),
+                    Text(
+                      _formatDuration(_elapsedSeconds),
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Details summary
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSummaryRow(
+                            Icons.sports_soccer,
+                            context.tr(vi: 'Môn thể thao', en: 'Sport'),
+                            queue.sportName,
+                            imageUrl: queue.sportIconUrl,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(
+                            Icons.location_on_outlined,
+                            context.tr(vi: 'Cơ sở', en: 'Facility'),
+                            queue.facilityName,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(
+                            Icons.calendar_month_outlined,
+                            context.tr(vi: 'Ngày đấu', en: 'Date'),
+                            _formatDateString(
+                              queue.bookingDate?.toString() ?? '',
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSummaryRow(
+                            Icons.access_time,
+                            context.tr(vi: 'Thời gian rảnh', en: 'Free Time'),
+                            queue.timeRange,
+                          ),
+                          if (queue.teamMode != 'INDIVIDUAL') ...[
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              Icons.groups_outlined,
+                              context.tr(vi: 'Chế độ', en: 'Mode'),
+                              queue.teamMode == 'TEAM_VS_TEAM'
+                                  ? context.tr(
+                                      vi: 'Đội vs đội',
+                                      en: 'Team vs team',
+                                    )
+                                  : context.tr(
+                                      vi: 'Ghép theo đội',
+                                      en: 'Team fill',
+                                    ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              Icons.swap_horiz,
+                              context.tr(
+                                vi: 'Đội mong muốn',
+                                en: 'Preferred team',
+                              ),
+                              _teamLabel(queue.preferredTeam),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              Icons.person_outline,
+                              context.tr(
+                                vi: 'Số người đại diện',
+                                en: 'Represented players',
+                              ),
+                              '${queue.memberCount}',
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryRow(
+                              Icons.format_list_numbered,
+                              context.tr(
+                                vi: 'Số người mỗi đội',
+                                en: 'Team size',
+                              ),
+                              '${queue.teamSize ?? 0}',
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              onPressed: () {
-                _leaveQueue();
-              },
-              child: Text(
-                context.tr(vi: 'HỦY TÌM KIẾM', en: 'CANCEL SEARCH'),
-                style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+
+            // Leave queue button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: _leaveQueue,
+                child: Text(
+                  context.tr(vi: 'HỦY TÌM KIẾM', en: 'CANCEL SEARCH'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
