@@ -19,9 +19,37 @@ class FirebaseEmailAuthFlow {
       email: email,
       password: password,
     );
-    await credential.user!.sendEmailVerification();
     final response = await GetIt.I<AuthService>().firebaseRegister(
       firebaseIdToken: (await credential.user!.getIdToken())!,
+      fullName: fullName,
+      phone: phone,
+    );
+    if (!response.success) {
+      if (_canSafelyDeleteNewFirebaseUser(response.code)) {
+        try {
+          await credential.user!.delete();
+        } catch (_) {
+          // Do not expose tokens or credentials; the user can retry safely.
+        }
+      }
+      throw FirebaseAuthException(
+        code: response.code ?? 'backend-register-failed',
+        message: response.message,
+      );
+    }
+    await credential.user!.sendEmailVerification();
+  }
+
+  /// Completes a registration after a timeout/5xx without creating another
+  /// Firebase account. Safe retries are idempotent on Firebase UID.
+  static Future<void> completePendingRegistration({
+    String? fullName,
+    String? phone,
+  }) async {
+    final user = _firebase.currentUser;
+    if (user == null) throw FirebaseAuthException(code: 'no-current-user');
+    final response = await GetIt.I<AuthService>().firebaseRegister(
+      firebaseIdToken: (await user.getIdToken(true))!,
       fullName: fullName,
       phone: phone,
     );
@@ -31,14 +59,24 @@ class FirebaseEmailAuthFlow {
         message: response.message,
       );
     }
+    if (!user.emailVerified) await user.sendEmailVerification();
   }
+
+  static bool _canSafelyDeleteNewFirebaseUser(String? code) => const {
+    'MISSING_FIELDS',
+    'INVALID_EMAIL',
+    'VALIDATION_ERROR',
+    'EMAIL_ALREADY_BOUND_TO_DIFFERENT_FIREBASE_UID',
+    'LEGACY_MIGRATION_REQUIRED',
+    'FIREBASE_IDENTITY_CONFLICT',
+  }.contains(code);
 
   static Future<void> resendVerification() async {
     final user = _firebase.currentUser;
     if (user == null) throw FirebaseAuthException(code: 'no-current-user');
     await user.sendEmailVerification();
   }
-  
+
   static Future<void> sendPasswordReset(String email) =>
       _firebase.sendPasswordResetEmail(email: email.trim().toLowerCase());
 
@@ -58,7 +96,6 @@ class FirebaseEmailAuthFlow {
     );
     await user.updatePassword(newPassword);
   }
-
 
   static Future<UserResult> completeVerification() async {
     final user = _firebase.currentUser;

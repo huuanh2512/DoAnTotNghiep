@@ -104,16 +104,26 @@ class UserAuthService {
     }
     const byEmail = await userRepository.findByEmail(identity.email);
     if (byEmail) {
-      if (byEmail.firebaseUid && byEmail.firebaseUid !== identity.uid) throw this._error('Email is already linked to another Firebase identity', 'FIREBASE_IDENTITY_CONFLICT', 409);
+      if (byEmail.firebaseUid && byEmail.firebaseUid !== identity.uid) throw this._error('Email is already bound to a different Firebase identity', 'EMAIL_ALREADY_BOUND_TO_DIFFERENT_FIREBASE_UID', 409);
       throw this._error('This legacy account must be imported before it can use Firebase', 'LEGACY_MIGRATION_REQUIRED', 409);
     }
-    const user = await userRepository.create({
-      email: identity.email, firebaseUid: identity.uid, status: identity.emailVerified ? 'ACTIVE' : 'PENDING_EMAIL',
-      emailVerifiedAt: identity.emailVerified ? new Date() : null,
-      authMigrationStatus: 'FIREBASE_NATIVE', authMigratedAt: new Date(),
-      profile: { name: profile.fullName || profile.name || '', phone: profile.phone || '' }
-    });
-    return { email: user.email, status: user.status, accepted: true };
+    try {
+      const user = await userRepository.create({
+        email: identity.email, firebaseUid: identity.uid, status: identity.emailVerified ? 'ACTIVE' : 'PENDING_EMAIL',
+        emailVerifiedAt: identity.emailVerified ? new Date() : null,
+        authMigrationStatus: 'FIREBASE_NATIVE', authMigratedAt: new Date(),
+        profile: { name: profile.fullName || profile.name || '', phone: profile.phone || '' }
+      });
+      return { email: user.email, status: user.status, accepted: true };
+    } catch (error) {
+      // A request may have committed but lost its response. Re-read by UID so
+      // the next client retry is idempotent instead of creating a duplicate.
+      if (error?.code === 11000) {
+        const retryUser = await userRepository.findByFirebaseUid(identity.uid);
+        if (retryUser?.email === identity.email) return { email: retryUser.email, status: retryUser.status, accepted: true };
+      }
+      throw error;
+    }
   }
 
   async firebaseCompleteEmailVerification(firebaseIdToken) {

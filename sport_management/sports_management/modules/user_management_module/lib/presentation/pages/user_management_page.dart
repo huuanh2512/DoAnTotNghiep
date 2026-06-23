@@ -792,7 +792,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       ScaffoldMessenger.of(this.context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Đã gửi email đặt mật khẩu Firebase cho người dùng mới.',
+                            'Đã gửi lời mời tạo tài khoản. Người dùng cần đặt mật khẩu qua email, sau đó đăng nhập và xác thực email để kích hoạt tài khoản.',
                           ),
                         ),
                       );
@@ -800,9 +800,17 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   } catch (_) {
                     if (mounted) {
                       ScaffoldMessenger.of(this.context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Tài khoản đã được tạo, nhưng chưa gửi được email đặt mật khẩu. Hãy thử gửi lại từ màn hình Quên mật khẩu.',
+                            'Tài khoản đã được provision nhưng chưa gửi được email đặt mật khẩu.',
+                          ),
+                          action: SnackBarAction(
+                            label: 'Gửi lại email đặt mật khẩu',
+                            onPressed: () {
+                              FirebaseEmailAuthFlow.sendPasswordReset(
+                                emailController.text,
+                              );
+                            },
                           ),
                         ),
                       );

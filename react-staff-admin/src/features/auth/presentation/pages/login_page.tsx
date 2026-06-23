@@ -150,7 +150,7 @@ const LoginPage: React.FC = () => {
 
         {verificationEmail ? (
           <Form layout="vertical" onFinish={verifyEmail} requiredMark={false}>
-            <Alert type="info" showIcon className="mb-4" message={`Mở liên kết Sport Energy đã gửi đến ${verificationEmail}, sau đó quay lại đây.`} />
+            <Alert type="info" showIcon className="mb-4" message={`Bước 2/2: Kiểm tra email và nhấn liên kết xác thực để kích hoạt tài khoản. Mở liên kết Sport Energy đã gửi đến ${verificationEmail}, sau đó quay lại đây.`} />
             <Button type="primary" htmlType="submit" block loading={otpLoading}>Tôi đã xác thực</Button>
             <Button type="link" block loading={otpLoading} onClick={resendVerification}>Gửi lại liên kết</Button>
             <Button type="text" block onClick={() => setVerificationEmail(null)}>Quay lại đăng nhập</Button>

@@ -4,9 +4,11 @@ import { UserOutlined, UserAddOutlined, LockOutlined, UnlockOutlined } from '@an
 import { authStorage, UserSession } from '../../../../core/utils/auth_storage';
 import { MockFacility } from '../../../../core/network/mock_db';
 import { apiClient } from '../../../../core/network/api_client';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { firebaseAuth } from '../../../../core/firebase/firebase_auth';
 
 const { Title, Text } = Typography;
-type CreatableRole = 'CUSTOMER' | 'STAFF' | 'ADMIN';
+type CreatableRole = 'STAFF' | 'ADMIN';
 
 const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserSession[]>([]);
@@ -69,46 +71,22 @@ const AdminUsersPage: React.FC = () => {
   };
 
   const handleCreateAccount = async (values: any) => {
-    const role: CreatableRole = values.role || 'CUSTOMER';
+    const role: CreatableRole = values.role || 'STAFF';
 
     setRegistering(true);
     try {
-      // Step 1: POST /auth/register (mật khẩu mặc định 123456)
-      const regResponse = await apiClient.post('/auth/register', {
+      await apiClient.post('/user/provision-firebase', {
         email: values.email,
-        password: '123456',
-        fullName: values.fullName,
-        phone: values.phone,
+        profile: { name: values.fullName, phone: values.phone },
         role,
         facilityId: role === 'STAFF' ? values.facilityId : undefined
       });
-      const newUserId = regResponse.data.userId || regResponse.data.data?.userId || regResponse.data.user?._id || regResponse.data.user?.id;
-      if (!newUserId) {
-        throw new Error('Không lấy được ID tài khoản vừa tạo');
+      try {
+        await sendPasswordResetEmail(firebaseAuth, values.email.trim().toLowerCase());
+        message.success('Đã gửi lời mời tạo tài khoản. Người dùng cần đặt mật khẩu qua email, sau đó đăng nhập và xác thực email để kích hoạt tài khoản.');
+      } catch (_) {
+        message.warning('Tài khoản đã được provision nhưng chưa gửi được email đặt mật khẩu. Hãy dùng nút gửi lại email.');
       }
-
-      // Step 2: Cập nhật thông tin profile (fullName, phone)
-      await apiClient.put(`/user/${newUserId}`, {
-        profile: {
-          fullName: values.fullName,
-          phone: values.phone
-        }
-      });
-
-      // Step 2.5: Kích hoạt trạng thái tài khoản thành ACTIVE
-      await apiClient.put(`/user/${newUserId}/status`, { status: 'ACTIVE' });
-
-      // Step 3: Gán quyền theo lựa chọn
-      if (role !== 'CUSTOMER') {
-        await apiClient.put(`/user/${newUserId}/role`, { role });
-      }
-
-      // Step 4: Chỉ STAFF mới cần cơ sở làm việc
-      if (role === 'STAFF') {
-        await apiClient.post(`/user/${newUserId}/assign-facility`, { facilityId: values.facilityId });
-      }
-
-      message.success('Tạo tài khoản thành công! Mật khẩu mặc định: 123456');
       setIsModalOpen(false);
       form.resetFields();
       loadData();
@@ -116,6 +94,15 @@ const AdminUsersPage: React.FC = () => {
       message.error(e.response?.data?.message || 'Có lỗi xảy ra khi tạo tài khoản');
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const resendInvitation = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(firebaseAuth, email.trim().toLowerCase());
+      message.success('Đã gửi lại email đặt mật khẩu Firebase.');
+    } catch (_) {
+      message.error('Không thể gửi lại email đặt mật khẩu.');
     }
   };
 
@@ -199,8 +186,8 @@ const AdminUsersPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: UserSession['status']) => (
-        <Tag color={status === 'ACTIVE' ? 'success' : 'error'} className="border-none font-semibold px-2 py-0.5 rounded">
-          {status === 'ACTIVE' ? 'Kích hoạt' : 'Bị khóa'}
+        <Tag color={status === 'ACTIVE' ? 'success' : status === 'PENDING_EMAIL' ? 'processing' : status === 'INACTIVE' ? 'default' : 'error'} className="border-none font-semibold px-2 py-0.5 rounded">
+          {status === 'ACTIVE' ? 'Kích hoạt' : status === 'PENDING_EMAIL' ? 'Chờ xác thực email' : status === 'INACTIVE' ? 'Tạm khóa' : 'Bị khóa'}
         </Tag>
       )
     },
@@ -211,7 +198,7 @@ const AdminUsersPage: React.FC = () => {
         const userId = record.id || record._id || '';
         const currentUserId = authStorage.getUser()?._id || authStorage.getUser()?.id || '';
         if (userId === currentUserId) return null; // Cannot lock oneself
-        return (
+        return (<>
           <Button
             type="text"
             danger={record.status === 'ACTIVE'}
@@ -220,7 +207,8 @@ const AdminUsersPage: React.FC = () => {
             className={`rounded-md ${record.status === 'ACTIVE' ? 'hover:bg-red-50 dark:hover:bg-red-950/20' : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
             title={record.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
           />
-        );
+          {record.status === 'PENDING_EMAIL' && <Button type="link" onClick={() => resendInvitation(record.email)}>Gửi lại lời mời</Button>}
+        </>);
       }
     }
   ];
@@ -295,7 +283,6 @@ const AdminUsersPage: React.FC = () => {
                 }
               }}
             >
-              <Select.Option value="CUSTOMER">Khách hàng</Select.Option>
               <Select.Option value="STAFF">Nhân viên cơ sở</Select.Option>
               <Select.Option value="ADMIN">Quản trị viên</Select.Option>
             </Select>
@@ -349,7 +336,7 @@ const AdminUsersPage: React.FC = () => {
 
           <Card className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-md p-1 mb-6">
             <span className="text-xs text-amber-700 dark:text-amber-400 block leading-normal">
-              * Hệ thống sẽ tạo mật khẩu mặc định là <strong>123456</strong>. Người dùng có thể đổi mật khẩu sau khi đăng nhập.
+              * Hệ thống không tạo mật khẩu mặc định. Người dùng nhận email để đặt mật khẩu, sau đó phải đăng nhập và xác thực email để kích hoạt tài khoản.
             </span>
           </Card>
 
