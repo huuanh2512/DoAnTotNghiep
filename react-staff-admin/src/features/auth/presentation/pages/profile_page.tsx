@@ -230,7 +230,7 @@ const ProfilePage: React.FC = () => {
     setSavingPassword(true);
     try {
       const currentUser = firebaseAuth.currentUser;
-      if (!currentUser?.email) throw new Error('Firebase session expired');
+      if (!currentUser?.email) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       await reauthenticateWithCredential(currentUser, EmailAuthProvider.credential(currentUser.email, values.currentPassword));
       await updatePassword(currentUser, values.newPassword);
       message.success('Đổi mật khẩu thành công.');

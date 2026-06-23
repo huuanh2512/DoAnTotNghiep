@@ -115,17 +115,15 @@ class UserManagementCubit extends Cubit<UserManagementState> {
       );
       if (!response.success) {
         emit(
-          UserManagementError(
-            response.message ?? 'Không thể tạo tài khoản Firebase.',
-          ),
+          UserManagementError(response.message ?? 'Không thể tạo tài khoản.'),
         );
         return false;
       }
-      emit(const UserManagementSuccess('Đã tạo tài khoản Firebase.'));
+      emit(const UserManagementSuccess('Đã tạo tài khoản.'));
       await loadUsers();
       return true;
     } catch (error) {
-      emit(UserManagementError('Không thể tạo tài khoản Firebase: $error'));
+      emit(UserManagementError('Không thể tạo tài khoản: $error'));
       return false;
     }
   }

@@ -666,7 +666,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Người dùng sẽ nhận email Firebase để tự đặt mật khẩu.',
+                    'Người dùng sẽ nhận email để tự thiết lập mật khẩu.',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
@@ -792,7 +792,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       ScaffoldMessenger.of(this.context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Đã gửi lời mời tạo tài khoản. Người dùng cần đặt mật khẩu qua email, sau đó đăng nhập và xác thực email để kích hoạt tài khoản.',
+                            'Đã gửi lời mời tạo tài khoản. Người dùng cần thiết lập mật khẩu qua email, sau đó đăng nhập và xác nhận email để kích hoạt tài khoản.',
                           ),
                         ),
                       );
@@ -802,10 +802,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       ScaffoldMessenger.of(this.context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Tài khoản đã được provision nhưng chưa gửi được email đặt mật khẩu.',
+                            'Tài khoản đã được tạo nhưng chưa gửi được email thiết lập mật khẩu.',
                           ),
                           action: SnackBarAction(
-                            label: 'Gửi lại email đặt mật khẩu',
+                            label: 'Gửi lại email',
                             onPressed: () {
                               FirebaseEmailAuthFlow.sendPasswordReset(
                                 emailController.text,

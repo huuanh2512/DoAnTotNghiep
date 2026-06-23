@@ -42,9 +42,9 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
         newPassword: _newPassword.text,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đổi mật khẩu Firebase thành công.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công.')));
       Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {
@@ -88,8 +88,8 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
               const SizedBox(height: 8),
               Text(
                 context.tr(
-                  vi: 'Xác nhận mật khẩu hiện tại để đổi mật khẩu Firebase.',
-                  en: 'Confirm your current password to change your Firebase password.',
+                  vi: 'Xác nhận mật khẩu hiện tại để đổi mật khẩu.',
+                  en: 'Confirm your current password to change your password.',
                 ),
               ),
               const SizedBox(height: 20),

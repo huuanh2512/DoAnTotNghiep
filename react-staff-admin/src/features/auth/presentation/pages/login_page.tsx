@@ -100,7 +100,7 @@ const LoginPage: React.FC = () => {
       const user = firebaseAuth.currentUser;
       if (!user) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       await sendEmailVerification(user);
-      message.success('Đã gửi lại liên kết xác thực Firebase.');
+      message.success('Đã gửi lại liên kết xác nhận email.');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Không thể gửi lại mã xác thực.');
     } finally {

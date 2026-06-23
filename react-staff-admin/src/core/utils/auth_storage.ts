@@ -8,7 +8,9 @@ export interface UserSession {
   id?: string;
   email: string;
   role: 'ADMIN' | 'SUPER_ADMIN' | 'STAFF' | 'CUSTOMER';
-  status: 'ACTIVE' | 'INACTIVE';
+  // Keep this aligned with the user-status enum returned by the API. The
+  // admin user list also displays accounts that have not verified email yet.
+  status: 'PENDING_OTP' | 'PENDING_EMAIL' | 'ACTIVE' | 'INACTIVE' | 'BANNED';
   profile?: {
     fullName?: string;
     phone?: string;

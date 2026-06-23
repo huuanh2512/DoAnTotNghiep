@@ -83,9 +83,9 @@ const AdminUsersPage: React.FC = () => {
       });
       try {
         await sendPasswordResetEmail(firebaseAuth, values.email.trim().toLowerCase());
-        message.success('Đã gửi lời mời tạo tài khoản. Người dùng cần đặt mật khẩu qua email, sau đó đăng nhập và xác thực email để kích hoạt tài khoản.');
+        message.success('Đã gửi lời mời tạo tài khoản. Người dùng cần thiết lập mật khẩu qua email, sau đó đăng nhập và xác nhận email để kích hoạt tài khoản.');
       } catch (_) {
-        message.warning('Tài khoản đã được provision nhưng chưa gửi được email đặt mật khẩu. Hãy dùng nút gửi lại email.');
+        message.warning('Tài khoản đã được tạo nhưng chưa gửi được email thiết lập mật khẩu. Hãy dùng nút gửi lại email.');
       }
       setIsModalOpen(false);
       form.resetFields();
@@ -100,9 +100,9 @@ const AdminUsersPage: React.FC = () => {
   const resendInvitation = async (email: string) => {
     try {
       await sendPasswordResetEmail(firebaseAuth, email.trim().toLowerCase());
-      message.success('Đã gửi lại email đặt mật khẩu Firebase.');
+      message.success('Đã gửi lại email thiết lập mật khẩu.');
     } catch (_) {
-      message.error('Không thể gửi lại email đặt mật khẩu.');
+      message.error('Không thể gửi lại email thiết lập mật khẩu.');
     }
   };
 
