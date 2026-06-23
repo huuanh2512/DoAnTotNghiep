@@ -7,7 +7,14 @@ abstract class MatchQueueEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadQueueStatusEvent extends MatchQueueEvent {}
+class LoadQueueStatusEvent extends MatchQueueEvent {
+  final bool silent;
+
+  const LoadQueueStatusEvent({this.silent = false});
+
+  @override
+  List<Object?> get props => [silent];
+}
 
 class JoinQueueEvent extends MatchQueueEvent {
   final Map<String, dynamic> data;

@@ -36,7 +36,10 @@ class _AutoMatchingLobbyPageState extends State<AutoMatchingLobbyPage> {
   String _paymentPolicy = 'SPLIT_EQUALLY';
 
   Timer? _timer;
+  Timer? _queueStatusTimer;
   int _elapsedSeconds = 0;
+  bool _isPollingRequestInFlight = false;
+  bool _wasSearching = false;
 
   @override
   void initState() {
@@ -47,7 +50,7 @@ class _AutoMatchingLobbyPageState extends State<AutoMatchingLobbyPage> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _stopSearching();
     super.dispose();
   }
 
@@ -86,6 +89,31 @@ class _AutoMatchingLobbyPageState extends State<AutoMatchingLobbyPage> {
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
+  }
+
+  void _startQueueStatusPolling() {
+    if (_queueStatusTimer != null) return;
+    _queueStatusTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || _isPollingRequestInFlight) return;
+      _isPollingRequestInFlight = true;
+      context.read<MatchQueueBloc>().add(LoadQueueStatusEvent(silent: true));
+    });
+  }
+
+  void _stopQueueStatusPolling() {
+    _queueStatusTimer?.cancel();
+    _queueStatusTimer = null;
+    _isPollingRequestInFlight = false;
+  }
+
+  void _stopSearching() {
+    _stopTimer();
+    _stopQueueStatusPolling();
+  }
+
+  void _leaveQueue() {
+    _stopSearching();
+    context.read<MatchQueueBloc>().add(LeaveQueueEvent());
   }
 
   String _formatDuration(int totalSeconds) {
@@ -199,19 +227,47 @@ class _AutoMatchingLobbyPageState extends State<AutoMatchingLobbyPage> {
       body: BlocConsumer<MatchQueueBloc, MatchQueueState>(
         listener: (context, state) {
           if (state is MatchQueueSearchingState) {
-            if (_timer == null) {
-              _startTimer();
+            _isPollingRequestInFlight = false;
+            if (state.queue.status == 'SEARCHING') {
+              _wasSearching = true;
+              if (_timer == null) {
+                _startTimer();
+              }
+              _startQueueStatusPolling();
+            } else {
+              _stopSearching();
             }
-          } else {
-            _stopTimer();
-          }
-          if (state is MatchQueueErrorState) {
+          } else if (state is MatchQueueIdleState) {
+            final hadActiveQueue = _wasSearching;
+            _wasSearching = false;
+            _stopSearching();
+            if (hadActiveQueue) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    context.tr(
+                      vi: 'Yêu cầu ghép trận đã kết thúc. Bạn có thể đăng ký lại.',
+                      en: 'This matchmaking request has ended. You can join again.',
+                    ),
+                  ),
+                ),
+              );
+            }
+          } else if (state is MatchQueueErrorState) {
+            _wasSearching = false;
+            _stopSearching();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.errorMessage),
                 backgroundColor: Colors.red,
               ),
             );
+          } else if (state is MatchQueueLoadingState) {
+            // Keep current timers alive while an explicit action or a silent
+            // polling request is in flight.
+          } else {
+            _wasSearching = false;
+            _stopSearching();
           }
         },
         builder: (context, state) {
@@ -358,7 +414,7 @@ class _AutoMatchingLobbyPageState extends State<AutoMatchingLobbyPage> {
                 ),
               ),
               onPressed: () {
-                context.read<MatchQueueBloc>().add(LeaveQueueEvent());
+                _leaveQueue();
               },
               child: Text(
                 context.tr(vi: 'HỦY TÌM KIẾM', en: 'CANCEL SEARCH'),

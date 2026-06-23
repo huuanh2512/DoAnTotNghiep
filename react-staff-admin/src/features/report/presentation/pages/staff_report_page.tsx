@@ -219,13 +219,12 @@ const StaffReportPage: React.FC = () => {
     setLoading(true);
     setFallbackReason('');
     try {
-      const response = await reportApi.getAdvancedPerformanceReport({
+      const response = await reportApi.getCourtPerformanceReport({
         facilityId,
         courtId,
         sportId,
         dateFrom: range[0].format('YYYY-MM-DD'),
         dateTo: range[1].format('YYYY-MM-DD'),
-        include: 'summary,courtStats,sportStats,dailyStats,peakHours,customerStats',
       });
       setReport(response);
     } catch (error: any) {
@@ -498,9 +497,9 @@ const StaffReportPage: React.FC = () => {
       </Row>
 
       <Row gutter={[24, 24]}>
-        <Col xs={24} sm={6}><Card><Statistic title="Payment success" value={formatVND(report.summary.paidRevenue)} /></Card></Col>
-        <Col xs={24} sm={6}><Card><Statistic title="Payment pending" value={formatVND(report.summary.pendingRevenue)} /></Card></Col>
-        <Col xs={24} sm={6}><Card><Statistic title="Refund pending" value={formatVND(report.summary.refundPendingAmount)} /></Card></Col>
+        <Col xs={24} sm={6}><Card><Statistic title="Thanh toán thành công" value={formatVND(report.summary.paidRevenue)} /></Card></Col>
+        <Col xs={24} sm={6}><Card><Statistic title="Thanh toán đang chờ" value={formatVND(report.summary.pendingRevenue)} /></Card></Col>
+        <Col xs={24} sm={6}><Card><Statistic title="Hoàn tiền đang chờ" value={formatVND(report.summary.refundPendingAmount)} /></Card></Col>
         <Col xs={24} sm={6}><Card><Statistic title="Tỷ lệ sử dụng" value={percentText(report.summary.utilizationRate)} /></Card></Col>
       </Row>
 

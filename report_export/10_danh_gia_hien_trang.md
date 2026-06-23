@@ -1,119 +1,187 @@
-# 10. ĐÁNH GIÁ HIỆN TRẠNG HOÀN THIỆN
+# 11. ĐÁNH GIÁ HIỆN TRẠNG VÀ KIẾN NGHỊ
 
-## 11.1 Bảng mức độ hoàn thiện chức năng
+## 11.1 Đánh giá hoàn thành theo chức năng
 
-| Chức năng | Backend | Flutter | React Web | Mức độ | Ghi chú |
-|-----------|---------|---------|-----------|--------|---------|
-| **Đăng ký / Đăng nhập** | ✅ | ✅ | ✅ | Hoàn thành | OTP email, JWT đầy đủ |
-| **Quên mật khẩu / Reset** | ✅ | ✅ | - | Hoàn thành (Mobile) | Web không có trang riêng |
-| **Đổi mật khẩu** | ✅ | ✅ | ✅ (Profile) | Hoàn thành | |
-| **Xem / Cập nhật hồ sơ** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Upload ảnh (Cloudinary)** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Quản lý User (Admin)** | ✅ | - | ✅ | Hoàn thành (Web) | Mobile chỉ xem hồ sơ cá nhân |
-| **Phân quyền Role/Status** | ✅ | - | ✅ | Hoàn thành (Web) | |
-| **Quản lý Facility** | ✅ | ✅ (xem) | ✅ (CRUD) | Hoàn thành | Mobile chỉ xem |
-| **Quản lý Sport** | ✅ | ✅ (xem) | ✅ (CRUD) | Hoàn thành | |
-| **Quản lý Court** | ✅ | ✅ (xem slot) | ✅ (CRUD) | Hoàn thành | |
-| **Cấu hình Slot giờ** | ✅ | ✅ (xem) | ✅ (cập nhật) | Hoàn thành | |
-| **Court Block (khóa sân)** | ✅ | - | ⚠️ Không có trang | Một phần | Chỉ có API backend |
-| **Đặt sân** | ✅ | ✅ | - | Hoàn thành | Mobile là chính |
-| **Kiểm tra xung đột** | ✅ | ✅ (tự động) | - | Hoàn thành | |
-| **Tính giá booking** | ✅ | ✅ | - | Hoàn thành | |
-| **Duyệt / Hủy booking** | ✅ | ✅ (hủy) | ✅ (duyệt+hủy) | Hoàn thành | |
-| **Auto cancel booking** | ✅ (Cron) | - | - | Hoàn thành | |
-| **Auto complete booking** | ✅ (Cron) | - | - | Hoàn thành | |
-| **Lịch sử booking** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Hóa đơn / Payment** | ✅ | ✅ | ✅ (Cashier) | Hoàn thành | |
-| **Thanh toán ZaloPay** | ✅ | ✅ | - | Hoàn thành | Mobile là chính |
-| **Thanh toán tiền mặt** | ✅ | - | ✅ (Cashier) | Hoàn thành | Web Staff |
-| **Hoàn tiền (Refund)** | ⚠️ (cấu trúc có) | - | - | Chưa triển khai đầy đủ | Chỉ có fields trong model |
-| **MOMO / VNPAY** | ⚠️ (enum có) | - | - | Chưa triển khai | Chỉ có trong enum method |
-| **Lịch cố định (tạo)** | ✅ | ⚠️ Chưa thấy trang | ✅ (xem+duyệt) | Một phần | Cần trang tạo trên Flutter |
-| **Duyệt lịch cố định** | ✅ | - | ✅ | Hoàn thành (Web) | |
-| **Sinh booking từ lịch** | ✅ (Cron) | - | - | Hoàn thành | |
-| **Hủy một buổi** | ✅ | ⚠️ | ✅ | Một phần (Flutter chưa rõ) | |
-| **Tạm dừng / Tiếp tục** | ✅ | ⚠️ | ✅ | Một phần | |
-| **Ghép trận thủ công** | ✅ | ✅ | ✅ (xem) | Hoàn thành | |
-| **Ghép trận tự động** | ✅ (Cron) | ✅ (lobby) | - | Hoàn thành | |
-| **TEAM_VS_TEAM mode** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Join/Leave session** | ✅ | ✅ | - | Hoàn thành | |
-| **Duyệt/Từ chối member** | ✅ | ✅ | - | Hoàn thành | |
-| **Fixed Matching Join** | ✅ | ⚠️ | - | Một phần | |
-| **Thông báo in-app** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Socket.IO real-time** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Push FCM** | ✅ (cần key) | ✅ | - | Hoàn thành (cần config) | Cần serviceAccountKey.json thật |
-| **Đánh giá (Review)** | ✅ | ✅ | ✅ | Hoàn thành | |
-| **Báo cáo Staff** | ✅ | - | ✅ | Hoàn thành | |
-| **Báo cáo Admin** | ✅ | - | ✅ (biểu đồ) | Hoàn thành | |
+### Tổng quan
+
+| Nhóm chức năng | Mức độ hoàn thiện | Ghi chú |
+|---------------|-----------------|---------|
+| Tài khoản & Phân quyền | ✅ Hoàn thiện (95%) | Thiếu: khóa sau N lần sai mật khẩu (rate limit) |
+| Quản lý cơ sở/sân/môn | ✅ Hoàn thiện (95%) | Đầy đủ CRUD, phân quyền rõ ràng |
+| Đặt sân | ✅ Hoàn thiện (90%) | Conflict check ổn, thiếu: booking cho nhiều sân liên tiếp |
+| Lịch cố định | ✅ Hoàn thiện (85%) | Sinh booking tự động ổn, exception date ổn; rủi ro cron sleep |
+| Ghép trận (Manual) | ✅ Hoàn thiện (85%) | Tạo/tham gia/duyệt ổn; payment policy chưa tự động |
+| Ghép trận (Auto Queue) | ✅ Hoàn thiện (75%) | Algorithm cơ bản ổn; chưa test kỹ edge cases |
+| Thanh toán CASH | ✅ Hoàn thiện (90%) | Đầy đủ flow |
+| Thanh toán ZaloPay | ⚠️ Một phần (70%) | Sandbox, chưa production; callback cần HTTPS |
+| Hoàn tiền (Refund) | ❌ Chưa đầy đủ (20%) | Có enum + field, chưa có flow tự động |
+| Thông báo Socket.IO | ✅ Hoàn thiện (90%) | Realtime ổn; thiếu: sticky session khi scale |
+| Push Notification FCM | ⚠️ Một phần (60%) | Code có, cần serviceAccountKey production |
+| Báo cáo | ✅ Hoàn thiện (85%) | Các chỉ số cơ bản đủ cho đồ án |
+| Web Admin | ✅ Hoàn thiện (90%) | Đầy đủ chức năng ADMIN + STAFF |
+| Review | ⚠️ Một phần (60%) | API đầy đủ, UI mobile chưa rõ flow đầy đủ |
+| Block sân/Bảo trì | ✅ Hoàn thiện (85%) | CRUD đủ, tích hợp vào slot config |
+
+### Chi tiết chức năng theo mức độ
+
+**✅ Hoàn thiện — Đủ để demo/đồ án**:
+- Đăng ký + xác thực email OTP
+- Đăng nhập JWT + Firebase (Google)
+- Refresh token
+- CRUD Facility, Sport, Court, Slot Config
+- Booking (tạo, duyệt, hủy, xem lịch sử)
+- Auto cancel/complete booking
+- Lịch cố định (tạo, duyệt, từ chối, tạm dừng, sinh booking tự động)
+- Hủy một buổi lịch cố định
+- Manual matching session (tạo, join, leave, duyệt member)
+- Matching phòng tự động (queue + cron matchmaker)
+- Thanh toán tiền mặt (STAFF)
+- ZaloPay Sandbox (tạo order, WebView, callback)
+- Socket.IO realtime notification
+- Báo cáo court performance + advanced
+- Web Admin (đầy đủ theo yêu cầu)
+- Court Block/Maintenance
+
+**⚠️ Một phần — Cần bổ sung để production**:
+- FCM Push Notification (cần serviceAccountKey production)
+- ZaloPay Production (cần merchant credentials thật)
+- Auto Refund (có model, chưa có flow)
+- Review UI (có API, UI mobile chưa đầy đủ)
+- Lịch matching cố định (join/leave matching cho fixed schedule)
+- Rate limiting API
+- App Store / Play Store publishing
+
+**❌ Chưa có — Cần phát triển thêm**:
+- Thanh toán VNPay, MoMo (có enum, chưa có service)
+- Web Customer portal
+- Multi-language (chỉ tiếng Việt)
+- Loyalty points / voucher
+- Chat/messaging giữa users
+- Admin analytics nâng cao (predictive)
+- iOS production deployment
 
 ---
 
 ## 11.2 Điểm mạnh của hệ thống
 
-### 1. Đa nền tảng và phân vai trò rõ ràng
-Hệ thống phục vụ đồng thời ba đối tượng người dùng (CUSTOMER, STAFF, ADMIN) trên hai nền tảng riêng biệt (Android App và Web Admin). Mỗi vai trò có giao diện và quyền hạn được kiểm soát nghiêm ngặt thông qua JWT + role-based middleware.
+### Kiến trúc
 
-### 2. Kiến trúc Backend tách lớp rõ ràng
-Backend tuân theo mô hình **Route → Controller → Service → Repository → Model**, giúp dễ bảo trì và kiểm thử từng lớp độc lập. Các service file lớn (booking.service.js ~34KB, matching.service.js ~70KB, fixed-schedule.service.js ~78KB) cho thấy logic nghiệp vụ phong phú và chi tiết.
+1. **Phân lớp rõ ràng**: Controller → Service → Repository → Model. Dễ mở rộng, dễ test từng lớp độc lập
+2. **Modular Flutter**: Mỗi feature là module độc lập, có thể test và deploy riêng
+3. **Clean Architecture trong Flutter**: Có domain/data/presentation tách biệt, dùng DI (get_it)
+4. **Feature-based React**: Mỗi feature tự chứa data/domain/presentation, dễ maintain
 
-### 3. Kiểm tra xung đột lịch đặt sân
-Hệ thống sử dụng kết hợp **unique index MongoDB** và **query kiểm tra overlap** để đảm bảo không có hai booking trùng lịch. Đây là yêu cầu nghiệp vụ cốt lõi và được xử lý chắc chắn.
+### Tính năng
 
-### 4. Cron Jobs tự động hóa
-4 cron jobs chạy tự động (auto cancel, auto complete, matchmaker, fixed scheduler) giảm tải thủ công cho STAFF và đảm bảo dữ liệu luôn nhất quán.
+5. **Tự động hóa**: 4 cron jobs chạy nền, giảm thiểu can thiệp thủ công của admin
+6. **Ghép trận linh hoạt**: Hỗ trợ cả manual (host tạo phòng) và auto queue (AI ghép tự động) — đây là tính năng **độc đáo** của hệ thống
+7. **Lịch cố định thông minh**: Sinh booking tự động theo lịch, xử lý exception dates, tạm dừng/tiếp tục
+8. **Đa thanh toán**: CASH + ZaloPay, có thể mở rộng thêm VNPay/MoMo
+9. **Realtime**: Socket.IO + FCM đảm bảo notification tức thời
+10. **Team mode phong phú**: INDIVIDUAL, TEAM_FILL, TEAM_VS_TEAM với payment policy tùy chọn
 
-### 5. Ghép trận đa chế độ
-Hệ thống ghép trận hỗ trợ 3 chế độ đội (INDIVIDUAL, TEAM_FILL, TEAM_VS_TEAM), 3 chính sách thanh toán, cả ghép thủ công lẫn tự động – đây là điểm khác biệt nổi bật so với các hệ thống booking sân thông thường.
+### Kỹ thuật
 
-### 6. Real-time với Socket.IO
-Thông báo tức thì qua Socket.IO với phân chia rooms thông minh (per-user, staff-room, admin-room, matching-room) giúp trải nghiệm người dùng mượt mà và không cần polling liên tục.
+11. **Index tối ưu**: Compound + partial index cho các query phổ biến
+12. **Conflict detection đa lớp**: Kiểm tra booking conflict, court block conflict trước khi tạo
+13. **Guard trong cron**: `isRunning` flag tránh chạy đồng thời
+14. **Startup scan**: fixedScheduler chạy lại khi server khởi động, giảm thiểu bỏ lịch
+15. **Health check endpoint**: Monitor cron status, server uptime
 
-### 7. Tích hợp ZaloPay thật
-Thanh toán qua ZaloPay với webhook callback và HMAC xác thực là điểm mạnh vượt trội so với các đồ án chỉ mock thanh toán.
+### Bảo mật
 
-### 8. Flutter kiến trúc module hóa
-Dự án Flutter được tổ chức thành 11 module độc lập với Clean Architecture (Domain/Data/Presentation), BLoC/Cubit state management, GoRouter navigation và get_it DI – thể hiện quy trình phát triển chuyên nghiệp.
-
-### 9. Lịch cố định với cơ chế self-healing
-Cron Fixed Scheduler có cơ chế tự phục hồi: chạy ngay khi server khởi động và quét từ hôm nay đến 7 ngày tới để bù lịch bị bỏ qua khi server bị gián đoạn.
-
----
-
-## 11.3 Hạn chế hiện tại
-
-| STT | Hạn chế | Chi tiết |
-|-----|---------|---------|
-| 1 | **Thanh toán thật (MOMO, VNPAY)** | Chỉ ZaloPay và CASH có luồng đầy đủ. MOMO, VNPAY có trong enum nhưng chưa tích hợp logic |
-| 2 | **Hoàn tiền tự động** | Chỉ có trường `refunded_at`, `refunded_by` trong model. Không có luồng hoàn tiền tự động qua ZaloPay |
-| 3 | **FCM Production** | Cần file `serviceAccountKey.json` thật từ Firebase Console. Template có sẵn nhưng cần điền thông tin |
-| 4 | **SUPER_ADMIN** | Xuất hiện trong `court-blocks.routes.js` nhưng không có trong `user.model.js` enum → có thể gây lỗi logic |
-| 5 | **Trang tạo lịch cố định (Flutter)** | Chưa thấy màn hình tạo FixedSchedule từ phía Mobile. CUSTOMER hiện không tạo được lịch cố định từ app |
-| 6 | **Server sleep (Render Free Tier)** | Cron jobs phụ thuộc server không ngủ. Render Free Tier sleep sau 15 phút → cần UptimeRobot |
-| 7 | **iOS** | Chưa được đề cập/kiểm thử. Flutter hỗ trợ iOS nhưng cần config thêm |
-| 8 | **Web Customer** | Không có web cho CUSTOMER. Chỉ Mobile. |
-| 9 | **Load test / Performance test** | Chưa có unit test, integration test, hay load test |
-| 10 | **Court Block trên Web** | Có API backend nhưng Web Admin chưa có trang quản lý Court Block |
-| 11 | **Logging chuyên nghiệp** | Hiện chỉ dùng `console.log/error`. Chưa có Winston, Morgan, Sentry... |
-| 12 | **Docker / CI-CD** | Chưa có Dockerfile, chưa có pipeline CI/CD |
+16. **bcrypt**: Hash mật khẩu đúng cách
+17. **JWT stateless**: Dễ scale, không cần server-side session
+18. **Secure storage Flutter**: Token lưu an toàn qua `flutter_secure_storage`
+19. **HMAC verification ZaloPay**: Không tin tưởng callback không có signature
+20. **OTP anti-brute force**: `emailVerificationAttempts`, `emailVerificationLockedUntil`
 
 ---
 
-## 11.4 Hướng phát triển
+## 11.3 Điểm yếu và hạn chế
 
-| STT | Hướng phát triển | Lợi ích |
-|-----|-----------------|---------|
-| 1 | **Tích hợp ZaloPay Refund API** | Hoàn tiền tự động khi hủy booking đã thanh toán |
-| 2 | **Tích hợp MOMO / VNPay** | Mở rộng lựa chọn thanh toán cho người dùng |
-| 3 | **iOS Support** | Mở rộng thị trường người dùng |
-| 4 | **Web Customer Portal** | Cho phép CUSTOMER đặt sân qua web thay vì chỉ mobile |
-| 5 | **Thuật toán ghép trận thông minh hơn** | Gợi ý đối thủ theo trình độ, lịch sử, khoảng cách địa lý |
-| 6 | **Báo cáo nâng cao** | Analytics khách hàng thường xuyên, dự báo lịch rảnh, heatmap sân |
-| 7 | **Docker + CI/CD** | Tự động hóa deploy, dễ dàng mở rộng |
-| 8 | **Logging chuyên nghiệp** | Winston + Morgan + Sentry cho monitoring production |
-| 9 | **Unit Test / Integration Test** | Jest cho backend, Flutter Test cho mobile |
-| 10 | **Redis Cache** | Cache danh sách sân, slot giờ để giảm query DB |
-| 11 | **Admin Mobile App** | App mobile cho STAFF quản lý nhanh trên điện thoại |
-| 12 | **Tích hợp Google Maps** | Hiển thị vị trí cơ sở, điều hướng đến nơi chơi |
-| 13 | **Rating & Recommendation** | Hệ thống gợi ý cơ sở và đối thủ dựa trên lịch sử |
-| 14 | **WebSocket cho Web Admin** | Cập nhật booking real-time trên màn hình Staff Overview |
-| 15 | **Multi-language** | Hỗ trợ tiếng Anh cho hệ thống |
+### Nghiệp vụ
+
+1. **Refund chưa tự động**: Khi booking bị hủy sau khi đã thanh toán ZaloPay, hoàn tiền phải làm thủ công qua ZaloPay dashboard
+2. **Payment policy matching chưa thực thi**: `SPLIT_EQUALLY` chỉ là thỏa thuận hiển thị, không có cơ chế thu tiền từ từng member
+3. **Không có system để xử lý dispute**: Nếu customer/staff có tranh chấp, không có luồng escalation
+4. **ZaloPay callback cần HTTPS**: Khi test localhost, ZaloPay không thể callback được
+
+### Kỹ thuật
+
+5. **Single-point cron**: node-cron chạy trên 1 server, không scale horizontal. Cần migrate sang Redis job queue (BullMQ) khi scale
+6. **Render free tier sleep**: Cron có thể miss nếu server sleep. Cần Render paid hoặc VPS
+7. **Không có transaction**: Nhiều operation không wrap trong MongoDB session transaction, có thể gây inconsistency khi có lỗi network giữa chừng (vd: booking tạo xong nhưng payment fail)
+8. **serviceAccountKey FCM**: Chưa có production key → push notification có thể không hoạt động hoàn toàn
+9. **Chưa có rate limiting**: API không giới hạn số request/phút, dễ bị abuse
+
+### Performance
+
+10. **N+1 query tiềm ẩn**: Một số query có thể fetch booking rồi loop populate, chưa dùng aggregation pipeline triệt để
+11. **In-memory socket state**: Socket.IO không dùng Redis adapter, không scale multi-instance
+12. **Chưa có pagination chuẩn**: Một số API query trả về nhiều document không có giới hạn
+
+### Trải nghiệm người dùng
+
+13. **Review flow chưa rõ**: Sau khi booking COMPLETED, không có reminder/prompt để user đánh giá sân
+14. **Không có tính năng bản đồ**: Không có map view để xem vị trí cơ sở
+15. **Không có chat**: User không thể nhắn tin với host hoặc với STAFF
+
+---
+
+## 11.4 Kiến nghị cải tiến
+
+### Ngắn hạn (1-3 tháng)
+
+| Kiến nghị | Mức độ ưu tiên | Mô tả |
+|-----------|---------------|-------|
+| Thêm rate limiting | 🔴 Cao | `express-rate-limit` cho auth endpoints (chống brute force login) |
+| ZaloPay production | 🔴 Cao | Liên hệ ZaloPay để lấy merchant credentials production |
+| MongoDB session transactions | 🔴 Cao | Wrap critical operations (booking + payment create) trong Mongoose session |
+| serviceAccountKey FCM | 🟡 Trung | Cấu hình Firebase Admin production để FCM hoạt động |
+| Pagination chuẩn | 🟡 Trung | Thêm `page`, `limit`, `total` cho tất cả list API |
+| Review prompt | 🟡 Trung | Sau booking COMPLETED, gửi notification mời đánh giá |
+| Refund flow | 🟡 Trung | Tạo flow hoàn tiền khi hủy booking đã thanh toán ZaloPay |
+
+### Trung hạn (3-6 tháng)
+
+| Kiến nghị | Mức độ ưu tiên | Mô tả |
+|-----------|---------------|-------|
+| Redis + BullMQ | 🟡 Trung | Thay node-cron bằng job queue để scale horizontal |
+| Socket.IO Redis adapter | 🟡 Trung | Hỗ trợ Socket.IO multi-instance |
+| VNPay integration | 🟡 Trung | Tích hợp thêm VNPay vào payment gateway |
+| Testing (unit + integration) | 🟡 Trung | Viết test cho booking service, matching service |
+| Play Store publishing | 🟡 Trung | Đưa APK lên Google Play |
+| Deep link complete | 🟡 Trung | Cấu hình đầy đủ deep link scheme trong Flutter |
+| Web Customer portal | 🟢 Thấp | Xây dựng web app cho CUSTOMER (hiện chỉ có mobile) |
+
+### Dài hạn (6-12 tháng)
+
+| Kiến nghị | Mức độ ưu tiên | Mô tả |
+|-----------|---------------|-------|
+| AI/ML matching | 🟢 Thấp | Cải thiện thuật toán ghép trận dựa trên lịch sử, kỹ năng |
+| Analytics nâng cao | 🟢 Thấp | Predictive analytics về demand, pricing dynamic |
+| iOS production | 🟢 Thấp | Deploy lên App Store |
+| Multi-tenant | 🟢 Thấp | Hỗ trợ nhiều khu liên hợp độc lập trên cùng platform |
+| Chat in-app | 🟢 Thấp | Nhắn tin giữa host và member trong matching |
+| Loyalty/Gamification | 🟢 Thấp | Tích điểm, voucher, rank cho user thường xuyên |
+| Map integration | 🟢 Thấp | Google Maps hiển thị vị trí cơ sở |
+
+---
+
+## 11.5 So sánh với yêu cầu đề tài
+
+| Yêu cầu đề tài | Mức độ đáp ứng | Ghi chú |
+|---------------|---------------|---------|
+| **Ứng dụng Android quản lý khu liên hợp thể thao** | ✅ Đầy đủ | Flutter Android APK, đầy đủ chức năng customer |
+| **Quản lý cơ sở, sân, môn thể thao** | ✅ Đầy đủ | CRUD hoàn chỉnh qua Web Admin + một phần Mobile |
+| **Đặt sân** | ✅ Đầy đủ | Online, slot real-time, conflict check |
+| **Lịch cố định** | ✅ Đầy đủ | DAILY/WEEKLY, auto generate, duyệt bởi staff |
+| **Tìm kiếm đối thủ (Matching)** | ✅ Đầy đủ | **Tính năng chủ đạo**: Manual + Auto Queue, team mode linh hoạt |
+| **Thanh toán** | ✅ Đủ cho demo | CASH + ZaloPay Sandbox |
+| **Thông báo** | ✅ Đầy đủ | Socket.IO realtime + FCM (cần config production) |
+| **Báo cáo/thống kê** | ✅ Đầy đủ | Doanh thu, hiệu suất sân, biểu đồ |
+| **Web quản trị** | ✅ Đầy đủ | React Web Admin cho ADMIN và STAFF |
+| **Phân quyền CUSTOMER/STAFF/ADMIN** | ✅ Đầy đủ | JWT + role-based middleware |
+
+**Kết luận**: Hệ thống đáp ứng đầy đủ yêu cầu của đề tài. Tính năng tìm kiếm đối thủ (Matching) — được hiện thực bằng cả cơ chế manual và auto queue với matchmaker algorithm — là điểm **nổi bật** và **khác biệt** so với các hệ thống quản lý sân thể thao thông thường.

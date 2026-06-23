@@ -1,6 +1,4 @@
 const cron = require('node-cron');
-const Sport = require('../models/sport.model');
-const Facility = require('../models/facility.model');
 const matchingService = require('../services/matching.service');
 const cronStatus = require('./cron-status');
 
@@ -23,6 +21,24 @@ const getVietnamDateString = (date = new Date()) => {
   return formatter.format(date);
 };
 
+const getSearchingQueueGroups = async (today) => {
+  const MatchQueue = require('../models/match-queue.model');
+  const queues = await MatchQueue.find({
+    status: 'SEARCHING',
+    booking_date: { $gte: today }
+  }).select('sport_id facility_id booking_date').lean();
+
+  const groups = new Map();
+  for (const queue of queues) {
+    const sportId = queue.sport_id?.toString();
+    const facilityId = queue.facility_id?.toString();
+    if (!sportId || !facilityId || !queue.booking_date) continue;
+    const key = `${sportId}:${facilityId}:${queue.booking_date}`;
+    groups.set(key, { sportId, facilityId, bookingDate: queue.booking_date });
+  }
+  return { queueCount: queues.length, groups: [...groups.values()] };
+};
+
 const runMatchmaker = async () => {
   if (isRunning) {
     console.warn('[CRON][MATCHMAKER] skipped because previous run is still running');
@@ -42,24 +58,29 @@ const runMatchmaker = async () => {
       `[Cron Matching Expiration] Cancelled ${expirationResult.cancelledSessionCount} sessions, expired ${expirationResult.expiredQueueCount} queues.`
     );
 
-    const [sports, facilities] = await Promise.all([
-      Sport.find({ active: true }),
-      Facility.find({ active: true })
-    ]);
-
     const today = getVietnamDateString();
+    const { queueCount, groups } = await getSearchingQueueGroups(today);
     let scannedGroups = 0;
     let matchedCount = 0;
+    let groupErrorCount = 0;
 
-    for (const sport of sports) {
-      for (const facility of facilities) {
-        scannedGroups += 1;
+    for (const group of groups) {
+      scannedGroups += 1;
+      try {
         const result = await matchingService.runMatchmakerAlgorithm(
-          sport._id.toString(),
-          facility._id.toString(),
-          today
+          group.sportId,
+          group.facilityId,
+          group.bookingDate
         );
         if (result?.matched) matchedCount += 1;
+      } catch (error) {
+        groupErrorCount += 1;
+        console.error('[CRON][MATCHMAKER] group failed', {
+          sportId: group.sportId,
+          facilityId: group.facilityId,
+          bookingDate: group.bookingDate,
+          message: error.message
+        });
       }
     }
 
@@ -67,8 +88,8 @@ const runMatchmaker = async () => {
     const summary = {
       scannedGroups,
       matchedCount,
-      activeSports: sports.length,
-      activeFacilities: facilities.length,
+      queueCount,
+      groupErrorCount,
       expiredQueueCount: expirationResult.expiredQueueCount,
       cancelledSessionCount: expirationResult.cancelledSessionCount,
       durationMs

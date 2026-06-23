@@ -339,8 +339,8 @@ const AdminOverviewPage: React.FC = () => {
       <Row gutter={[24, 24]}>
         <Col xs={24} sm={6}><Card><Statistic title="Hoàn tất" value={report.summary.completedBookings} /></Card></Col>
         <Col xs={24} sm={6}><Card><Statistic title="Đã hủy" value={report.summary.cancelledBookings} /></Card></Col>
-        <Col xs={24} sm={6}><Card><Statistic title="Payment success" value={formatVND(report.summary.paidRevenue)} /></Card></Col>
-        <Col xs={24} sm={6}><Card><Statistic title="Payment pending" value={formatVND(report.summary.pendingRevenue)} /></Card></Col>
+        <Col xs={24} sm={6}><Card><Statistic title="Thanh toán thành công" value={formatVND(report.summary.paidRevenue)} /></Card></Col>
+        <Col xs={24} sm={6}><Card><Statistic title="Thanh toán đang chờ" value={formatVND(report.summary.pendingRevenue)} /></Card></Col>
       </Row>
 
       <Row gutter={[24, 24]}>

@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+const normalizeFirebaseUid = (value) => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== 'string') return value;
+  const normalized = value.trim();
+  return normalized || undefined;
+};
+
 const userProfileSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -28,7 +35,9 @@ const userSchema = new mongoose.Schema({
     required: false,
     default: null
   },
-  firebaseUid: { type: String, unique: true, sparse: true, default: null },
+  // Firebase is optional for legacy/password accounts. Do not persist null or
+  // empty values: a partial unique index below only indexes real string UIDs.
+  firebaseUid: { type: String, set: normalizeFirebaseUid },
   role: {
     type: String,
     enum: ['CUSTOMER', 'STAFF', 'ADMIN'],
@@ -91,6 +100,15 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
+
+userSchema.index(
+  { firebaseUid: 1 },
+  {
+    name: 'firebaseUid_valid_unique',
+    unique: true,
+    partialFilterExpression: { firebaseUid: { $type: 'string' } }
+  }
+);
 
 const User = mongoose.model('User', userSchema);
 

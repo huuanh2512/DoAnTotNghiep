@@ -175,6 +175,7 @@ async function seed() {
       password: 'smoke-test-password',
       role: 'CUSTOMER',
       status: 'ACTIVE',
+      emailVerifiedAt: new Date(),
       profile: { name: `Smoke User ${i}`, phone: '', avatar_url: '' }
     }));
   }
@@ -228,7 +229,7 @@ async function joinSession(sessionId, token, body) {
 }
 
 async function getCalendarItem(token, bookingId) {
-  const response = await request('GET', '/bookings?limit=100', { token });
+  const response = await request('GET', '/booking?limit=100', { token });
   assert(response.status === 200, `booking calendar failed: ${response.status} ${JSON.stringify(response.body)}`);
   return response.body.items.find(item => item.id === bookingId.toString()) || null;
 }

@@ -2,205 +2,449 @@
 
 ## 8.1 Nghiệp vụ Đặt sân
 
-### Điều kiện để tạo booking thành công:
-1. **User đã đăng nhập** (JWT hợp lệ)
-2. **Court tồn tại và có status ACTIVE** – kiểm tra trong MongoDB
-3. **Không có CourtBlock trong khung giờ** – `court-block.service.js` kiểm tra
-4. **Không có booking trùng lịch** – `court-availability.service.js` kiểm tra:
-   - Query booking cùng `court_id`, `booking_date`, các booking có status PENDING hoặc CONFIRMED
-   - Kiểm tra overlap: `start_minutes < existing.end_minutes AND end_minutes > existing.start_minutes`
-5. **Slot hợp lệ** – trong phạm vi `opening_minutes` đến `closing_minutes` của Court
+**File chính**: `src/services/booking.service.js` (38KB), `src/services/court-availability.service.js`, `src/services/booking-price.service.js`
 
-### Tính giá:
-- `total_price = price_per_hour × (end_minutes - start_minutes) / 60`
-- File: `booking-price.service.js`
+### Điều kiện tạo booking
 
-### Trạng thái booking (vòng đời):
+1. **Người dùng**: Phải có JWT hợp lệ (đã đăng nhập)
+2. **Sân (Court)**: `status === 'ACTIVE'`
+3. **Thời gian hợp lệ**:
+   - `start_minutes < end_minutes`
+   - `booking_date` không phải quá khứ
+   - Trong khoảng `opening_minutes` đến `closing_minutes` của slot_config
+
+### Kiểm tra trùng lịch (Conflict Detection)
+
+Hệ thống kiểm tra theo thứ tự:
+
+**Kiểm tra 1 — Booking conflict**:
 ```
-PENDING → CONFIRMED → COMPLETED
-                ↘ CANCELLED (bởi user hoặc STAFF/ADMIN hoặc hệ thống)
-PENDING → CANCELLED (auto-cancel nếu quá hạn)
+Query: Booking có court_id = x, booking_date = ngày, 
+       status IN [PENDING, CONFIRMED, COMPLETED],
+       start_minutes < request.end_minutes, 
+       end_minutes > request.start_minutes
+→ Nếu có kết quả → SLOT_CONFLICT
 ```
 
-### Khi nào được hủy:
-- CUSTOMER chỉ hủy booking của chính mình, trạng thái PENDING hoặc CONFIRMED
-- STAFF/ADMIN hủy bất kỳ booking nào ở trạng thái PENDING hoặc CONFIRMED
+**Kiểm tra 2 — Court Block conflict**:
+```
+Query: CourtBlock có (court_id = x OR court_id null với facility_id),
+       status = ACTIVE,
+       start_time < datetime(date+end_minutes),
+       end_time > datetime(date+start_minutes)
+→ Nếu có kết quả → COURT_BLOCKED
+```
+
+**Kiểm tra 3 — Fixed Schedule conflict**:
+```
+Dựa trên booking đã sinh từ fixed schedule, 
+đã được kiểm tra trong Booking conflict ở trên
+```
+
+### Tính giá
+
+**Service**: `src/services/booking-price.service.js`
+
+```
+duration_minutes = end_minutes - start_minutes
+duration_hours = duration_minutes / 60
+total_price = court.price_per_hour × duration_hours
+```
+
+Ví dụ: Sân giá 150,000 VNĐ/giờ, đặt 90 phút → 225,000 VNĐ
+
+### Trạng thái booking
+
+```
+PENDING → CONFIRMED (STAFF duyệt, hoặc STAFF tạo cho walk-in → tự CONFIRMED)
+PENDING → CANCELLED (CUSTOMER/STAFF/ADMIN hủy, hoặc Cron tự hủy sau 15 phút)
+CONFIRMED → CANCELLED (STAFF/ADMIN hủy)
+CONFIRMED → COMPLETED (Cron tự động sau khi giờ chơi kết thúc)
+```
+
+### Khi nào được hủy
+- CUSTOMER: chỉ hủy booking `status IN [PENDING, CONFIRMED]` của chính mình
+- STAFF/ADMIN: hủy bất kỳ booking nào trong facility
 - Booking COMPLETED không thể hủy
 
-### Auto Cancel (Cron job `cron-auto-cancel-bookings.js`):
-- Chạy mỗi **1 phút** (`*/1 * * * *`)
-- Tự động hủy booking PENDING mà đã quá giờ bắt đầu mà chưa được xác nhận
-- Gọi `bookingService.autoCancelPendingBookings()`
+### Auto Cancel (Cron)
 
-### Auto Complete (Cron job `cron-auto-complete-bookings.js`):
-- Chạy mỗi **1 phút** (`*/1 * * * *`)
-- Tự động chuyển booking CONFIRMED → COMPLETED khi đã qua giờ kết thúc
+**File**: `src/utils/cron-auto-cancel-bookings.js`  
+**Lịch**: Mỗi 1 phút (`*/1 * * * *`)  
+**Logic**: Tìm booking `status = PENDING` mà `created_at < now - 15 phút` (hoặc theo cấu hình) → set CANCELLED, cập nhật Payment → CANCELLED
 
-### Thông báo liên quan:
-- Tạo booking → Notify STAFF của cơ sở
-- STAFF xác nhận → Notify CUSTOMER
-- STAFF/ADMIN hủy → Notify CUSTOMER
-- Auto cancel → Notify CUSTOMER
+### Auto Complete (Cron)
 
-### Payment liên quan:
-- Khi tạo booking → tự động tạo Payment với status PENDING
-- Khi booking bị hủy → Payment có thể chuyển CANCELLED hoặc xử lý hoàn tiền
+**File**: `src/utils/cron-auto-complete-bookings.js`  
+**Lịch**: Mỗi 1 phút (`*/1 * * * *`)  
+**Logic**: Tìm booking `status = CONFIRMED` mà `booking_date + end_minutes < now (giờ Việt Nam)` → set COMPLETED; cũng set MatchingSession liên kết → COMPLETED
+
+### Notification liên quan
+
+| Sự kiện | Người nhận | Channel |
+|---------|-----------|---------|
+| Booking mới PENDING | STAFF (facility) | Socket.IO room_staff + FCM |
+| Booking CONFIRMED | CUSTOMER | Socket.IO user_room + FCM |
+| Booking CANCELLED | CUSTOMER | Socket.IO user_room + FCM |
+| Booking COMPLETED | CUSTOMER | Socket.IO user_room |
+
+### Payment liên quan
+
+- Khi booking PENDING → tự động tạo Payment PENDING
+- Khi booking CANCELLED → Payment → CANCELLED
+- Khi booking CONFIRMED + Payment SUCCESS → hoàn tất
+- Payment có thể có nhiều method: CASH (staff thu tiền mặt) hoặc ZALOPAY (online)
 
 ---
 
 ## 8.2 Nghiệp vụ Lịch cố định
 
-### Tạo lịch cố định:
-- CUSTOMER gửi request với: loại (COURT_BOOKING hoặc MATCHING), sân, cơ sở, môn thể thao, giờ bắt đầu/kết thúc, tần suất (DAILY hoặc WEEKLY), ngày trong tuần (nếu WEEKLY), ngày bắt đầu
-- Hệ thống tạo FixedSchedule với status `PENDING_APPROVAL`
-- Gửi thông báo đến STAFF/ADMIN của cơ sở để xét duyệt
+**File chính**: `src/services/fixed-schedule.service.js` (77KB), `src/repositories/fixed-schedule.repository.js`
 
-### Duyệt lịch cố định:
-- ADMIN/STAFF xem danh sách PENDING_APPROVAL trên Web Admin
-- Click Duyệt → status → `ACTIVE`, ghi `approved_by`, `approved_at`
-- **Ngay lập tức** sinh booking cho 7 ngày tới (gọi `generateBookingsForRange`)
-- Từ chối → status → `REJECTED`, ghi lý do, gửi thông báo cho CUSTOMER
+### Tạo lịch cố định
 
-### Sinh booking tự động (Cron `cron-fixed-scheduler.js`):
-- Chạy vào **00:05 hàng ngày** (`5 0 * * *`)
-- Khi khởi động server cũng chạy ngay sau 5 giây (self-healing)
-- Quét toàn bộ FixedSchedule có status `ACTIVE`
-- Với mỗi lịch: sinh booking cho range `hôm nay đến 7 ngày tới`
-- Bỏ qua các ngày nằm trong `exception_dates`
-- Bỏ qua ngày không thuộc `days_of_week` (nếu WEEKLY)
-- Không tạo booking trùng (kiểm tra unique index)
-- Nếu sân bị conflict → bỏ qua hoặc xử lý theo cấu hình
+CUSTOMER gửi request với:
+- `type`: `COURT_BOOKING` (chỉ đặt sân) hoặc `MATCHING` (đặt sân + ghép trận)
+- `frequency`: `DAILY` hoặc `WEEKLY`
+- `days_of_week`: [0-6] nếu WEEKLY (0=CN, 1=T2...6=T7)
+- `start_date`, `end_date` (optional)
+- Thông tin sân và giờ
 
-### Tạm dừng / Tiếp tục:
-- `ACTIVE → PAUSED`: ghi `paused_at`, không sinh booking mới
-- `PAUSED → ACTIVE`: xóa `paused_at`, sinh booking lại từ hôm nay
+Service kiểm tra:
+1. Sân còn ACTIVE không
+2. Có conflict với booking/lịch cố định đang tồn tại trong tuần đầu tiên không
 
-### Hủy một buổi (Exception Date):
-- Thêm một entry vào `exception_dates` với `date` và `type: CANCELLED`
-- Cron job sẽ bỏ qua ngày này khi sinh booking
+Kết quả: FixedSchedule với `status: PENDING_APPROVAL`
 
-### Hủy cả chuỗi:
-- Status → `CANCELLED`
-- Các booking đã sinh cho tương lai có thể bị hủy (tùy theo logic trong service)
+### Duyệt lịch cố định
 
-### Payment trong lịch cố định:
-- Mỗi booking sinh ra từ lịch cố định cũng có Payment PENDING riêng
-- CUSTOMER hoặc STAFF thanh toán từng buổi riêng lẻ
+STAFF/ADMIN gọi `PUT /fixed-schedule/:id/approve`
+
+Service thực hiện:
+1. Cập nhật `status → ACTIVE`, lưu `approved_by`, `approved_at`
+2. Gọi `generateBookingsForRange(schedule, today, today+14days)`
+3. Sinh booking cho các ngày trong range (bỏ qua exception_dates, bỏ qua conflict)
+4. Nếu `type === MATCHING`: sinh MatchingSession cho mỗi ngày
+
+### Sinh booking tự động (generateBookingsForRange)
+
+Logic tính danh sách ngày cần sinh:
+```
+if DAILY:
+  dates = [fromDate → toDate] 
+if WEEKLY:
+  dates = [d in fromDate→toDate where d.dayOfWeek IN days_of_week]
+  
+Loại bỏ exception_dates
+Loại bỏ ngày trước start_date hoặc sau end_date
+Cho mỗi date còn lại:
+  Kiểm tra booking đã tồn tại chưa (unique partial index)
+  Nếu chưa → Booking.create({ ..., fixed_schedule_id, is_fixed_schedule: true })
+```
+
+### Cron Job: fixedScheduler
+
+**File**: `src/utils/cron-fixed-scheduler.js`  
+**Lịch**: `5 0 * * *` (00:05 hàng ngày, múi giờ Asia/Ho_Chi_Minh)  
+**Startup**: Chạy thêm sau 5 giây khi khởi động server  
+**Logic**:
+1. Lấy tất cả FixedSchedule `status = ACTIVE`
+2. Range sinh: `getAdvanceGenerationRange()` → [today, today+N ngày] (N được cấu hình trong service)
+3. Với mỗi schedule: `generateBookingsForRange(schedule, from, to)`
+4. Xử lý lỗi từng schedule độc lập (failedSchedules counter)
+
+**Rủi ro khi deploy Render free**:
+- Render free tier sleep sau 15 phút không có request
+- Cron 00:05 có thể không chạy nếu server đang sleep
+- **Giải pháp**: Đã có script startup scan (chạy lại khi server wake up), và cron UptimeRobot ping giữ server sống
+
+### Tạm dừng/Tiếp tục
+
+- `PAUSE`: `status → PAUSED`, lưu `paused_at` → cron không sinh booking nữa
+- `RESUME`: `status → ACTIVE` → cron tiếp tục sinh booking từ ngày hiện tại
+
+### Hủy một buổi (Exception Date)
+
+Khi CUSTOMER muốn bỏ một ngày cụ thể:
+1. `POST /fixed-schedule/:id/occurrences/2024-12-25/cancel`
+2. Service thêm `exception_dates: [{ date: '2024-12-25', type: 'CANCELLED', reason }]`
+3. Booking đã sinh cho ngày đó → hủy (CANCELLED)
+4. Cron tương lai sẽ bỏ qua ngày này
+
+### Hủy cả chuỗi
+
+`PUT /fixed-schedule/:id/cancel` → `status → CANCELLED` → Tất cả booking PENDING liên quan → CANCELLED
+
+### Conflict handling
+
+Nếu sinh booking mà bị conflict (unique index violation):
+- Cron bỏ qua, không dừng toàn bộ
+- Log lỗi nhưng tiếp tục các ngày/schedules khác
+
+### Quyền Customer/Staff/Admin
+
+| Hành động | CUSTOMER | STAFF | ADMIN |
+|-----------|---------|-------|-------|
+| Tạo | ✅ (của mình) | ✅ | ✅ |
+| Duyệt/Từ chối | ❌ | ✅ | ✅ |
+| Tạm dừng/Tiếp tục | ❌ | ✅ | ✅ |
+| Hủy một buổi | ✅ (của mình) | ✅ | ✅ |
+| Hủy cả chuỗi | ✅ (của mình) | ✅ | ✅ |
+
+### Payment cho lịch cố định
+
+- Mỗi booking sinh ra từ fixed schedule → có payment PENDING riêng
+- CUSTOMER phải thanh toán từng buổi (hoặc STAFF thu tiền mặt)
+- Không có thanh toán trọn gói (theo code hiện tại)
 
 ---
 
 ## 8.3 Nghiệp vụ Ghép trận
 
-### Ghép thủ công (Manual Matching):
-1. **Host tạo Session:** Có booking xác nhận → tạo MatchingSession liên kết booking đó. Hoặc tạo session độc lập (host tự tìm sân sau)
-2. **Session OPEN:** Host là member đầu tiên, team_code = A (mặc định)
-3. **User join:** Gọi `POST /matching/:id/join`. Nếu `auto_approve = true` → APPROVED ngay. Nếu `false` → PENDING chờ host duyệt
-4. **Host duyệt:** `PUT /matching/:id/members/:userId` với `{ status: 'APPROVED' | 'REJECTED' }`
-5. **Session FULL:** Khi số APPROVED members đủ `total_players_needed` → status tự động → FULL
-6. **User leave:** `POST /matching/:id/leave` → xóa member, session có thể trở lại OPEN nếu chưa đủ
+**File chính**: `src/services/matching.service.js` (70KB), `src/repositories/matching.repository.js`, `src/repositories/match-queue.repository.js`
 
-### Chế độ đội (team_mode):
-- `INDIVIDUAL`: Chơi cá nhân, không phân đội
-- `TEAM_FILL`: Một đội đầy đủ tìm thêm thành viên
-- `TEAM_VS_TEAM`: Hai đội đấu nhau (teams[A] và teams[B])
+### Manual Matching (Tạo thủ công)
 
-### TEAM_REPRESENTATIVE:
-- Một người tham gia `join_mode: TEAM_REPRESENTATIVE` đại diện cho nhiều người (`represented_count > 1`)
-- Tính vào `total_players_needed` theo `represented_count`
+**CUSTOMER** tạo MatchingSession với:
+- Booking đã có (hoặc auto tạo booking)
+- `total_players_needed`: số chân cần tuyển thêm
+- `team_mode`:
+  - `INDIVIDUAL`: không phân đội, tổng số người đủ là FULL
+  - `TEAM_FILL`: có 2 đội A và B, fill đủ mỗi đội
+  - `TEAM_VS_TEAM`: hai đội đối đầu, cân bằng players
+- `auto_approve`: true → member join tự động APPROVED; false → host phải duyệt thủ công
+- `payment_policy`: quy định ai trả tiền
 
-### Ghép tự động (Auto Matching):
-1. User join MatchQueue với thông tin: sport, facility, ngày, giờ, group_size, team_mode
-2. Cron job chạy mỗi **1 phút** gọi `matchingService.runMatchmakerAlgorithm(sport, facility, date)`
-3. Thuật toán nhóm các queue entry có thông tin tương thích
-4. Nếu đủ `group_size` → Tạo MatchingSession, phân công thành viên
-5. Cập nhật queue entries → MATCHED, liên kết `matching_session_id`
-6. Gửi thông báo đến tất cả thành viên
-7. `autoCancelUnmatched()`: Hủy các session OPEN không còn người join, expire các queue entry cũ
+### Auto Matching (Hàng đợi)
 
-### Chính sách thanh toán (payment_policy):
-- `HOST_PAY_ALL`: Host chịu toàn bộ chi phí sân
-- `SPLIT_EQUALLY`: Chia đều cho tất cả thành viên APPROVED
-- `TEAM_REPRESENTATIVES_SPLIT`: Đại diện đội (representative) trả cho đội mình
+**CUSTOMER** vào hàng đợi với tiêu chí tìm kiếm:
+- `sport_id`, `facility_id`, `booking_date`, `start_minutes`, `end_minutes`
+- `group_size`: tổng số người muốn ghép
+- `team_mode`, `payment_policy`
 
-### Socket.IO real-time trong Matching:
-- Host tạo session → app Flutter join `room_matching_{sessionId}`
-- Khi có member join/leave/approved → `notifyMatchingUpdate` → emit `matching_session_updated` đến toàn phòng
-- Tất cả người trong phòng nhận cập nhật real-time mà không cần reload
+**Cron Matchmaker** chạy mỗi phút:
+1. Lấy tất cả MatchQueue `status = SEARCHING` cho ngày hôm nay
+2. Nhóm theo `sport_id + facility_id + date`
+3. Với mỗi nhóm, chạy `runMatchmakerAlgorithm()`:
+   - Tìm các entry có thời gian overlap và tiêu chí tương thích
+   - Nếu tổng `member_count` đạt `group_size` → tạo booking tự động + MatchingSession
+   - Cập nhật queue entries → MATCHED với `matching_session_id`
+   - Thông báo tất cả players
+4. Hủy các session/queue OPEN quá lâu (`autoCancelUnmatched()`)
+
+### Matching Queue
+- Mỗi MatchQueue entry là 1 user/nhóm đang chờ
+- `member_count`: entry này đại diện bao nhiêu người
+- `team_size`, `preferred_team`: cho TEAM mode
+- `claim_token`: token nội bộ để prevent race condition khi claim slot
+
+### Matching Session
+- Host tự động có `member.status = APPROVED`
+- `teams[]`: mảng team info (A, B với max_players)
+- `members[]`: mảng thành viên thực tế
+- Khi `sum(approved_members.represented_count) >= total_players_needed` → `status: FULL`
+
+### Team Mode Detail
+
+| Mode | Mô tả | Khi FULL |
+|------|-------|---------|
+| `INDIVIDUAL` | Không phân đội | Tổng approved >= total_players_needed |
+| `TEAM_FILL` | Phân vào 2 đội, có thể không cân bằng | Tổng >= total_players_needed |
+| `TEAM_VS_TEAM` | 2 đội phải cân bằng | Mỗi đội đủ max_players |
+
+### Join/Leave logic
+
+**Join**:
+- Kiểm tra session OPEN, không FULL
+- Kiểm tra user chưa là member
+- Thêm member với PENDING (nếu auto_approve=false) hoặc APPROVED
+- Kiểm tra FULL condition → cập nhật session status
+
+**Leave**:
+- Host không thể leave (chỉ cancel session)
+- Member APPROVED leave → trừ count → session có thể trở lại OPEN
+
+### Payment policy cho ghép trận
+
+| Policy | Mô tả | Áp dụng |
+|--------|-------|---------|
+| `HOST_PAY_ALL` | Host trả toàn bộ tiền sân | Host tự quản lý |
+| `SPLIT_EQUALLY` | Chia đều cho tất cả member | Thỏa thuận thủ công ngoài app |
+| `TEAM_REPRESENTATIVES_SPLIT` | Đại diện mỗi đội chia nhau | Áp dụng TEAM_VS_TEAM |
+
+> **Lưu ý**: Payment policy hiện tại là thỏa thuận hiển thị trong UI, chưa có cơ chế tự động thu tiền từ từng member. Đây là điểm cần phát triển trong tương lai.
+
+### Khi nào tạo booking trong Auto Match
+
+Khi cron match thành công:
+1. Tìm sân còn trống cho slot đó
+2. `Booking.create(...)` cho slot tự chọn → CONFIRMED ngay
+3. `MatchingSession.create(...)` liên kết với booking
+4. `MatchQueue.updateMany({ status: MATCHED })` cho tất cả entries tham gia
+
+### Khi session FULL / CANCELLED
+
+- `FULL`: Tất cả approved members đủ số → session closed cho join mới → vẫn chờ chơi
+- `CANCELLED`: Host cancel hoặc cron auto-cancel unmatched session sau timeout
+- `COMPLETED`: Cron auto-complete sau khi giờ chơi kết thúc
+
+### Notification liên quan
+
+| Sự kiện | Người nhận | Channel |
+|---------|-----------|---------|
+| Member mới join (auto_approve=false) | Host | Socket.IO user_room |
+| Member được APPROVED | Member | Socket.IO user_room |
+| Session FULL | Tất cả members | Socket.IO matching_room |
+| Auto matched | Tất cả queue players | Socket.IO user_room + FCM |
+| Session cập nhật | Tất cả trong room | Socket.IO matching_room |
 
 ---
 
-## 8.4 Nghiệp vụ Thanh toán / Hóa đơn
+## 8.4 Nghiệp vụ Thanh toán/Hóa đơn
 
-### Payment được tạo khi nào:
-- **Ngay khi tạo Booking:** `booking.service.js` tự động gọi `createPayment` sau khi lưu booking
-- Payment mặc định: `method: CASH`, `status: PENDING`
+**File chính**: `src/services/payment.service.js` (20KB), `src/services/zalopay.service.js`
 
-### Vòng đời trạng thái Payment:
+### Payment được tạo khi nào
+
+1. **Booking PENDING tạo mới** → Auto tạo Payment PENDING, method mặc định CASH
+2. **CUSTOMER chọn phương thức online** → Update/Create payment với method ZALOPAY
+3. **STAFF tạo booking cho walk-in** → Tạo Payment PENDING (CASH)
+
+### Trạng thái Payment
+
 ```
 PENDING → SUCCESS (thanh toán thành công)
-PENDING → CANCELLED (booking bị hủy trước khi thanh toán)
-PENDING → FAILED (lỗi giao dịch)
+PENDING → FAILED (thanh toán thất bại)
+PENDING → CANCELLED (booking bị hủy, hoặc user cancel)
 SUCCESS → REFUND_PENDING (yêu cầu hoàn tiền)
-REFUND_PENDING → REFUNDED (hoàn tiền xong)
+REFUND_PENDING → REFUNDED (hoàn tiền thành công)
 ```
 
-### Thanh toán tại quầy (CASH):
-1. Khách hàng đến cơ sở
-2. STAFF vào StaffCashierPage, tra cứu hóa đơn theo booking hoặc tên khách
-3. STAFF xác nhận thu tiền → `PUT /payment/:id/status` với `{ status: 'SUCCESS', method: 'CASH' }`
-4. Hệ thống tự động cập nhật booking → CONFIRMED
+### Liên kết Payment với Booking
 
-### Thanh toán ZaloPay:
-1. CUSTOMER chọn thanh toán ZaloPay từ màn hình hóa đơn
-2. Gọi `POST /zalopay/create-order` → nhận URL thanh toán
-3. Mở WebView hoặc App ZaloPay
-4. Thanh toán xong, ZaloPay gọi callback về server
-5. Server xác thực HMAC signature
-6. Cập nhật payment → SUCCESS, ghi `transaction_id`
-7. Nếu booking liên kết → cập nhật CONFIRMED
-8. Flutter polling `POST /zalopay/query` để cập nhật UI
+- Mỗi Booking có tối đa 1 Payment `PENDING` hoặc `SUCCESS` tại cùng thời điểm (unique partial index)
+- Khi booking CANCELLED → Payment → CANCELLED (trừ REFUNDED)
+- Khi Payment → SUCCESS → Booking → CONFIRMED (áp dụng cho online payment)
 
-### Xử lý khi booking bị hủy:
-- Payment PENDING → chuyển CANCELLED
-- Payment SUCCESS → có thể chuyển REFUND_PENDING (thủ công bởi ADMIN)
-- **Hoàn tiền tự động: Chưa triển khai** – hiện chỉ có trường `refunded_at`, `refunded_by`, `refund_reason` trong model
+### Thanh toán tiền mặt (CASH)
 
-### Điểm còn mô phỏng:
-- MOMO, VNPAY, BANK_TRANSFER có trong enum `method` nhưng **chưa tích hợp logic**
-- Chỉ ZaloPay và CASH có luồng xử lý đầy đủ
-- Hoàn tiền tự động cần xử lý thủ công bởi ADMIN
+STAFF gọi `PUT /payment/:id/status { status: 'SUCCESS' }`:
+- Payment → SUCCESS
+- Booking → CONFIRMED (nếu chưa CONFIRMED)
+- Thông báo CUSTOMER
+
+### Tích hợp ZaloPay
+
+**File**: `src/controllers/zalopay.controller.js` (10KB), `src/services/zalopay.service.js`
+
+Quy trình:
+1. Flutter gọi `POST /zalopay/create-order { paymentId }`
+2. Backend gọi ZaloPay API tạo order: `POST https://sb-openapi.zalopay.vn/v2/create`
+   - `app_id`, `app_key` từ env (Sandbox credentials)
+   - `app_trans_id`: unique ID theo format `yyMMdd_paymentId_timestamp`
+   - `amount`: từ payment.amount
+   - `callback_url`: backend URL nhận kết quả
+3. ZaloPay trả về: `{ order_url, deeplink_url, qr_code, app_trans_id }`
+4. Backend lưu các URL vào Payment document
+5. Flutter mở WebView với `order_url`
+6. Sau khi thanh toán, ZaloPay gọi `POST /zalopay/callback`
+7. Backend verify HMAC-SHA256 với `zalopay_key2`
+8. Nếu hợp lệ → `return_code = 1` → Payment → SUCCESS
+9. Flutter có thể polling `POST /zalopay/query` để kiểm tra
+
+**Biến môi trường ZaloPay** (chỉ liệt kê tên, không hiển thị giá trị):
+- `ZALOPAY_APP_ID`: ID ứng dụng ZaloPay
+- `ZALOPAY_KEY1`: Key 1 dùng để tạo MAC
+- `ZALOPAY_KEY2`: Key 2 dùng để verify callback
+- `ZALOPAY_CALLBACK_URL`: URL callback server
+
+**Hiện trạng**: Đang dùng Sandbox (`sb-openapi.zalopay.vn`). Để production cần thay sang `openapi.zalopay.vn` và dùng merchant credentials thật.
+
+### Refund
+
+- `REFUND_PENDING`, `REFUNDED` có trong Payment model (enum)
+- `refunded_at`, `refunded_by`, `refund_reason` có trong Payment
+- **Chưa có flow tự động**: Refund hiện tại phải thực hiện thủ công qua dashboard ZaloPay hoặc ADMIN update trực tiếp
+- Chưa có giao diện chuyên biệt cho refund trong web hoặc mobile
+
+### Điểm còn mô phỏng/chưa tích hợp
+
+1. **VNPay, MoMo, BANK_TRANSFER**: Có enum trong model nhưng chưa có controller/service xử lý
+2. **Refund tự động**: Chưa có, phải xử lý thủ công
+3. **ZaloPay production**: Đang ở Sandbox
+4. **Mock payment page**: `mock_payment_page.dart` dùng cho dev, không dùng production
 
 ---
 
 ## 8.5 Nghiệp vụ Báo cáo
 
-### Báo cáo Staff (`GET /api/v1/reports/court-performance`):
-- **Mục đích:** Giúp Staff theo dõi hiệu suất từng sân tại cơ sở
-- **Bộ lọc:**
-  - `facility_id` (bắt buộc)
-  - `from` và `to` (khoảng ngày)
-  - `sport_id` (tùy chọn)
-- **Chỉ số tính:**
-  - `total_bookings`: Tổng số booking
-  - `confirmed_bookings`: Số booking đã xác nhận/hoàn thành
-  - `total_revenue`: Tổng doanh thu (tính từ Payment SUCCESS)
-  - `occupancy_rate`: Tỷ lệ lấp đầy = (thời gian đã đặt / tổng thời gian hoạt động)
-- **File:** `report.service.js`, `reports.controller.js`
+**File chính**: `src/services/report.service.js` (41KB)  
+**Controller**: `src/controllers/reports.controller.js`
 
-### Báo cáo Admin (`GET /api/v1/reports/advanced-performance`):
-- **Mục đích:** Tổng quan toàn hệ thống
-- **Bộ lọc:** Khoảng thời gian, cơ sở (tùy chọn)
-- **Chỉ số tính:**
-  - Tổng doanh thu toàn hệ thống
-  - Số lượng booking theo trạng thái
-  - Số phiên ghép trận OPEN/FULL/COMPLETED
-  - Số lịch cố định ACTIVE/PENDING
-  - Booking trend theo ngày/tuần/tháng
-  - Court utilization per facility
-- **Hiển thị:** Biểu đồ Recharts (line chart, bar chart) trong `admin_overview_page.tsx`
-- **File:** `report.service.js`, `reports.controller.js`
+### Báo cáo Staff — Court Performance
 
-### Tính Revenue:
-- Revenue chỉ tính từ Payment có `status: SUCCESS`
-- Liên kết payment → booking → court → facility để tổng hợp theo cơ sở
-- Hỗ trợ lọc theo nhiều cơ sở hoặc toàn hệ thống
+**API**: `GET /api/v1/reports/court-performance`  
+**Quyền**: STAFF, ADMIN  
+**Query params**: `facility_id`, `from` (YYYY-MM-DD), `to` (YYYY-MM-DD), `sport_id` (optional), `status` (optional)
+
+**Các chỉ số tính**:
+| Chỉ số | Mô tả | Nguồn dữ liệu |
+|--------|-------|---------------|
+| `booking_count` | Số booking trong khoảng | Booking collection (status = CONFIRMED + COMPLETED) |
+| `cancelled_count` | Số booking bị hủy | Booking (status = CANCELLED) |
+| `revenue` | Doanh thu | Payment (status = SUCCESS) liên kết với booking |
+| `utilization_rate` | Tỷ lệ lấp đầy | booking_hours / available_hours × 100% |
+| `average_booking_duration` | Thời gian đặt trung bình | (end_minutes - start_minutes) trung bình |
+
+**Dữ liệu aggregate** theo từng sân (Court) trong facility, trả về mảng:
+```json
+{
+  "courts": [
+    {
+      "court_id": "...",
+      "court_name": "Sân 1",
+      "sport_name": "Bóng đá",
+      "booking_count": 45,
+      "cancelled_count": 3,
+      "revenue": 6750000,
+      "utilization_rate": 0.75
+    }
+  ],
+  "summary": {
+    "total_revenue": 15000000,
+    "total_bookings": 100,
+    "total_cancelled": 8
+  }
+}
+```
+
+### Báo cáo Admin — Advanced Performance
+
+**API**: `GET /api/v1/reports/advanced-performance`  
+**Quyền**: ADMIN  
+**Query params**: `facility_id`, `from`, `to`, `group_by` (day/week/month)
+
+**Các chỉ số tính**:
+| Chỉ số | Mô tả |
+|--------|-------|
+| `revenue_trend` | Doanh thu theo ngày/tuần/tháng (LineChart) |
+| `top_courts` | Top 5 sân doanh thu cao nhất |
+| `top_sports` | Top môn thể thao theo booking count |
+| `booking_by_status` | Phân phối booking theo trạng thái (PieChart) |
+| `daily_stats` | Thống kê theo từng ngày trong range |
+| `total_revenue` | Tổng doanh thu |
+| `total_bookings` | Tổng booking |
+| `new_customers` | Số khách hàng mới |
+
+### Bộ lọc báo cáo
+
+- Theo ngày: `from`, `to` (YYYY-MM-DD)
+- Theo cơ sở: `facility_id` (STAFF chỉ thấy facility mình quản lý; ADMIN xem tất cả)
+- Theo môn thể thao: `sport_id` (nếu có)
+- Theo trạng thái booking: `status` filter
+
+### Revenue tính theo Payment nào
+
+Chỉ tính Payment có `status = 'SUCCESS'`, không tính PENDING/CANCELLED/REFUNDED.
+
+Revenue = `SUM(payment.amount)` where `payment.booking_id IN [booking_ids trong filter]`

@@ -1,228 +1,332 @@
 # 5. THIẾT KẾ DỮ LIỆU VÀ ERD
 
-## 5.1 Danh sách Model / Schema MongoDB
+## 5.1 Danh sách Model/Schema MongoDB
 
 | Tên Model | Collection | Mục đích | File định nghĩa | Quan hệ chính |
-|-----------|-----------|---------|----------------|---------------|
-| User | users | Lưu thông tin tài khoản (CUSTOMER/STAFF/ADMIN) | `models/user.model.js` | Ref → Facility |
-| Facility | facilities | Thông tin cơ sở thể thao | `models/facility.model.js` | staff_ids → User |
-| Sport | sports | Môn thể thao (bóng đá, cầu lông...) | `models/sport.model.js` | Độc lập |
-| Court | courts | Sân thi đấu, bao gồm slot_config | `models/court.model.js` | Ref → Facility, Sport |
-| CourtBlock | court-blocks | Lịch khóa/bảo trì sân | `models/court-block.model.js` | Ref → Court, Facility |
-| Booking | bookings | Lịch đặt sân | `models/booking.model.js` | Ref → Court, User, FixedSchedule |
-| Payment | payments | Hóa đơn thanh toán | `models/payment.model.js` | Ref → Booking, User |
-| FixedSchedule | fixedschedules | Lịch đặt sân định kỳ | `models/fixed-schedule.model.js` | Ref → User, Sport, Facility, Court |
-| MatchingSession | matchingsessions | Phiên ghép đối thủ | `models/matching.model.js` | Ref → User, Sport, Facility, Court, Booking, FixedSchedule |
-| MatchQueue | matchqueues | Hàng đợi ghép tự động | `models/match-queue.model.js` | Ref → User, Sport, Facility, MatchingSession |
-| Notification | notifications | Thông báo hệ thống | `models/notification.model.js` | Ref → User |
-| Review | reviews | Đánh giá dịch vụ | `models/review.model.js` | Ref → User, Booking (dự kiến) |
+|-----------|-----------|----------|----------------|---------------|
+| **User** | users | Tài khoản người dùng, phân quyền, FCM tokens | `src/models/user.model.js` | → Facility (facility_id) |
+| **Facility** | facilities | Thông tin cơ sở thể thao | `src/models/facility.model.js` | ← User (staff_ids) |
+| **Sport** | sports | Môn thể thao | `src/models/sport.model.js` | ← Court (sport_id) |
+| **Court** | courts | Sân thể thao, bao gồm SlotConfig | `src/models/court.model.js` | → Facility, → Sport; Embedded SlotConfig |
+| **CourtBlock** | courtblocks | Block/bảo trì sân trong khoảng thời gian | `src/models/court-block.model.js` | → Facility, → Court, → User (created_by) |
+| **Booking** | bookings | Lượt đặt sân | `src/models/booking.model.js` | → User, → Court, → FixedSchedule |
+| **Payment** | payments | Hóa đơn thanh toán | `src/models/payment.model.js` | → Booking, → User, → User (refunded_by) |
+| **Notification** | notifications | Thông báo trong app | `src/models/notification.model.js` | → User |
+| **MatchingSession** | matchingsessions | Phòng ghép trận | `src/models/matching.model.js` | → User (host), → Sport, → Facility, → Court, → Booking, → FixedSchedule; Embedded Member, Team |
+| **MatchQueue** | matchqueues | Hàng đợi ghép trận tự động | `src/models/match-queue.model.js` | → User, → Sport, → Facility, → MatchingSession |
+| **FixedSchedule** | fixedschedules | Lịch đặt sân cố định định kỳ | `src/models/fixed-schedule.model.js` | → User, → Sport, → Facility, → Court, → User (approved_by, rejected_by); Embedded ExceptionDate, MatchingConfig |
+| **Review** | reviews | Đánh giá sân sau khi chơi | `src/models/review.model.js` | → User, → Court |
 
 ---
 
 ## 5.2 Chi tiết từng thực thể
 
-### Model: User
-**Collection:** `users` | **File:** `models/user.model.js`
+---
 
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Index | Ref | Mô tả nghiệp vụ |
-|-----------|------|---------|----------|------|-------|-----|-----------------|
-| `email` | String | ✅ | - | - | unique | - | Email đăng nhập, lowercase, unique |
-| `password` | String | ✅ | - | - | - | - | Mật khẩu đã mã hóa bcrypt |
-| `role` | String | - | CUSTOMER | CUSTOMER, STAFF, ADMIN | - | - | Vai trò xác định quyền hạn |
-| `status` | String | - | PENDING_OTP | PENDING_OTP, ACTIVE, INACTIVE, BANNED | - | - | Trạng thái tài khoản |
-| `profile.name` | String | - | '' | - | - | - | Tên hiển thị |
-| `profile.phone` | String | - | '' | - | - | - | Số điện thoại |
-| `profile.avatar_url` | String | - | '' | - | - | - | URL ảnh đại diện (Cloudinary) |
-| `facility_id` | ObjectId | - | null | - | - | Facility | Cơ sở STAFF đang quản lý |
-| `fcmTokens` | [String] | - | [] | - | - | - | Mảng FCM token thiết bị |
-| `resetPasswordOtp` | String | - | null | - | - | - | OTP đặt lại mật khẩu |
-| `resetPasswordOtpExpires` | Date | - | null | - | - | - | Thời gian hết hạn OTP |
-| `created_at` | Date | auto | - | - | - | - | Thời điểm tạo |
-| `updated_at` | Date | auto | - | - | - | - | Thời điểm cập nhật |
+### Model: User
+
+**File**: `src/models/user.model.js` | **Collection**: `users`
+
+| Thuộc tính | Kiểu dữ liệu | Bắt buộc | Mặc định | Enum / Ràng buộc | Diễn giải nghiệp vụ |
+|-----------|-------------|---------|---------|---------|---------------------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `email` | String | ✅ | - | unique, trim, lowercase | Email đăng nhập duy nhất |
+| `password` | String | ❌ | null | - | Null nếu dùng Firebase Auth |
+| `firebaseUid` | String | ❌ | null | unique, sparse | UID từ Firebase (Google login) |
+| `role` | String | ❌ | CUSTOMER | `CUSTOMER`, `STAFF`, `ADMIN` | Quyền hạn trong hệ thống |
+| `status` | String | ❌ | PENDING_OTP | `PENDING_OTP`, `PENDING_EMAIL`, `ACTIVE`, `INACTIVE`, `BANNED` | Trạng thái tài khoản |
+| `profile.name` | String | ❌ | '' | - | Tên hiển thị |
+| `profile.phone` | String | ❌ | '' | - | Số điện thoại |
+| `profile.avatar_url` | String | ❌ | '' | - | URL ảnh đại diện (Cloudinary) |
+| `facility_id` | ObjectId | ❌ | null | ref: Facility | STAFF liên kết với cơ sở |
+| `fcmTokens` | [String] | ❌ | [] | - | Danh sách FCM token thiết bị |
+| `resetPasswordOtp` | String | ❌ | null | - | OTP reset mật khẩu (hash) |
+| `resetPasswordOtpExpires` | Date | ❌ | null | - | Thời gian hết hạn OTP reset |
+| `emailVerifiedAt` | Date | ❌ | null | - | Thời điểm xác thực email thành công |
+| `emailVerificationOtpHash` | String | ❌ | null | - | Hash OTP xác thực email |
+| `emailVerificationExpiresAt` | Date | ❌ | null | - | Hết hạn OTP xác thực |
+| `emailVerificationAttempts` | Number | ❌ | 0 | min: 0 | Số lần thử OTP (chống brute force) |
+| `emailVerificationLockedUntil` | Date | ❌ | null | - | Khóa gửi OTP đến thời điểm này |
+| `created_at` | Date | Auto | - | timestamps | Ngày tạo |
+| `updated_at` | Date | Auto | - | timestamps | Ngày cập nhật |
 
 ---
 
 ### Model: Facility
-**Collection:** `facilities` | **File:** `models/facility.model.js`
 
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Index | Ref | Mô tả |
-|-----------|------|---------|----------|------|-------|-----|-------|
-| `name` | String | ✅ | - | - | - | - | Tên cơ sở thể thao |
-| `address.city` | String | - | '' | - | - | - | Thành phố |
-| `address.full` | String | - | '' | - | - | - | Địa chỉ đầy đủ |
-| `active` | Boolean | - | true | - | - | - | Trạng thái hoạt động |
-| `staff_ids` | [ObjectId] | - | [] | - | - | User | Danh sách STAFF quản lý |
+**File**: `src/models/facility.model.js` | **Collection**: `facilities`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Diễn giải |
+|-----------|------|---------|---------|-----------|
+| `_id` | ObjectId | Auto | - | Primary key |
+| `name` | String | ✅ | - | Tên cơ sở thể thao |
+| `address.city` | String | ❌ | '' | Tên thành phố |
+| `address.full` | String | ❌ | '' | Địa chỉ đầy đủ |
+| `active` | Boolean | ❌ | true | Cơ sở đang hoạt động không |
+| `staff_ids` | [ObjectId] | ❌ | [] | ref: User — Danh sách nhân viên |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
 
 ---
 
 ### Model: Sport
-**Collection:** `sports` | **File:** `models/sport.model.js`
 
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Mô tả |
-|-----------|------|---------|----------|-------|
+**File**: `src/models/sport.model.js` | **Collection**: `sports`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Diễn giải |
+|-----------|------|---------|---------|-----------|
+| `_id` | ObjectId | Auto | - | Primary key |
 | `name` | String | ✅ | - | Tên môn thể thao (Bóng đá, Cầu lông...) |
-| `active` | Boolean | - | true | Đang hoạt động hay không |
+| `description` | String | ❌ | '' | Mô tả ngắn |
+| `icon_url` | String | ❌ | '' | URL icon môn thể thao |
+| `team_size` | Number | ❌ | 0 | Số người mỗi đội (tham khảo) |
+| `active` | Boolean | ❌ | true | Môn thể thao đang hoạt động không |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
 
 ---
 
-### Model: Court
-**Collection:** `courts` | **File:** `models/court.model.js`
+### Model: Court (bao gồm SlotConfig và CourtSlot embedded)
 
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Ref | Mô tả |
-|-----------|------|---------|----------|------|-----|-------|
-| `name` | String | ✅ | - | - | - | Tên sân (Sân A, Sân 1...) |
-| `facility_id` | ObjectId | ✅ | - | - | Facility | Thuộc cơ sở nào |
-| `sport_id` | ObjectId | ✅ | - | - | Sport | Môn thể thao của sân |
-| `code` | String | - | '' | - | - | Mã sân |
-| `status` | String | - | ACTIVE | ACTIVE, INACTIVE, MAINTENANCE | - | Trạng thái sân |
-| `price_per_hour` | Number | - | 0 | - | - | Giá thuê theo giờ (VND) |
-| `slot_config.opening_minutes` | Number | - | 360 | - | - | Giờ mở cửa (phút từ 00:00, mặc định 6:00) |
-| `slot_config.closing_minutes` | Number | - | 1320 | - | - | Giờ đóng cửa (phút từ 00:00, mặc định 22:00) |
-| `slot_config.slot_duration_minutes` | Number | - | 60 | - | - | Độ dài mỗi slot (phút) |
-| `slot_config.slots` | [courtSlot] | - | [] | - | - | Danh sách slot (slot_index, start_minutes, end_minutes, is_available, mode) |
+**File**: `src/models/court.model.js` | **Collection**: `courts`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `name` | String | ✅ | - | - | Tên sân (Sân 1, Sân A...) |
+| `facility_id` | ObjectId | ✅ | - | ref: Facility | Sân thuộc cơ sở nào |
+| `sport_id` | ObjectId | ✅ | - | ref: Sport | Môn thể thao của sân |
+| `code` | String | ❌ | '' | - | Mã sân nội bộ |
+| `status` | String | ❌ | ACTIVE | `ACTIVE`, `INACTIVE`, `MAINTENANCE` | Trạng thái hoạt động |
+| `price_per_hour` | Number | ❌ | 0 | - | Giá thuê sân theo giờ (VNĐ) |
+| `slot_config.opening_minutes` | Number | ❌ | 360 | - | Giờ mở cửa (phút từ 00:00, 360 = 6:00) |
+| `slot_config.closing_minutes` | Number | ❌ | 1320 | - | Giờ đóng cửa (phút, 1320 = 22:00) |
+| `slot_config.slot_duration_minutes` | Number | ❌ | 60 | - | Độ dài mỗi slot (phút) |
+| `slot_config.slots[].slot_index` | Number | - | - | - | Số thứ tự slot |
+| `slot_config.slots[].start_minutes` | Number | - | - | - | Giờ bắt đầu slot (phút) |
+| `slot_config.slots[].end_minutes` | Number | - | - | - | Giờ kết thúc slot (phút) |
+| `slot_config.slots[].is_available` | Boolean | - | - | - | Slot có khả dụng không |
+| `slot_config.slots[].mode` | String | - | AVAILABLE | - | Chế độ slot |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
+
+---
+
+### Model: CourtBlock
+
+**File**: `src/models/court-block.model.js` | **Collection**: `courtblocks`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `facility_id` | ObjectId | ✅ | - | ref: Facility | Cơ sở bị block |
+| `court_id` | ObjectId | ❌ | null | ref: Court | Sân cụ thể (null = toàn bộ cơ sở) |
+| `start_time` | Date | ✅ | - | - | Thời điểm bắt đầu block |
+| `end_time` | Date | ✅ | - | - | Thời điểm kết thúc block |
+| `reason` | String | ❌ | '' | - | Lý do block/bảo trì |
+| `type` | String | ❌ | MANUAL_BLOCK | `MAINTENANCE`, `HOLIDAY`, `MANUAL_BLOCK`, `CLOSED`, `OTHER` | Loại block |
+| `status` | String | ❌ | ACTIVE | `ACTIVE`, `CANCELLED` | Trạng thái block |
+| `created_by` | ObjectId | ✅ | - | ref: User | Người tạo block |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
+
+**Ràng buộc**: Pre-validate hook kiểm tra `start_time < end_time`
+**Index**: Compound `{ facility_id, court_id, status, start_time, end_time }`
 
 ---
 
 ### Model: Booking
-**Collection:** `bookings` | **File:** `models/booking.model.js`
 
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Index | Ref | Mô tả |
-|-----------|------|---------|----------|------|-------|-----|-------|
-| `user_id` | ObjectId | - | null | - | - | User | Người đặt (null nếu là khách vãng lai) |
-| `guest_name` | String | - | null | - | - | - | Tên khách vãng lai |
-| `guest_phone` | String | - | null | - | - | - | SĐT khách vãng lai |
-| `court_id` | ObjectId | ✅ | - | - | - | Court | Sân được đặt |
-| `booking_date` | String | ✅ | - | - | ✅ | - | Ngày đặt "YYYY-MM-DD" |
-| `start_minutes` | Number | ✅ | - | - | ✅ | - | Giờ bắt đầu (phút từ 00:00) |
-| `end_minutes` | Number | ✅ | - | - | - | - | Giờ kết thúc (phút từ 00:00) |
-| `total_price` | Number | - | 0 | - | - | - | Tổng tiền (VND) |
-| `status` | String | - | PENDING | PENDING, CONFIRMED, CANCELLED, COMPLETED | ✅ | - | Trạng thái booking |
-| `fixed_schedule_id` | ObjectId | - | null | - | ✅ | FixedSchedule | Liên kết lịch cố định |
-| `is_fixed_schedule` | Boolean | - | false | - | - | - | Có phải từ lịch cố định không |
-| `cancel_reason` | String | - | null | - | - | - | Lý do hủy |
-| `cancelled_by` | String | - | null | - | - | - | Ai hủy (userId hoặc 'system') |
-| `cancelled_at` | Date | - | null | - | - | - | Thời điểm hủy |
+**File**: `src/models/booking.model.js` | **Collection**: `bookings`
 
-**Index quan trọng:**
-- `{ status: 1, booking_date: 1, start_minutes: 1 }` – Query booking theo ngày
-- `{ fixed_schedule_id: 1, status: 1, booking_date: 1 }` – Query booking của lịch cố định
-- Unique: `{ fixed_schedule_id, court_id, booking_date, start_minutes, end_minutes }` (chỉ áp dụng cho booking active)
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `user_id` | ObjectId | ❌ | null | ref: User | Khách đặt (null nếu walk-in) |
+| `guest_name` | String | ❌ | null | - | Tên khách vãng lai |
+| `guest_phone` | String | ❌ | null | - | SĐT khách vãng lai |
+| `court_id` | ObjectId | ✅ | - | ref: Court | Sân đặt |
+| `booking_date` | String | ✅ | - | format YYYY-MM-DD | Ngày đặt |
+| `start_minutes` | Number | ✅ | - | - | Giờ bắt đầu (phút từ 00:00) |
+| `end_minutes` | Number | ✅ | - | - | Giờ kết thúc (phút từ 00:00) |
+| `total_price` | Number | ❌ | 0 | - | Giá tổng (VNĐ) |
+| `status` | String | ❌ | PENDING | `PENDING`, `CONFIRMED`, `CANCELLED`, `COMPLETED` | Trạng thái booking |
+| `fixed_schedule_id` | ObjectId | ❌ | null | ref: FixedSchedule | Nếu thuộc lịch cố định |
+| `is_fixed_schedule` | Boolean | ❌ | false | - | Đánh dấu sinh từ lịch cố định |
+| `cancel_reason` | String | ❌ | null | - | Lý do hủy |
+| `cancelled_by` | String | ❌ | null | - | Ai hủy (userId hoặc 'SYSTEM') |
+| `cancelled_at` | Date | ❌ | null | - | Thời điểm hủy |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
+
+**Indexes**:
+- `{ status, booking_date, start_minutes }`
+- `{ fixed_schedule_id, status, booking_date }`
+- Unique partial: `{ fixed_schedule_id, court_id, booking_date, start_minutes, end_minutes }` where `status in [PENDING, CONFIRMED, COMPLETED]`
 
 ---
 
 ### Model: Payment
-**Collection:** `payments` | **File:** `models/payment.model.js`
 
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Ref | Mô tả |
-|-----------|------|---------|----------|------|-----|-------|
-| `booking_id` | ObjectId | ✅ | - | - | Booking | Booking tương ứng |
-| `user_id` | ObjectId | ✅ | - | - | User | Người thanh toán |
-| `amount` | Number | ✅ | - | - | - | Số tiền (VND) |
-| `method` | String | - | CASH | CASH, BANK_TRANSFER, MOMO, ZALOPAY, VNPAY | - | Phương thức thanh toán |
-| `status` | String | - | PENDING | PENDING, SUCCESS, FAILED, CANCELLED, REFUND_PENDING, REFUNDED | - | Trạng thái hóa đơn |
-| `transaction_id` | String | - | '' | - | - | Mã giao dịch từ ZaloPay |
-| `refunded_at` | Date | - | null | - | - | Thời điểm hoàn tiền |
-| `refunded_by` | ObjectId | - | null | - | User | Admin/Staff thực hiện hoàn tiền |
-| `refund_reason` | String | - | null | - | - | Lý do hoàn tiền |
+**File**: `src/models/payment.model.js` | **Collection**: `payments`
 
-**Index quan trọng:**
-- Unique: `{ booking_id: 1, user_id: 1 }` chỉ khi status PENDING hoặc SUCCESS → mỗi booking chỉ có 1 payment active
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `booking_id` | ObjectId | ✅ | - | ref: Booking | Hóa đơn cho booking nào |
+| `user_id` | ObjectId | ✅ | - | ref: User | Người thanh toán |
+| `amount` | Number | ✅ | - | - | Số tiền (VNĐ) |
+| `method` | String | ❌ | CASH | `CASH`, `BANK_TRANSFER`, `MOMO`, `ZALOPAY`, `VNPAY` | Phương thức thanh toán |
+| `status` | String | ❌ | PENDING | `PENDING`, `SUCCESS`, `FAILED`, `CANCELLED`, `REFUND_PENDING`, `REFUNDED` | Trạng thái thanh toán |
+| `transaction_id` | String | ❌ | '' | - | ID giao dịch từ cổng thanh toán |
+| `zalopay_order_url` | String | ❌ | '' | - | URL trang thanh toán ZaloPay |
+| `zalopay_deeplink_url` | String | ❌ | '' | - | Deeplink mở app ZaloPay |
+| `zalopay_qr_code` | String | ❌ | '' | - | URL QR code ZaloPay |
+| `zalopay_created_at` | Date | ❌ | null | - | Thời điểm tạo order ZaloPay |
+| `refunded_at` | Date | ❌ | null | - | Thời điểm hoàn tiền |
+| `refunded_by` | ObjectId | ❌ | null | ref: User | Ai thực hiện hoàn tiền |
+| `refund_reason` | String | ❌ | null | - | Lý do hoàn tiền |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
 
----
-
-### Model: FixedSchedule
-**Collection:** `fixedschedules` | **File:** `models/fixed-schedule.model.js`
-
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Index | Ref | Mô tả |
-|-----------|------|---------|----------|------|-------|-----|-------|
-| `user_id` | ObjectId | ✅ | - | - | ✅ | User | Người đăng ký lịch |
-| `type` | String | ✅ | - | COURT_BOOKING, MATCHING | ✅ | - | Loại lịch cố định |
-| `sport_id` | ObjectId | ✅ | - | - | ✅ | Sport | Môn thể thao |
-| `facility_id` | ObjectId | ✅ | - | - | ✅ | Facility | Cơ sở |
-| `court_id` | ObjectId | ✅ | - | - | ✅ | Court | Sân |
-| `start_minutes` | Number | ✅ | - | - | - | - | Giờ bắt đầu (phút từ 00:00) |
-| `end_minutes` | Number | ✅ | - | - | - | - | Giờ kết thúc |
-| `frequency` | String | ✅ | - | DAILY, WEEKLY | ✅ | - | Tần suất lặp |
-| `days_of_week` | [Number] | - | [] | - | - | - | Ngày trong tuần (0=Sun, 6=Sat) |
-| `start_date` | String | ✅ | - | - | - | - | Ngày bắt đầu "YYYY-MM-DD" |
-| `end_date` | String | - | null | - | - | - | Ngày kết thúc (null = vô hạn) |
-| `status` | String | - | PENDING_APPROVAL | PENDING_APPROVAL, ACTIVE, PAUSED, REJECTED, CANCELLED, EXPIRED | ✅ | - | Trạng thái lịch cố định |
-| `exception_dates` | [ExceptionDate] | - | [] | - | - | - | Danh sách ngày ngoại lệ (type: CANCELLED/TEAM_UNAVAILABLE) |
-| `paused_at` | Date | - | null | - | - | - | Thời điểm tạm dừng |
-| `matching_config` | Object | - | null | - | - | - | Cấu hình ghép trận (chỉ khi type=MATCHING) |
-| `approved_by` | ObjectId | - | null | - | - | User | Admin/Staff duyệt |
-| `approved_at` | Date | - | null | - | - | - | Thời điểm duyệt |
-| `rejected_by` | ObjectId | - | null | - | - | User | Admin/Staff từ chối |
-| `rejection_reason` | String | - | null | - | - | - | Lý do từ chối |
-
----
-
-### Model: MatchingSession
-**Collection:** `matchingsessions` | **File:** `models/matching.model.js`
-
-| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Index | Ref | Mô tả |
-|-----------|------|---------|----------|------|-------|-----|-------|
-| `host_id` | ObjectId | ✅ | - | - | ✅ | User | Người tạo phiên (chủ nhà) |
-| `sport_id` | ObjectId | ✅ | - | - | ✅ | Sport | Môn thể thao |
-| `facility_id` | ObjectId | ✅ | - | - | ✅ | Facility | Cơ sở |
-| `court_id` | ObjectId | ✅ | - | - | - | Court | Sân |
-| `booking_id` | ObjectId | - | null | - | - | Booking | Booking liên kết |
-| `fixed_schedule_id` | ObjectId | - | null | - | ✅ | FixedSchedule | Lịch cố định liên kết |
-| `booking_date` | String | ✅ | - | - | ✅ | - | Ngày chơi "YYYY-MM-DD" |
-| `start_minutes` | Number | ✅ | - | - | - | - | Giờ bắt đầu |
-| `end_minutes` | Number | ✅ | - | - | - | - | Giờ kết thúc |
-| `total_players_needed` | Number | ✅ | - | - | - | - | Số người cần tuyển thêm |
-| `team_mode` | String | - | INDIVIDUAL | INDIVIDUAL, TEAM_FILL, TEAM_VS_TEAM | - | - | Chế độ đội |
-| `host_team_code` | String | - | A | A, B | - | - | Đội của host |
-| `payment_policy` | String | - | HOST_PAY_ALL | HOST_PAY_ALL, SPLIT_EQUALLY, TEAM_REPRESENTATIVES_SPLIT | - | - | Chính sách thanh toán |
-| `auto_approve` | Boolean | - | true | - | - | - | Tự động chấp nhận thành viên |
-| `description` | String | - | '' | - | - | - | Mô tả phiên |
-| `members` | [MatchingMember] | - | [] | - | - | - | Danh sách thành viên |
-| `teams` | [MatchingTeam] | - | [] | - | - | - | Cấu hình đội |
-| `status` | String | - | OPEN | OPEN, FULL, CANCELLED, COMPLETED | ✅ | - | Trạng thái phiên |
-
-**MatchingMember (embedded):**
-- `user_id`, `status` (PENDING/APPROVED/REJECTED), `team_code` (A/B), `represented_count`, `join_mode` (INDIVIDUAL/TEAM_REPRESENTATIVE), `team_name`, `note`, `joined_at`
-
----
-
-### Model: MatchQueue
-**Collection:** `matchqueues` | **File:** `models/match-queue.model.js`
-
-| Thuộc tính | Kiểu | Bắt buộc | Enum | Mô tả |
-|-----------|------|---------|------|-------|
-| `user_id` | ObjectId | ✅ | - | Người vào hàng chờ |
-| `sport_id` | ObjectId | ✅ | - | Môn thể thao |
-| `facility_id` | ObjectId | ✅ | - | Cơ sở |
-| `booking_date` | String | ✅ | - | Ngày chơi |
-| `start_minutes`, `end_minutes` | Number | ✅ | - | Khung giờ |
-| `group_size` | Number | - | - | Số người cần để tạo trận |
-| `team_mode` | String | - | INDIVIDUAL, TEAM_FILL, TEAM_VS_TEAM | Chế độ đội |
-| `preferred_team` | String | - | A, B, AUTO | Đội muốn gia nhập |
-| `member_count` | Number | - | - | Số người đại diện |
-| `payment_policy` | String | - | HOST_PAY_ALL, SPLIT_EQUALLY, TEAM_REPRESENTATIVES_SPLIT | Chính sách thanh toán |
-| `matching_session_id` | ObjectId | - | - | Session đã ghép vào |
-| `status` | String | - | SEARCHING, MATCHED, CANCELLED, EXPIRED | Trạng thái trong queue |
+**Index Unique Partial**: `{ booking_id, user_id }` where `status in [PENDING, SUCCESS]` — Đảm bảo không có 2 payment active cho cùng booking
 
 ---
 
 ### Model: Notification
-**Collection:** `notifications` | **File:** `models/notification.model.js`
 
-| Thuộc tính | Kiểu | Bắt buộc | Enum | Index | Mô tả |
-|-----------|------|---------|------|-------|-------|
-| `userId` | ObjectId | ✅ | - | ✅ | Người nhận thông báo |
+**File**: `src/models/notification.model.js` | **Collection**: `notifications`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `userId` | ObjectId | ✅ | - | ref: User, index | Người nhận |
 | `title` | String | ✅ | - | - | Tiêu đề thông báo |
-| `content` | String | ✅ | - | - | Nội dung |
-| `type` | String | - | BOOKING, PAYMENT, SYSTEM, PROMOTION | - | Loại thông báo |
-| `audience` | String | - | CUSTOMER, STAFF, ADMIN, ALL | ✅ | Đối tượng nhận |
-| `metadata.bookingId` | String | - | - | - | Link đến booking |
-| `metadata.paymentId` | String | - | - | - | Link đến payment |
-| `metadata.matchingSessionId` | String | - | - | - | Link đến session |
-| `metadata.link` | String | - | - | - | Deep link |
-| `isRead` | Boolean | - | false | - | Trạng thái đọc |
+| `content` | String | ✅ | - | - | Nội dung thông báo |
+| `type` | String | ❌ | SYSTEM | `BOOKING`, `PAYMENT`, `SYSTEM`, `PROMOTION` | Loại thông báo |
+| `audience` | String | ❌ | ALL | `CUSTOMER`, `STAFF`, `ADMIN`, `ALL` | Đối tượng nhận |
+| `metadata.bookingId` | String | ❌ | - | - | ID booking liên quan |
+| `metadata.paymentId` | String | ❌ | - | - | ID payment liên quan |
+| `metadata.matchingSessionId` | String | ❌ | - | - | ID session ghép trận liên quan |
+| `metadata.link` | String | ❌ | - | - | Deep link |
+| `isRead` | Boolean | ❌ | false | - | Đã đọc chưa |
+| `createdAt` | Date | Auto | - | timestamps | Ngày tạo |
 
-**Compound Index:** `{ userId: 1, audience: 1, isRead: 1, createdAt: -1 }` – Query nhanh thông báo chưa đọc
+**Index**: `{ userId, audience, isRead, createdAt: -1 }` — tối ưu query thông báo chưa đọc
+
+---
+
+### Model: MatchingSession (bao gồm Member + Team embedded)
+
+**File**: `src/models/matching.model.js` | **Collection**: `matchingsessions`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `host_id` | ObjectId | ✅ | - | ref: User | Chủ phòng ghép trận |
+| `sport_id` | ObjectId | ✅ | - | ref: Sport | Môn thể thao |
+| `facility_id` | ObjectId | ✅ | - | ref: Facility | Cơ sở tổ chức |
+| `court_id` | ObjectId | ✅ | - | ref: Court | Sân thi đấu |
+| `booking_id` | ObjectId | ❌ | null | ref: Booking | Booking liên kết |
+| `fixed_schedule_id` | ObjectId | ❌ | null | ref: FixedSchedule | Nếu từ lịch cố định |
+| `booking_date` | String | ✅ | - | YYYY-MM-DD | Ngày thi đấu |
+| `start_minutes` | Number | ✅ | - | - | Giờ bắt đầu (phút) |
+| `end_minutes` | Number | ✅ | - | - | Giờ kết thúc (phút) |
+| `total_players_needed` | Number | ✅ | - | min: 1 | Tổng số chân cần tuyển |
+| `team_mode` | String | ❌ | INDIVIDUAL | `INDIVIDUAL`, `TEAM_FILL`, `TEAM_VS_TEAM` | Chế độ đội |
+| `host_team_code` | String | ❌ | A | `A`, `B` | Đội của host |
+| `host_represented_count` | Number | ❌ | 1 | min: 1 | Host đại diện bao nhiêu người |
+| `teams[].team_code` | String | - | - | `A`, `B` | Mã đội |
+| `teams[].name` | String | - | '' | - | Tên đội |
+| `teams[].max_players` | Number | - | - | min: 1 | Tối đa player mỗi đội |
+| `teams[].representative_user_id` | ObjectId | - | null | ref: User | Đại diện đội |
+| `description` | String | ❌ | '' | - | Mô tả thêm |
+| `auto_approve` | Boolean | ❌ | true | - | Tự động duyệt member |
+| `payment_policy` | String | ❌ | HOST_PAY_ALL | `HOST_PAY_ALL`, `SPLIT_EQUALLY`, `TEAM_REPRESENTATIVES_SPLIT` | Chính sách chia tiền |
+| `members[].user_id` | ObjectId | ✅ | - | ref: User | ID thành viên |
+| `members[].status` | String | - | PENDING | `PENDING`, `APPROVED`, `REJECTED` | Trạng thái thành viên |
+| `members[].team_code` | String | - | null | `A`, `B` | Thuộc đội nào |
+| `members[].represented_count` | Number | - | 1 | min: 1 | Đại diện bao nhiêu người |
+| `members[].join_mode` | String | - | INDIVIDUAL | `INDIVIDUAL`, `TEAM_REPRESENTATIVE` | Kiểu tham gia |
+| `members[].team_name` | String | - | '' | max: 100 | Tên đội của member |
+| `members[].note` | String | - | '' | max: 500 | Ghi chú |
+| `members[].joined_at` | Date | - | Date.now | - | Thời điểm tham gia |
+| `status` | String | ❌ | OPEN | `OPEN`, `FULL`, `CANCELLED`, `COMPLETED` | Trạng thái session |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
+
+**Unique Index**: `{ host_id, booking_date, start_minutes }` where `status in [OPEN, FULL]` — Host chỉ có 1 session active tại cùng slot
+
+---
+
+### Model: MatchQueue
+
+**File**: `src/models/match-queue.model.js` | **Collection**: `matchqueues`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `user_id` | ObjectId | ✅ | - | ref: User | Người vào hàng đợi |
+| `sport_id` | ObjectId | ✅ | - | ref: Sport | Môn thể thao |
+| `facility_id` | ObjectId | ✅ | - | ref: Facility | Cơ sở |
+| `booking_date` | String | ✅ | - | YYYY-MM-DD | Ngày muốn chơi |
+| `start_minutes` | Number | ✅ | - | - | Giờ bắt đầu mong muốn |
+| `end_minutes` | Number | ✅ | - | - | Giờ kết thúc mong muốn |
+| `group_size` | Number | ❌ | 2 | min: 2 | Số người cần ghép |
+| `team_mode` | String | ❌ | INDIVIDUAL | `INDIVIDUAL`, `TEAM_FILL`, `TEAM_VS_TEAM` | Chế độ đội |
+| `preferred_team` | String | ❌ | AUTO | `A`, `B`, `AUTO` | Đội ưu tiên |
+| `member_count` | Number | ❌ | 1 | min: 1 | Số người trong nhóm này |
+| `team_size` | Number | ❌ | null | min: 1 | Kích thước đội (cho TEAM mode) |
+| `payment_policy` | String | ❌ | SPLIT_EQUALLY | `HOST_PAY_ALL`, `SPLIT_EQUALLY`, `TEAM_REPRESENTATIVES_SPLIT` | Chính sách chia tiền |
+| `matching_session_id` | ObjectId | ❌ | null | ref: MatchingSession | Session được ghép vào |
+| `claim_token` | String | ❌ | null | select: false | Token nội bộ (ẩn khỏi response) |
+| `status` | String | ❌ | SEARCHING | `SEARCHING`, `MATCHED`, `CANCELLED`, `EXPIRED` | Trạng thái trong hàng đợi |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
+
+---
+
+### Model: FixedSchedule
+
+**File**: `src/models/fixed-schedule.model.js` | **Collection**: `fixedschedules`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Enum | Diễn giải |
+|-----------|------|---------|---------|------|-----------|
+| `_id` | ObjectId | Auto | - | - | Primary key |
+| `user_id` | ObjectId | ✅ | - | ref: User | Người tạo lịch |
+| `type` | String | ✅ | - | `COURT_BOOKING`, `MATCHING` | Loại lịch cố định |
+| `sport_id` | ObjectId | ✅ | - | ref: Sport | Môn thể thao |
+| `facility_id` | ObjectId | ✅ | - | ref: Facility | Cơ sở |
+| `court_id` | ObjectId | ✅ | - | ref: Court | Sân |
+| `start_minutes` | Number | ✅ | - | - | Giờ bắt đầu mỗi buổi |
+| `end_minutes` | Number | ✅ | - | - | Giờ kết thúc mỗi buổi |
+| `frequency` | String | ✅ | - | `DAILY`, `WEEKLY` | Tần suất |
+| `days_of_week` | [Number] | ❌ | [] | 0=CN, 1=T2...6=T7 | Các ngày trong tuần (nếu WEEKLY) |
+| `start_date` | String | ✅ | - | YYYY-MM-DD | Ngày bắt đầu |
+| `end_date` | String | ❌ | null | YYYY-MM-DD | Ngày kết thúc (null = vĩnh viễn) |
+| `status` | String | ❌ | PENDING_APPROVAL | `PENDING_APPROVAL`, `ACTIVE`, `PAUSED`, `REJECTED`, `CANCELLED`, `EXPIRED` | Trạng thái lịch |
+| `exception_dates[].date` | String | - | - | YYYY-MM-DD | Ngày ngoại lệ |
+| `exception_dates[].type` | String | - | - | `CANCELLED`, `TEAM_UNAVAILABLE` | Loại ngoại lệ |
+| `exception_dates[].reason` | String | - | '' | - | Lý do ngoại lệ |
+| `paused_at` | Date | ❌ | null | - | Thời điểm tạm dừng |
+| `matching_config` | Object | ❌ | null | - | Cấu hình ghép trận (nếu type=MATCHING) |
+| `matching_config.team_mode` | String | - | - | `INDIVIDUAL`, `TEAM_FILL`, `TEAM_VS_TEAM` | Chế độ đội |
+| `matching_config.team_size` | Number | - | - | min: 1 | Kích thước đội |
+| `matching_config.payment_policy` | String | - | - | - | Chính sách chia tiền |
+| `matching_config.readiness` | String | - | RECRUITING | `RECRUITING`, `READY` | Trạng thái sẵn sàng |
+| `matching_config.members[]` | - | - | [] | - | Thành viên cố định (có status INVITED/APPROVED/LEFT) |
+| `approved_by` | ObjectId | ❌ | null | ref: User | STAFF/ADMIN duyệt |
+| `approved_at` | Date | ❌ | null | - | Thời điểm duyệt |
+| `rejected_by` | ObjectId | ❌ | null | ref: User | STAFF/ADMIN từ chối |
+| `rejected_at` / `rejection_reason` | Date/String | ❌ | null | - | Thông tin từ chối |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
+
+---
+
+### Model: Review
+
+**File**: `src/models/review.model.js` | **Collection**: `reviews`
+
+| Thuộc tính | Kiểu | Bắt buộc | Mặc định | Diễn giải |
+|-----------|------|---------|---------|-----------|
+| `_id` | ObjectId | Auto | - | Primary key |
+| `user_id` | ObjectId | ✅ | - | ref: User |
+| `court_id` | ObjectId | ✅ | - | ref: Court |
+| `rating` | Number | ✅ | - | min: 1, max: 5 |
+| `comment` | String | ❌ | '' | Nhận xét |
+| `created_at` / `updated_at` | Date | Auto | - | timestamps |
 
 ---
 
@@ -230,77 +334,51 @@
 
 | Quan hệ | Kiểu | Mô tả |
 |---------|------|-------|
-| User → Booking | 1-N | Một user có nhiều booking |
-| User → Payment | 1-N | Một user có nhiều payment |
-| User → MatchingSession (host) | 1-N | Một user có thể host nhiều session |
-| User → Notification | 1-N | Một user nhận nhiều thông báo |
-| User → FixedSchedule | 1-N | Một user đăng ký nhiều lịch cố định |
-| Facility → Court | 1-N | Một cơ sở có nhiều sân |
-| Facility → User (staff) | N-N | Một cơ sở có nhiều staff (qua staff_ids) |
-| Sport → Court | 1-N | Một môn thể thao có nhiều sân |
+| User → Facility | N-1 | STAFF có `facility_id` → cơ sở quản lý |
+| Facility ↔ User (staff) | 1-N | Facility có `staff_ids[]` |
+| Facility → Court | 1-N | Mỗi facility có nhiều court |
+| Sport → Court | 1-N | Mỗi court thuộc 1 môn thể thao |
 | Court → Booking | 1-N | Một sân có nhiều booking |
-| Booking → Payment | 1-1 | Mỗi booking có một payment active |
-| FixedSchedule → Booking | 1-N | Một lịch cố định sinh nhiều booking |
-| FixedSchedule → MatchingSession | 1-N | Một lịch cố định sinh nhiều phiên ghép trận |
-| MatchingSession → Booking | 1-1 | Phiên ghép trận liên kết booking |
-| MatchQueue → MatchingSession | N-1 | Nhiều queue entry ghép vào một session |
+| User → Booking | 1-N | Một user tạo nhiều booking |
+| Booking → Payment | 1-1 | Mỗi booking có tối đa 1 payment active |
+| FixedSchedule → Booking | 1-N | Lịch cố định sinh ra nhiều booking |
+| User → FixedSchedule | 1-N | User tạo nhiều lịch cố định |
+| User → MatchingSession (host) | 1-N | Host tạo nhiều session |
+| MatchingSession → Booking | 1-1 | Session liên kết 1 booking |
+| FixedSchedule → MatchingSession | 1-N | Lịch matching cố định sinh nhiều session theo ngày |
+| User → Notification | 1-N | Mỗi user nhận nhiều thông báo |
+| User → MatchQueue | 1-N | User có thể vào hàng đợi nhiều lần |
+| MatchQueue → MatchingSession | N-1 | Nhiều queue entry cùng được ghép vào 1 session |
+| Court → CourtBlock | 1-N | Sân có nhiều lần block |
+| Facility → CourtBlock | 1-N | Cơ sở có nhiều lần block |
+| User → Review | 1-N | User viết nhiều review |
+| Court → Review | 1-N | Sân nhận nhiều review |
 
 ---
 
-## 5.4 ERD – Mô tả để vẽ lại
+## 5.4 ERD — Mô tả để vẽ lại
 
-### Danh sách Entity và Primary Key
+### Danh sách Entity và thuộc tính key
 
-| Entity | Primary Key | Ghi chú |
-|--------|-------------|---------|
-| User | `_id` (ObjectId) | - |
-| Facility | `_id` (ObjectId) | - |
-| Sport | `_id` (ObjectId) | - |
-| Court | `_id` (ObjectId) | - |
-| CourtBlock | `_id` (ObjectId) | - |
-| Booking | `_id` (ObjectId) | - |
-| Payment | `_id` (ObjectId) | - |
-| FixedSchedule | `_id` (ObjectId) | - |
-| MatchingSession | `_id` (ObjectId) | - |
-| MatchQueue | `_id` (ObjectId) | - |
-| Notification | `_id` (ObjectId) | - |
-| Review | `_id` (ObjectId) | - |
+| Entity | PK | FK chính | Loại quan hệ với entity khác |
+|--------|----|---------|------------------------------|
+| User | _id | facility_id → Facility | N-1 với Facility |
+| Facility | _id | - | 1-N với Court, 1-N CourtBlock; N-N với User qua staff_ids |
+| Sport | _id | - | 1-N với Court |
+| Court | _id | facility_id, sport_id | N-1 Facility, N-1 Sport |
+| CourtBlock | _id | facility_id, court_id, created_by | N-1 Facility, N-1 Court |
+| Booking | _id | user_id, court_id, fixed_schedule_id | N-1 User, N-1 Court, N-1 FixedSchedule |
+| Payment | _id | booking_id, user_id, refunded_by | 1-1 Booking, N-1 User |
+| Notification | _id | userId | N-1 User |
+| MatchingSession | _id | host_id, sport_id, facility_id, court_id, booking_id, fixed_schedule_id | N-1 nhiều entity |
+| MatchQueue | _id | user_id, sport_id, facility_id, matching_session_id | N-1 nhiều entity |
+| FixedSchedule | _id | user_id, sport_id, facility_id, court_id, approved_by, rejected_by | N-1 nhiều entity |
+| Review | _id | user_id, court_id | N-1 User, N-1 Court |
 
-### Foreign Key / Ref và kiểu quan hệ
-
-| Từ (Entity.field) | Đến | Kiểu | Ghi chú |
-|-------------------|-----|------|---------|
-| Court.facility_id | Facility | N-1 | Sân thuộc cơ sở |
-| Court.sport_id | Sport | N-1 | Sân dành cho môn |
-| User.facility_id | Facility | N-1 | STAFF gắn với cơ sở |
-| Facility.staff_ids[] | User | N-N | Cơ sở có nhiều nhân viên |
-| Booking.court_id | Court | N-1 | Booking thuộc sân |
-| Booking.user_id | User | N-1 | Booking của user |
-| Booking.fixed_schedule_id | FixedSchedule | N-1 | Null nếu booking thông thường |
-| Payment.booking_id | Booking | 1-1 | Hóa đơn của booking |
-| Payment.user_id | User | N-1 | User thanh toán |
-| FixedSchedule.user_id | User | N-1 | User đăng ký lịch |
-| FixedSchedule.court_id | Court | N-1 | Sân trong lịch cố định |
-| FixedSchedule.sport_id | Sport | N-1 | Môn thể thao |
-| FixedSchedule.facility_id | Facility | N-1 | Cơ sở |
-| FixedSchedule.approved_by | User | N-1 | Admin/Staff duyệt |
-| MatchingSession.host_id | User | N-1 | Host của session |
-| MatchingSession.booking_id | Booking | 1-1 | Booking liên kết |
-| MatchingSession.sport_id | Sport | N-1 | Môn thể thao |
-| MatchingSession.facility_id | Facility | N-1 | Cơ sở |
-| MatchingSession.court_id | Court | N-1 | Sân |
-| MatchingSession.fixed_schedule_id | FixedSchedule | N-1 | Lịch cố định (nếu có) |
-| MatchingSession.members[].user_id | User | N-N (embedded) | Thành viên phiên |
-| MatchQueue.user_id | User | N-1 | User trong hàng chờ |
-| MatchQueue.sport_id | Sport | N-1 | Môn thể thao |
-| MatchQueue.facility_id | Facility | N-1 | Cơ sở |
-| MatchQueue.matching_session_id | MatchingSession | N-1 | Session sau khi ghép |
-| Notification.userId | User | N-1 | User nhận thông báo |
-| CourtBlock.court_id | Court | N-1 | Sân bị khóa |
-
-### Ràng buộc nghiệp vụ quan trọng
-1. Booking không được trùng (court_id + booking_date + start/end_minutes + status ACTIVE) → unique index
-2. FixedSchedule sinh booking không trùng → unique index (fixed_schedule_id + court_id + booking_date + start/end)
-3. MatchingSession: host không được có 2 session OPEN/FULL cùng giờ → unique index
-4. Payment: mỗi booking chỉ có 1 payment PENDING hoặc SUCCESS → unique index
-5. User.email là unique → không trùng email
+### Ràng buộc nghiệp vụ quan trọng:
+1. **Payment**: Unique partial index đảm bảo chỉ có 1 payment PENDING/SUCCESS cho mỗi booking
+2. **Booking**: Không thể tạo 2 booking trùng `court_id + booking_date + time range` khi đang PENDING/CONFIRMED/COMPLETED
+3. **FixedSchedule Booking**: Unique partial index cho `fixed_schedule_id + court_id + booking_date + start/end_minutes`
+4. **MatchingSession**: Unique — host chỉ có 1 session OPEN/FULL trong cùng slot thời gian
+5. **CourtBlock**: `start_time` phải trước `end_time` (pre-validate hook)
+6. **User**: `email` unique, `firebaseUid` unique sparse (nullable)

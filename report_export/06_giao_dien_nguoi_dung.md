@@ -2,240 +2,218 @@
 
 ## 7.1 Danh sách màn hình Flutter Mobile
 
-### Nhóm Auth
+### Nhóm: Auth (Xác thực)
 
-| Tên màn hình | File | Vai trò | Chức năng | API gọi | Gợi ý tên hình |
-|-------------|------|---------|-----------|---------|----------------|
-| Splash Screen | `lib/` (qua router) | ALL | Kiểm tra token, điều hướng | - | `hinh_splash.png` |
-| Đăng nhập | `authentication_module/.../pages/` | ALL | Đăng nhập bằng email/password | `POST /auth/sign-in` | `hinh_dangnhap.png` |
-| Đăng ký | `authentication_module/.../pages/` | CUSTOMER mới | Tạo tài khoản mới | `POST /auth/register` | `hinh_dangky.png` |
-| Quên mật khẩu / Reset | `authentication_module/.../pages/` | ALL | Nhập OTP, đặt mật khẩu mới | `POST /auth/forgot-password` | `hinh_quenmatkhau.png` |
-
----
-
-### Nhóm Home / Dashboard
-
-| Tên màn hình | File | Vai trò | Chức năng | Gợi ý tên hình |
-|-------------|------|---------|-----------|----------------|
-| Trang chính (Home) | `home_module/.../presentation/` | CUSTOMER | Điều hướng đến Đặt sân, Ghép trận, Lịch, Thông báo | `hinh_home.png` |
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình báo cáo |
+|-------------|---------------|---------|-----------|------------|------------------------|
+| Đăng nhập | `modules/authentication_module/lib/presentation/pages/sign_in_page.dart` | CUSTOMER, STAFF, ADMIN | Nhập email+password hoặc đăng nhập Google Firebase | `POST /auth/sign-in`, `POST /auth/firebase/login` | Hình_7.1_Dang_nhat |
+| Đăng ký | `modules/authentication_module/lib/presentation/pages/sign_up_page.dart` | CUSTOMER | Tạo tài khoản mới | `POST /auth/register` | Hình_7.2_Dang_ky |
+| Xác thực Email | `modules/authentication_module/lib/presentation/pages/verify_email_page.dart` | CUSTOMER | Nhập OTP email | `POST /auth/verify-email`, `POST /auth/resend-verification` | Hình_7.3_Xac_thuc_email |
+| Quên/Đặt lại mật khẩu | `modules/authentication_module/lib/presentation/pages/reset_password_page.dart` | CUSTOMER | Nhập OTP reset + mật khẩu mới | `POST /auth/forgot-password`, `POST /auth/reset-password` | Hình_7.4_Quen_mat_khau |
 
 ---
 
-### Nhóm Booking (Đặt sân)
+### Nhóm: Home/Dashboard (Trang chủ)
 
-| Tên màn hình | File | Vai trò | Chức năng | API gọi | Gợi ý tên hình |
-|-------------|------|---------|-----------|---------|----------------|
-| Danh mục sân | `booking_module/.../pages/booking_catalog_full_page.dart` | CUSTOMER | Xem danh sách sân theo cơ sở | `GET /facility`, `GET /court` | `hinh_danhsachsan.png` |
-| Đặt sân (Booking) | `booking_module/.../pages/court_booking_page.dart` (~65KB) | CUSTOMER | Chọn sân, ngày, slot giờ, xác nhận đặt | `GET /court/:id/slot-config`, `POST /booking` | `hinh_datsan.png` |
-| Lịch sử đặt sân | `booking_module/.../pages/booking_history_page.dart` (~22KB) | CUSTOMER | Xem danh sách booking, lọc theo trạng thái | `GET /booking` | `hinh_lichsudat.png` |
-| Chi tiết booking | `booking_module/.../pages/booking_detail_page.dart` (~26KB) | CUSTOMER | Xem chi tiết, hủy booking | `GET /booking/:id`, `PUT /booking/:id/cancel` | `hinh_chitietbooking.png` |
-
----
-
-### Nhóm Ghép trận (Matching)
-
-| Tên màn hình | File | Vai trò | Chức năng | API gọi | Gợi ý tên hình |
-|-------------|------|---------|-----------|---------|----------------|
-| Tìm phiên ghép trận | `matching_module/.../pages/matching_explorer_page.dart` (~37KB) | CUSTOMER | Tìm kiếm, lọc phiên ghép trận đang mở | `GET /matching` | `hinh_timgheptran.png` |
-| Tạo phiên ghép trận | `matching_module/.../pages/create_matching_session_page.dart` (~85KB) | CUSTOMER | Điền form tạo session | `POST /matching` | `hinh_taogheptran.png` |
-| Chi tiết phiên ghép trận | `matching_module/.../pages/matching_detail_page.dart` (~38KB) | CUSTOMER | Xem thành viên, join/leave | `GET /matching/:id`, `POST /matching/:id/join` | `hinh_chitietgheptran.png` |
-| Lobby ghép tự động | `matching_module/.../pages/auto_matching_lobby_page.dart` (~30KB) | CUSTOMER | Vào hàng đợi, chờ hệ thống ghép | `POST /matching/queue/join`, `GET /matching/queue/status` | `hinh_autolobby.png` |
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình báo cáo |
+|-------------|---------------|---------|-----------|------------|------------------------|
+| Trang chủ (Container) | `modules/home_module/lib/presentation/pages/home_page.dart` | ALL | Container điều hướng sang dashboard phù hợp role | - | - |
+| Dashboard Khách hàng | `modules/home_module/lib/presentation/pages/customer_dashboard_section.dart` | CUSTOMER | Xem facility, sport, booking gần đây, notification, profile | `GET /facility`, `GET /sport`, `GET /booking`, `GET /notification` | Hình_7.5_Dashboard_KH |
+| Dashboard Nhân viên | `modules/home_module/lib/presentation/pages/staff_dashboard_section.dart` | STAFF | Danh sách booking, duyệt booking, quản lý sân, báo cáo, thông báo | Nhiều API | Hình_7.6_Dashboard_NV |
+| Dashboard Quản trị | `modules/home_module/lib/presentation/pages/admin_dashboard_section.dart` | ADMIN | Thống kê tổng quan, biểu đồ doanh thu | `GET /reports/advanced-performance` | Hình_7.7_Dashboard_Admin |
+| Giám sát booking (Admin) | `modules/home_module/lib/presentation/pages/admin_booking_supervision_page.dart` | ADMIN | Xem toàn bộ booking hệ thống | `GET /booking` | Hình_7.8_GS_Booking |
+| Kiểm duyệt người dùng (Admin) | `modules/home_module/lib/presentation/pages/admin_moderation_page.dart` | ADMIN | Quản lý user: role, status, facility | `GET/PUT /user` | Hình_7.9_QL_NguoiDung |
+| Giám sát thanh toán (Admin) | `modules/home_module/lib/presentation/pages/admin_payment_supervision_page.dart` | ADMIN | Xem payment toàn hệ thống | `GET /payment` | Hình_7.10_GS_ThanhToan |
+| Báo cáo sân (Staff) | `modules/home_module/lib/presentation/pages/staff_court_report_page.dart` | STAFF | Xem báo cáo hiệu suất sân theo cơ sở | `GET /reports/court-performance` | Hình_7.11_BaoCao_San |
+| Cấu hình slot (Staff) | `modules/home_module/lib/presentation/pages/staff_court_slot_config_page.dart` | STAFF | Xem danh sách sân + chọn cấu hình | `GET /court`, `GET /court/:id/slot-config` | Hình_7.12_CauHinh_Slot |
+| Chi tiết slot (Staff) | `modules/home_module/lib/presentation/pages/staff_court_slot_config_detail_page.dart` | STAFF | Cấu hình chi tiết slot + block | `PUT /court/:id/slot-config`, `POST /court-blocks` | Hình_7.13_ChiTiet_Slot |
+| Thông tin nhân viên | `modules/home_module/lib/presentation/pages/staff_personal_information_page.dart` | STAFF | Xem/cập nhật hồ sơ, đổi mật khẩu | `GET/PUT /user/:id`, `POST /auth/change-password` | Hình_7.14_HoSo_NV |
+| Cài đặt hệ thống | `modules/home_module/lib/presentation/pages/system_settings_page.dart` | ADMIN | Cấu hình hệ thống | - | Hình_7.15_CaiDat |
 
 ---
 
-### Nhóm Payment (Hóa đơn)
+### Nhóm: Booking (Đặt sân)
 
-| Tên màn hình | File | Vai trò | Chức năng | API gọi | Gợi ý tên hình |
-|-------------|------|---------|-----------|---------|----------------|
-| Danh sách hóa đơn | `payment_module/.../presentation/` | CUSTOMER | Xem tất cả hóa đơn | `GET /payment` | `hinh_hoadon.png` |
-| Chi tiết hóa đơn / Thanh toán | `payment_module/.../presentation/` | CUSTOMER | Thanh toán ZaloPay hoặc xem trạng thái | `POST /zalopay/create-order`, `POST /zalopay/query` | `hinh_thanhtoan.png` |
-
----
-
-### Nhóm Thông báo
-
-| Tên màn hình | File | Vai trò | Chức năng | API gọi | Gợi ý tên hình |
-|-------------|------|---------|-----------|---------|----------------|
-| Danh sách thông báo | `notification_module/.../presentation/` | CUSTOMER | Xem, đánh dấu đã đọc | `GET /notification`, `PUT /notification/:id/read` | `hinh_thongbao.png` |
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình |
+|-------------|---------------|---------|-----------|------------|----------------|
+| Đặt sân (Trang chính) | `modules/booking_module/lib/presentation/pages/court_booking_page.dart` | CUSTOMER | Chọn facility → sport → court → date → slot → đặt sân / lịch cố định | `GET /facility`, `GET /court`, `GET /court/:id/slot-config`, `GET /booking` (check), `POST /booking`, `POST /fixed-schedule` | Hình_7.16_Dat_San |
+| Danh sách booking | `modules/booking_module/lib/presentation/pages/booking_catalog_full_page.dart` | CUSTOMER | Xem tất cả booking | `GET /booking` | Hình_7.17_DS_Booking |
+| Chi tiết booking | `modules/booking_module/lib/presentation/pages/booking_detail_page.dart` | CUSTOMER | Thông tin chi tiết, hủy booking, hủy một buổi fixed | `GET /booking/:id`, `PUT /booking/:id/cancel`, `POST /fixed-schedule/:id/occurrences/:date/cancel` | Hình_7.18_CT_Booking |
+| Lịch sử booking | `modules/booking_module/lib/presentation/pages/booking_history_page.dart` | CUSTOMER | Lịch sử booking + lịch cố định của user | `GET /booking`, `GET /fixed-schedule` | Hình_7.19_LichSu_Booking |
 
 ---
 
-### Nhóm Hồ sơ
+### Nhóm: Payment/Invoice (Hóa đơn)
 
-| Tên màn hình | File | Vai trò | Chức năng | API gọi | Gợi ý tên hình |
-|-------------|------|---------|-----------|---------|----------------|
-| Hồ sơ cá nhân | `user_management_module/.../presentation/` | CUSTOMER | Xem, chỉnh sửa thông tin, đổi mật khẩu, upload avatar | `GET /user/:id`, `PUT /user/:id`, `POST /upload` | `hinh_hoso.png` |
-
----
-
-### Nhóm Cơ sở / Sân
-
-| Tên màn hình | File | Vai trò | Chức năng | Gợi ý tên hình |
-|-------------|------|---------|-----------|----------------|
-| Danh sách cơ sở | `facility_module/.../presentation/` | CUSTOMER | Xem danh sách cơ sở thể thao | `hinh_cosovathesao.png` |
-| Chi tiết cơ sở / Sân | `facility_module/.../presentation/` | CUSTOMER | Xem thông tin sân, giờ hoạt động | `hinh_chitietcoso.png` |
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình |
+|-------------|---------------|---------|-----------|------------|----------------|
+| Chi tiết hóa đơn | `modules/payment_module/lib/presentation/pages/invoice_detail_page.dart` | CUSTOMER | Xem hóa đơn, chọn phương thức, thanh toán ZaloPay | `GET /payment`, `POST /payment`, `POST /zalopay/create-order`, `POST /zalopay/query` | Hình_7.20_HoaDon |
+| WebView ZaloPay | `modules/payment_module/lib/presentation/pages/zalopay_webview_page.dart` | CUSTOMER | Trang thanh toán ZaloPay trong WebView | ZaloPay URL | Hình_7.21_ZaloPay |
+| Mock Payment | `modules/payment_module/lib/presentation/pages/mock_payment_page.dart` | CUSTOMER (dev) | Mô phỏng thanh toán | `PUT /payment/:id/status` | Hình_7.22_Mock_Payment |
+| Tab thanh toán | `modules/payment_module/lib/presentation/pages/payment_tab_widget.dart` | CUSTOMER | Widget tab hiển thị danh sách payment | `GET /payment` | - |
 
 ---
 
-### Nhóm Đánh giá
+### Nhóm: Matching (Ghép trận)
 
-| Tên màn hình | File | Vai trò | Chức năng | Gợi ý tên hình |
-|-------------|------|---------|-----------|----------------|
-| Gửi đánh giá | `review_module/.../presentation/` | CUSTOMER | Đánh giá sau khi sử dụng sân | `hinh_danhgia.png` |
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình |
+|-------------|---------------|---------|-----------|------------|----------------|
+| Tạo phòng ghép trận | `modules/matching_module/lib/presentation/pages/create_matching_session_page.dart` | CUSTOMER | Form tạo session: team_mode, players_needed, payment_policy... | `POST /matching` | Hình_7.23_Tao_GhepTran |
+| Khám phá phòng | `modules/matching_module/lib/presentation/pages/matching_explorer_page.dart` | CUSTOMER | Tìm kiếm phòng OPEN theo facility/sport/date | `GET /matching` | Hình_7.24_KhamPha_GhepTran |
+| Chi tiết phòng | `modules/matching_module/lib/presentation/pages/matching_detail_page.dart` | CUSTOMER | Xem thành viên, tham gia, duyệt/từ chối member | `GET /matching/:id`, `POST /matching/:id/join`, `POST /matching/:id/leave`, `PUT /matching/:id/members/:userId` | Hình_7.25_CT_GhepTran |
+| Hàng đợi tự động | `modules/matching_module/lib/presentation/pages/auto_matching_lobby_page.dart` | CUSTOMER | Vào hàng đợi, chờ ghép tự động, xem trạng thái | `POST /matching/queue/join`, `GET /matching/queue/status`, `POST /matching/queue/leave` | Hình_7.26_HangDoi_GhepTran |
+
+---
+
+### Nhóm: Notification (Thông báo)
+
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình |
+|-------------|---------------|---------|-----------|------------|----------------|
+| Danh sách thông báo | `modules/notification_module/lib/presentation/widgets/` | ALL | Xem thông báo, đánh dấu đọc | `GET /notification`, `PUT /notification/:id/read` | Hình_7.27_ThongBao |
+
+---
+
+### Nhóm: Profile (Hồ sơ)
+
+| Tên màn hình | Đường dẫn file | Vai trò | Chức năng | API gọi đến | Gợi ý tên hình |
+|-------------|---------------|---------|-----------|------------|----------------|
+| Hồ sơ cá nhân | `modules/user_management_module/lib/presentation/` | ALL | Xem/sửa thông tin, avatar, đổi mật khẩu | `GET/PUT /user/:id`, `POST /upload/image` | Hình_7.28_HoSo |
 
 ---
 
 ## 7.2 Danh sách màn hình React Web Admin
 
-### Nhóm Auth
-
-| Tên màn hình | Route URL | File | Vai trò | Chức năng | Gợi ý tên hình |
-|-------------|-----------|------|---------|-----------|----------------|
-| Đăng nhập Portal | `/sign-in` | `features/auth/.../login_page.tsx` | ADMIN, STAFF | Đăng nhập với email/password, tài khoản thử nhanh | `hinh_web_dangnhap.png` |
-
----
-
-### Nhóm Dashboard (ADMIN)
+### Nhóm: Auth (Xác thực)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Dashboard Admin | `/admin/overview` | `features/report/.../admin_overview_page.tsx` | ADMIN | Tổng quan doanh thu, booking, matching với biểu đồ Recharts | `GET /reports/advanced-performance` | `hinh_web_dashboard_admin.png` |
-| Tổng quan Staff | `/staff/overview` | `features/booking/.../staff_overview_page.tsx` | STAFF | Xem booking trong ngày, tổng quan vận hành | `GET /booking` | `hinh_web_dashboard_staff.png` |
+| Đăng nhập Web | `/sign-in` | `features/auth/presentation/pages/login_page.tsx` | ADMIN, STAFF | Đăng nhập vào web admin | `POST /auth/sign-in` | Hình_8.1_Web_DangNhap |
+| Hồ sơ cá nhân | `/admin/profile`, `/staff/profile` | `features/auth/presentation/pages/profile_page.tsx` | ADMIN, STAFF | Xem/sửa hồ sơ, đổi mật khẩu | `GET/PUT /user/:id` | Hình_8.2_Web_HoSo |
 
 ---
 
-### Nhóm Quản lý Cơ sở (ADMIN)
+### Nhóm: Dashboard / Reports
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Quản lý cơ sở | `/admin/facilities` | `features/facility/.../admin_facilities_page.tsx` | ADMIN | CRUD cơ sở thể thao | `GET/POST/PUT/DELETE /facility` | `hinh_web_coso.png` |
-| Quản lý sân (Admin) | `/admin/courts` | `features/facility/.../admin_courts_page.tsx` | ADMIN | CRUD sân | `GET/POST/PUT/DELETE /court` | `hinh_web_san_admin.png` |
-| Quản lý môn thể thao (Admin) | `/admin/sports` | `features/facility/.../admin_sports_page.tsx` | ADMIN | CRUD môn thể thao | `GET/POST/PUT/DELETE /sport` | `hinh_web_monthethao.png` |
-| Quản lý sân (Staff) | `/staff/operations/courts` | `features/facility/.../staff_courts_page.tsx` | STAFF | Quản lý sân tại cơ sở | `GET/PUT /court` | `hinh_web_san_staff.png` |
-| Quản lý slot giờ | `/staff/operations/slots` | `features/facility/.../staff_slots_page.tsx` | STAFF | Thiết lập giờ mở cửa, slot | `PUT /court/:id/slot-config` | `hinh_web_slot.png` |
-| Quản lý môn (Staff) | `/staff/operations/sports` | `features/facility/.../staff_sports_page.tsx` | STAFF | Quản lý môn thể thao tại cơ sở | `GET/PUT /sport` | `hinh_web_monthethao_staff.png` |
+| Tổng quan Admin | `/admin/overview` | `features/report/presentation/pages/admin_overview_page.tsx` | ADMIN | Dashboard biểu đồ doanh thu, top sân, tổng booking | `GET /reports/advanced-performance` | Hình_8.3_Web_Dashboard_Admin |
+| Tổng quan Staff | `/staff/overview` | `features/booking/presentation/pages/staff_overview_page.tsx` | STAFF | Thống kê ngắn: booking hôm nay, pending, revenue | `GET /booking`, `GET /reports/court-performance` | Hình_8.4_Web_Dashboard_Staff |
+| Báo cáo Staff | `/staff/report` | `features/report/presentation/pages/staff_report_page.tsx` | STAFF | Báo cáo chi tiết hiệu suất sân, doanh thu | `GET /reports/court-performance` | Hình_8.5_Web_BaoCao |
 
 ---
 
-### Nhóm Booking
+### Nhóm: Facility/Court/Sport (Cơ sở, Sân, Môn)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Giám sát Booking (Admin) | `/admin/supervision` | `features/booking/.../admin_supervision_page.tsx` | ADMIN | Xem tất cả booking toàn hệ thống | `GET /booking` | `hinh_web_supervision.png` |
-| Quản lý Booking (Staff) | `/staff/bookings` | `features/booking/.../staff_bookings_page.tsx` | STAFF | Xem, duyệt, hủy booking tại cơ sở | `GET/PUT /booking` | `hinh_web_booking_staff.png` |
-| Chi tiết Booking | `/admin(staff)/bookings/:id` | `features/booking/.../booking_detail_page.tsx` | ADMIN, STAFF | Xem chi tiết, thay đổi trạng thái | `GET/PUT /booking/:id` | `hinh_web_chitietbooking.png` |
+| Quản lý cơ sở | `/admin/facilities` | `features/facility/presentation/pages/admin_facilities_page.tsx` | ADMIN | CRUD Facility, gán staff | `GET/POST/PUT/DELETE /facility`, `POST /user/:id/assign-facility` | Hình_8.6_Web_QL_CoSo |
+| Quản lý sân (Admin) | `/admin/courts` | `features/facility/presentation/pages/admin_courts_page.tsx` | ADMIN | CRUD Court | `GET/POST/PUT/DELETE /court` | Hình_8.7_Web_QL_San |
+| Quản lý môn (Admin) | `/admin/sports` | `features/facility/presentation/pages/admin_sports_page.tsx` | ADMIN | CRUD Sport | `GET/POST/PUT/DELETE /sport` | Hình_8.8_Web_QL_Mon |
+| Sân (Staff) | `/staff/operations/courts` | `features/facility/presentation/pages/staff_courts_page.tsx` | STAFF | Xem/sửa court trong facility | `GET/PUT /court` | Hình_8.9_Web_San_Staff |
+| Slot Config (Staff) | `/staff/operations/slots` | `features/facility/presentation/pages/staff_slots_page.tsx` | STAFF | Cấu hình slot cho sân | `GET/PUT /court/:id/slot-config` | Hình_8.10_Web_Slot |
+| Môn (Staff) | `/staff/operations/sports` | `features/facility/presentation/pages/staff_sports_page.tsx` | STAFF | Xem danh sách môn | `GET /sport` | - |
 
 ---
 
-### Nhóm Thanh toán
+### Nhóm: Booking (Đặt sân)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Thu ngân (Cashier) | `/staff/cashier` | `features/payment/.../staff_cashier_page.tsx` | STAFF | Tra cứu hóa đơn, thu tiền mặt | `GET /payment`, `PUT /payment/:id/status` | `hinh_web_cashier.png` |
+| Giám sát Booking (Admin) | `/admin/supervision` | `features/booking/presentation/pages/admin_supervision_page.tsx` | ADMIN | Xem toàn bộ booking hệ thống, lọc | `GET /booking` | Hình_8.11_Web_GS_Booking |
+| Quản lý Booking (Staff) | `/staff/bookings` | `features/booking/presentation/pages/staff_bookings_page.tsx` | STAFF | Duyệt booking, tạo booking mới cho walk-in | `GET /booking`, `POST /booking`, `PUT /booking/:id/status` | Hình_8.12_Web_QL_Booking |
+| Chi tiết Booking | `/admin/bookings/:id`, `/staff/bookings/:id` | `features/booking/presentation/pages/booking_detail_page.tsx` | ADMIN, STAFF | Xem chi tiết, hủy, cập nhật | `GET /booking/:id`, `PUT /booking/:id/cancel`, `PUT /booking/:id/status` | Hình_8.13_Web_CT_Booking |
 
 ---
 
-### Nhóm Lịch cố định
+### Nhóm: Payment (Thanh toán)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Danh sách lịch cố định | `/admin(staff)/fixed-schedules` | `features/fixed_schedule/.../fixed_schedule_list_page.tsx` | ADMIN, STAFF | Xem danh sách, lọc theo trạng thái | `GET /fixed-schedule` | `hinh_web_lichcodinh_list.png` |
-| Chi tiết lịch cố định | `/admin(staff)/fixed-schedules/:id` | `features/fixed_schedule/.../fixed_schedule_detail_page.tsx` | ADMIN, STAFF | Duyệt/từ chối/tạm dừng/hủy, xem booking sinh ra | `PUT /fixed-schedule/:id/approve` | `hinh_web_lichcodinh_detail.png` |
+| Thu tiền mặt (Staff) | `/staff/cashier` | `features/payment/presentation/pages/staff_cashier_page.tsx` | STAFF | Tra cứu booking/payment, xác nhận thu tiền CASH | `GET /payment`, `PUT /payment/:id/status` | Hình_8.14_Web_Thu_Tien |
 
 ---
 
-### Nhóm Ghép trận
+### Nhóm: Matching (Ghép trận)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Danh sách phiên ghép trận | `/admin(staff)/matching` | `features/matching/.../matching_list_page.tsx` | ADMIN, STAFF | Xem danh sách phiên | `GET /matching` | `hinh_web_matching_list.png` |
-| Chi tiết phiên ghép trận | `/admin(staff)/matching/:id` | `features/matching/.../matching_detail_page.tsx` | ADMIN, STAFF | Xem thành viên, trạng thái | `GET /matching/:id` | `hinh_web_matching_detail.png` |
+| Danh sách Matching | `/admin/matching`, `/staff/matching` | `features/matching/presentation/pages/matching_list_page.tsx` | ADMIN, STAFF | Xem danh sách session, lọc | `GET /matching` | Hình_8.15_Web_DS_Matching |
+| Chi tiết Matching | `/admin/matching/:id`, `/staff/matching/:id` | `features/matching/presentation/pages/matching_detail_page.tsx` | ADMIN, STAFF | Xem chi tiết session, members, trạng thái | `GET /matching/:id` | Hình_8.16_Web_CT_Matching |
 
 ---
 
-### Nhóm Báo cáo
+### Nhóm: Fixed Schedule (Lịch cố định)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Báo cáo Staff | `/staff/report` | `features/report/.../staff_report_page.tsx` | STAFF | Hiệu suất sân, doanh thu tại cơ sở | `GET /reports/court-performance` | `hinh_web_baocao_staff.png` |
+| Danh sách Lịch cố định | `/admin/fixed-schedules`, `/staff/fixed-schedules` | `features/fixed_schedule/presentation/pages/fixed_schedule_list_page.tsx` | ADMIN, STAFF | Danh sách, lọc theo status | `GET /fixed-schedule` | Hình_8.17_Web_DS_LichCoDinh |
+| Chi tiết Lịch cố định | `/admin/fixed-schedules/:id`, `/staff/fixed-schedules/:id` | `features/fixed_schedule/presentation/pages/fixed_schedule_detail_page.tsx` | ADMIN, STAFF | Chi tiết, approve/reject/pause/resume | `GET /fixed-schedule`, `PUT /fixed-schedule/:id/approve`, `PUT /fixed-schedule/:id/reject` | Hình_8.18_Web_CT_LichCoDinh |
 
 ---
 
-### Nhóm Quản lý người dùng
+### Nhóm: User Management (Quản lý người dùng)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Quản lý người dùng | `/admin/users` | `features/user_management/.../admin_users_page.tsx` | ADMIN | Xem, phân quyền, khóa tài khoản, gán facility | `GET/PUT /user` | `hinh_web_users.png` |
+| Quản lý người dùng | `/admin/users` | `features/user_management/presentation/pages/admin_users_page.tsx` | ADMIN | Danh sách user, sửa role/status, gán cơ sở | `GET /user`, `PUT /user/:id/role`, `PUT /user/:id/status`, `POST /user/:id/assign-facility` | Hình_8.19_Web_QL_NguoiDung |
 
 ---
 
-### Nhóm Thông báo
+### Nhóm: Notifications (Thông báo)
 
 | Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
 |-------------|-----------|------|---------|-----------|-----|----------------|
-| Thông báo Admin | `/admin/notifications` | `features/notification/.../admin_notifications_page.tsx` | ADMIN | Gửi thông báo hệ thống, xem thông báo | `GET/POST /notification` | `hinh_web_thongbao_admin.png` |
-| Thông báo Staff | `/staff/notifications` | `features/notification/.../staff_notifications_page.tsx` | STAFF | Xem thông báo của Staff | `GET /notification` | `hinh_web_thongbao_staff.png` |
+| Thông báo Admin | `/admin/notifications` | `features/notification/presentation/pages/admin_notifications_page.tsx` | ADMIN | Xem + gửi broadcast notification | `GET /notification`, Socket.IO | Hình_8.20_Web_ThongBao_Admin |
+| Thông báo Staff | `/staff/notifications` | `features/notification/presentation/pages/staff_notifications_page.tsx` | STAFF | Xem thông báo, đánh dấu đọc | `GET /notification` | Hình_8.21_Web_ThongBao_Staff |
 
 ---
 
-### Nhóm Đánh giá
+### Nhóm: Reviews (Đánh giá)
 
-| Tên màn hình | Route URL | File | Vai trò | Chức năng | Gợi ý tên hình |
-|-------------|-----------|------|---------|-----------|----------------|
-| Danh sách đánh giá | `/admin(staff)/reviews` | `features/review/.../review_list_page.tsx` | ADMIN, STAFF | Xem đánh giá | `hinh_web_danhgia_list.png` |
-| Chi tiết đánh giá | `/admin(staff)/reviews/:id` | `features/review/.../review_detail_page.tsx` | ADMIN, STAFF | Xem chi tiết, phản hồi | `hinh_web_danhgia_detail.png` |
-
----
-
-### Nhóm Hồ sơ
-
-| Tên màn hình | Route URL | File | Vai trò | Chức năng | Gợi ý tên hình |
-|-------------|-----------|------|---------|-----------|----------------|
-| Hồ sơ (Admin) | `/admin/profile` | `features/auth/.../profile_page.tsx` | ADMIN | Xem/chỉnh sửa thông tin cá nhân | `hinh_web_profile.png` |
-| Hồ sơ (Staff) | `/staff/profile` | `features/auth/.../profile_page.tsx` | STAFF | Xem/chỉnh sửa thông tin cá nhân | `hinh_web_profile_staff.png` |
+| Tên màn hình | Route URL | File | Vai trò | Chức năng | API | Gợi ý tên hình |
+|-------------|-----------|------|---------|-----------|-----|----------------|
+| Danh sách Review | `/admin/reviews`, `/staff/reviews` | `features/review/presentation/pages/review_list_page.tsx` | ADMIN, STAFF | Xem review của khách | `GET /review` | Hình_8.22_Web_Review |
+| Chi tiết Review | `/admin/reviews/:id`, `/staff/reviews/:id` | `features/review/presentation/pages/review_detail_page.tsx` | ADMIN, STAFF | Chi tiết review, xóa nếu vi phạm | `GET /review/:id`, `DELETE /review/:id` | Hình_8.23_Web_CT_Review |
 
 ---
 
 ## 7.3 Mô tả giao diện để đưa vào báo cáo
 
-### Giao diện đăng nhập / đăng ký (Mobile)
+### Giao diện đăng nhập/đăng ký (Flutter)
+Màn hình đăng nhập (`sign_in_page.dart`) được thiết kế theo phong cách Material Design hiện đại với hai tùy chọn xác thực: đăng nhập bằng email/mật khẩu truyền thống và đăng nhập nhanh qua tài khoản Google thông qua Firebase Authentication. Màn hình đăng ký (`sign_up_page.dart`) hướng dẫn người dùng tạo tài khoản qua các bước: điền email, đặt mật khẩu, nhập tên hiển thị, sau đó chuyển tới màn hình xác thực OTP (`verify_email_page.dart`). Hệ thống gửi mã OTP 6 chữ số qua email, người dùng nhập để kích hoạt tài khoản. Màn hình quên mật khẩu (`reset_password_page.dart`) cũng theo cơ chế OTP email tương tự.
 
-Màn hình đăng nhập của ứng dụng được thiết kế tối giản, thân thiện với người dùng di động. Người dùng nhập địa chỉ email và mật khẩu vào các ô nhập liệu có nhãn rõ ràng. Nút "Đăng nhập" được đặt nổi bật ở phía dưới. Bên dưới là liên kết chuyển đến màn hình đăng ký và quên mật khẩu. Sau khi đăng nhập thành công, hệ thống tự động điều hướng đến màn hình chính và đăng ký token thiết bị để nhận thông báo đẩy.
+### Giao diện tổng quan khách hàng
+Dashboard khách hàng (`customer_dashboard_section.dart`) là màn hình chính sau khi đăng nhập, hiển thị: danh sách cơ sở thể thao gần đây, danh sách môn thể thao có icon trực quan, các booking sắp diễn ra, và thanh thông báo nhanh. Người dùng có thể truy cập nhanh vào tính năng đặt sân, ghép trận, hoặc xem lịch sử từ tab navigation bar phía dưới.
 
-### Giao diện đăng nhập Web Admin
+### Giao diện đặt sân
+Màn hình đặt sân (`court_booking_page.dart`, 65KB) là trang phức tạp nhất trong ứng dụng. Người dùng được hướng dẫn qua luồng nhiều bước: (1) Chọn cơ sở → (2) Chọn môn thể thao → (3) Chọn sân → (4) Chọn ngày trên calendar widget → (5) Chọn slot thời gian còn trống (hiển thị màu xanh/đỏ theo tình trạng) → (6) Xem giá → (7) Xác nhận đặt. Người dùng cũng có thể bật chế độ "Lịch cố định" để chọn tần suất DAILY/WEEKLY và các ngày trong tuần muốn đặt định kỳ.
 
-Web Admin có giao diện đăng nhập riêng biệt với cổng thông tin dành cho nhân viên và quản trị viên. Trang hiển thị logo hệ thống, form đăng nhập gồm email và mật khẩu. Hỗ trợ tài khoản dùng thử nhanh (click để điền tự động). Sau khi đăng nhập, hệ thống tự động điều hướng đến dashboard phù hợp với vai trò (ADMIN → `/admin/overview`, STAFF → `/staff/overview`). Hỗ trợ chế độ Dark Mode.
+### Giao diện hóa đơn
+Trang hóa đơn chi tiết (`invoice_detail_page.dart`, 83KB) hiển thị đầy đủ thông tin: tên sân, ngày giờ, tổng tiền, trạng thái thanh toán, và các phương thức thanh toán được hỗ trợ (tiền mặt tại quầy, ZaloPay). Khi chọn ZaloPay, ứng dụng tạo đơn hàng và mở trang thanh toán ZaloPay trong WebView tích hợp (`zalopay_webview_page.dart`), giúp người dùng hoàn tất thanh toán mà không cần rời ứng dụng.
 
-### Giao diện tổng quan khách hàng (Mobile Home)
+### Giao diện ghép trận
+Có 4 màn hình chính cho tính năng ghép trận: (1) `matching_explorer_page.dart` — trang khám phá các phòng đang OPEN với bộ lọc facility/sport/date; (2) `create_matching_session_page.dart` — form tạo phòng với nhiều tùy chọn nâng cao như team_mode, payment_policy, auto_approve; (3) `matching_detail_page.dart` — xem danh sách thành viên theo đội A/B, tham gia/rời phòng, duyệt thành viên (nếu là host); (4) `auto_matching_lobby_page.dart` — giao diện chờ ghép trận tự động với animation loading và polling trạng thái queue.
 
-Màn hình chính của ứng dụng hiển thị menu điều hướng chính bao gồm: Đặt sân, Ghép trận, Lịch sử booking, Thông báo và Hồ sơ cá nhân. Thiết kế sử dụng bottom navigation bar và card view để dễ dàng truy cập nhanh vào các chức năng phổ biến.
+### Giao diện lịch cố định
+Tính năng lịch cố định được tích hợp trong trang đặt sân. Người dùng bật toggle "Đặt lịch cố định", sau đó chọn tần suất và ngày trong tuần. Sau khi tạo, lịch sẽ hiển thị trong tab lịch sử booking với trạng thái PENDING_APPROVAL cho đến khi STAFF duyệt. Người dùng cũng có thể xem chi tiết lịch cố định để hủy một buổi cụ thể hoặc hủy toàn bộ chuỗi.
 
-### Giao diện đặt sân (Mobile)
+### Giao diện thông báo
+Thông báo được nhận theo thời gian thực qua Socket.IO (khi app đang chạy) và qua FCM push notification (khi app ở background hoặc đã đóng). Màn hình thông báo hiển thị danh sách có phân loại: BOOKING, PAYMENT, SYSTEM, PROMOTION. Mỗi thông báo có badge đã đọc/chưa đọc và có thể tap để navigate đến màn hình liên quan.
 
-Màn hình đặt sân là một trong những màn hình phức tạp nhất (65KB). Người dùng lần lượt chọn: (1) Cơ sở thể thao, (2) Môn thể thao, (3) Sân, (4) Ngày, (5) Slot giờ từ lưới hiển thị giờ. Các slot đã có booking được tô màu khác để phân biệt. Hệ thống tự động tính giá và hiển thị tổng tiền trước khi xác nhận. Sau khi đặt thành công, người dùng được chuyển đến màn hình chi tiết booking.
+### Giao diện hồ sơ
+Màn hình hồ sơ cho phép người dùng cập nhật tên, số điện thoại, và ảnh đại diện (qua `image_picker` + upload Cloudinary). STAFF cũng có màn hình hồ sơ riêng (`staff_personal_information_page.dart`) với thông tin cơ sở phụ trách và tùy chọn đổi mật khẩu.
 
-### Giao diện ghép trận (Mobile)
+### Giao diện quản trị/staff dashboard (Web)
+Giao diện Web Admin được xây dựng bằng Ant Design với layout sidebar-content. Sidebar hiển thị menu động theo role: ADMIN thấy toàn bộ menu quản lý hệ thống, STAFF thấy menu nghiệp vụ tại cơ sở. Header có toggle Dark/Light mode, icon thông báo (Socket.IO realtime), và avatar người dùng. Dashboard ADMIN (`admin_overview_page.tsx`) hiển thị các widget thống kê tổng hợp và biểu đồ Recharts. Dashboard STAFF (`staff_overview_page.tsx`) tập trung vào booking hôm nay và pending cần xử lý.
 
-Giao diện ghép trận gồm hai chế độ chính:
-- **Ghép thủ công (Manual Matching):** Người dùng duyệt danh sách phiên ghép trận đang mở, xem thông tin chi tiết (môn thể thao, cơ sở, giờ chơi, số người cần, chế độ đội), và nhấn "Tham gia". Host có thể duyệt hoặc từ chối từng request.
-- **Ghép tự động (Auto Matching Lobby):** Người dùng nhập thông tin yêu cầu và chờ hệ thống tự động ghép. Màn hình lobby hiển thị trạng thái chờ, cron job chạy mỗi phút để kiểm tra và ghép.
+### Giao diện quản lý sân (Web)
+Trang `admin_courts_page.tsx` hiển thị bảng danh sách sân với các cột: tên sân, cơ sở, môn thể thao, trạng thái (chip màu), giá/giờ, và nút hành động. Có thể tạo sân mới, cập nhật thông tin, hoặc thay đổi trạng thái trực tiếp. Trang `staff_slots_page.tsx` cho phép STAFF xem và cấu hình slot thời gian cho từng sân.
 
-### Giao diện hóa đơn / thanh toán (Mobile)
-
-Danh sách hóa đơn hiển thị tất cả payment của người dùng với badge trạng thái màu sắc (PENDING: vàng, SUCCESS: xanh, CANCELLED: đỏ). Chi tiết hóa đơn hiển thị số tiền, phương thức, và booking liên kết. Nút "Thanh toán ZaloPay" mở WebView/App ZaloPay để thực hiện thanh toán thật.
-
-### Giao diện dashboard Admin (Web)
-
-Dashboard Admin tại `/admin/overview` hiển thị tổng quan toàn hệ thống với biểu đồ đường (line chart) về doanh thu theo thời gian, biểu đồ cột (bar chart) về số lượng booking, và các card số liệu tổng hợp (tổng doanh thu, tổng booking, số phiên ghép trận, số lịch cố định). Hỗ trợ bộ lọc theo khoảng thời gian và cơ sở.
-
-### Giao diện quản lý booking (Web Staff)
-
-Trang quản lý booking của Staff hiển thị danh sách booking dạng bảng với các cột: mã booking, khách hàng, sân, ngày giờ, giá tiền, trạng thái. Có nút lọc theo ngày, cơ sở, trạng thái. Staff có thể click vào từng booking để xem chi tiết, xác nhận hoặc hủy. Trang thu ngân (Cashier) cho phép tra cứu hóa đơn và xác nhận thu tiền mặt.
-
-### Giao diện quản lý lịch cố định (Web)
-
-Danh sách lịch cố định hiển thị theo bảng với thông tin: khách hàng, sân, tần suất, ngày bắt đầu, trạng thái. STAFF/ADMIN có thể click vào chi tiết để duyệt hoặc từ chối. Màn hình chi tiết hiển thị toàn bộ thông tin lịch, danh sách booking đã sinh ra, và lịch ngoại lệ.
+### Giao diện quản lý booking (Web)
+Trang `staff_bookings_page.tsx` là giao diện chính của STAFF với bảng booking có bộ lọc đa chiều: status, ngày, sân, khách hàng. STAFF có thể duyệt (CONFIRMED), hủy booking ngay từ bảng hoặc vào chi tiết. Trang chi tiết (`booking_detail_page.tsx`) hiển thị đầy đủ thông tin booking + payment + lịch sử thay đổi.
 
 ### Giao diện báo cáo (Web)
+Trang báo cáo ADMIN (`admin_overview_page.tsx`) hiển thị: biểu đồ doanh thu theo ngày (BarChart), tỷ lệ hiệu suất sân (PieChart), top sân có doanh thu cao nhất, xu hướng booking. Trang báo cáo STAFF (`staff_report_page.tsx`) tập trung vào hiệu suất các sân trong facility mình quản lý với bộ lọc ngày linh hoạt.
 
-Trang báo cáo Staff (`/staff/report`) hiển thị biểu đồ hiệu suất từng sân: số booking, doanh thu, tỷ lệ lấp đầy (occupancy rate). ADMIN có báo cáo nâng cao hơn với nhiều chỉ số tổng hợp và bộ lọc linh hoạt hơn.
+### Giao diện matching/fixed schedule trên web
+Trang danh sách matching (`matching_list_page.tsx`) cho phép ADMIN/STAFF xem và lọc các session theo status (OPEN/FULL/CANCELLED/COMPLETED), facility, date. Chi tiết session (`matching_detail_page.tsx`) hiển thị danh sách thành viên theo đội và thông tin booking liên kết. Trang lịch cố định (`fixed_schedule_list_page.tsx`) hiển thị bảng với badge status màu sắc. Trang chi tiết (`fixed_schedule_detail_page.tsx`) là nơi STAFF/ADMIN thực hiện approve/reject/pause với form lý do.

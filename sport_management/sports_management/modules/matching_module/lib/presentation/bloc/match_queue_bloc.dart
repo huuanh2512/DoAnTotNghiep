@@ -17,10 +17,10 @@ class MatchQueueBloc extends Bloc<MatchQueueEvent, MatchQueueState> {
     required JoinQueueUseCase joinQueueUseCase,
     required LeaveQueueUseCase leaveQueueUseCase,
     required GetQueueStatusUseCase getQueueStatusUseCase,
-  })  : _joinQueueUseCase = joinQueueUseCase,
-        _leaveQueueUseCase = leaveQueueUseCase,
-        _getQueueStatusUseCase = getQueueStatusUseCase,
-        super(MatchQueueInitialState()) {
+  }) : _joinQueueUseCase = joinQueueUseCase,
+       _leaveQueueUseCase = leaveQueueUseCase,
+       _getQueueStatusUseCase = getQueueStatusUseCase,
+       super(MatchQueueInitialState()) {
     on<LoadQueueStatusEvent>(_onLoadQueueStatus);
     on<JoinQueueEvent>(_onJoinQueue);
     on<LeaveQueueEvent>(_onLeaveQueue);
@@ -30,7 +30,7 @@ class MatchQueueBloc extends Bloc<MatchQueueEvent, MatchQueueState> {
     LoadQueueStatusEvent event,
     Emitter<MatchQueueState> emit,
   ) async {
-    emit(MatchQueueLoadingState());
+    if (!event.silent) emit(MatchQueueLoadingState());
     final response = await _getQueueStatusUseCase();
 
     if (response.success) {
@@ -40,7 +40,9 @@ class MatchQueueBloc extends Bloc<MatchQueueEvent, MatchQueueState> {
         emit(MatchQueueIdleState());
       }
     } else {
-      emit(MatchQueueErrorState(response.message ?? 'Lỗi tải trạng thái hàng chờ'));
+      emit(
+        MatchQueueErrorState(response.message ?? 'Lỗi tải trạng thái hàng chờ'),
+      );
     }
   }
 
@@ -54,7 +56,9 @@ class MatchQueueBloc extends Bloc<MatchQueueEvent, MatchQueueState> {
     if (response.success && response.data != null) {
       emit(MatchQueueSearchingState(response.data!));
     } else {
-      emit(MatchQueueErrorState(response.message ?? 'Lỗi đăng ký vào hàng chờ'));
+      emit(
+        MatchQueueErrorState(response.message ?? 'Lỗi đăng ký vào hàng chờ'),
+      );
     }
   }
 

@@ -1,291 +1,334 @@
 # 6. THIẾT KẾ API
 
-## 6.1 Danh sách Route / API Backend
+## 6.1 Danh sách Route/API
 
-### Nhóm Auth (`/api/v1/auth`)
-
-| Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/auth/register` | Không | - | `auth.controller.register` | Đăng ký tài khoản mới |
-| POST | `/api/v1/auth/sign-in` | Không | - | `auth.controller.signIn` | Đăng nhập |
-| POST | `/api/v1/auth/refresh-token` | Không | - | `auth.controller.refreshToken` | Làm mới Access Token |
-| POST | `/api/v1/auth/sign-out` | Không | - | `auth.controller.signOut` | Đăng xuất |
-| POST | `/api/v1/auth/forgot-password` | Không | - | `auth.controller.forgotPassword` | Gửi OTP quên mật khẩu |
-| POST | `/api/v1/auth/reset-password` | Không | - | `auth.controller.resetPassword` | Đặt lại mật khẩu bằng OTP |
-| POST | `/api/v1/auth/change-password` | JWT | ALL | `auth.controller.changePassword` | Đổi mật khẩu |
+**Base URL**: `/api/v1`  
+**Authentication**: Bearer Token (JWT) cho hầu hết API, trừ routes public
 
 ---
 
-### Nhóm User (`/api/v1/user`)
+### Nhóm: Auth (`/api/v1/auth`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/user/:id` | JWT | ALL | `user.controller.getUserProfile` | Xem hồ sơ người dùng |
-| PUT | `/api/v1/user/:id` | JWT | ALL | `user.controller.updateUserProfile` | Cập nhật hồ sơ |
-| POST | `/api/v1/user/register-fcm` | JWT | ALL | `fcm.controller.registerFCMToken` | Đăng ký FCM Token |
-| POST | `/api/v1/user/remove-fcm` | JWT | ALL | `fcm.controller.removeFCMToken` | Xóa FCM Token |
-| GET | `/api/v1/user` | JWT | ADMIN | `user.controller.queryUsers` | Lấy danh sách user |
-| PUT | `/api/v1/user/:id/role` | JWT | ADMIN | `user.controller.updateUserRole` | Cập nhật role user |
-| PUT | `/api/v1/user/:id/status` | JWT | ADMIN | `user.controller.updateUserStatus` | Khóa/mở tài khoản |
-| POST | `/api/v1/user/:id/assign-facility` | JWT | ADMIN | `user.controller.assignUserFacility` | Gán STAFF vào cơ sở |
+|--------|----------|------|------|-----------|-------|
+| POST | `/auth/register` | ❌ | - | `auth.controller.js::register` | Đăng ký tài khoản |
+| POST | `/auth/verify-email` | ❌ | - | `auth.controller.js::verifyEmail` | Xác thực OTP email |
+| POST | `/auth/resend-verification` | ❌ | - | `auth.controller.js::resendVerification` | Gửi lại OTP |
+| POST | `/auth/sign-in` | ❌ | - | `auth.controller.js::signIn` | Đăng nhập email/password |
+| POST | `/auth/firebase/register` | ❌ | - | `auth.controller.js::firebaseRegister` | Đăng ký qua Firebase |
+| POST | `/auth/firebase/login` | ❌ | - | `auth.controller.js::firebaseLogin` | Đăng nhập Firebase |
+| POST | `/auth/firebase/refresh` | ❌ | - | `auth.controller.js::firebaseLogin` | Refresh via Firebase |
+| POST | `/auth/firebase/complete-email-verification` | ❌ | - | `auth.controller.js::firebaseCompleteEmailVerification` | Hoàn thành xác thực Firebase |
+| POST | `/auth/refresh-token` | ❌ | - | `auth.controller.js::refreshToken` | Làm mới Access Token |
+| POST | `/auth/sign-out` | ❌ | - | `auth.controller.js::signOut` | Đăng xuất |
+| POST | `/auth/forgot-password` | ❌ | - | `auth.controller.js::forgotPassword` | Quên mật khẩu (gửi OTP) |
+| POST | `/auth/reset-password` | ❌ | - | `auth.controller.js::resetPassword` | Đặt lại mật khẩu |
+| POST | `/auth/change-password` | ✅ | ALL | `auth.controller.js::changePassword` | Đổi mật khẩu khi đã login |
 
 ---
 
-### Nhóm Facility (`/api/v1/facility`)
+### Nhóm: User (`/api/v1/user`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/facility` | JWT | ALL | `facility.controller.queryFacilities` | Danh sách cơ sở |
-| GET | `/api/v1/facility/:id` | JWT | ALL | `facility.controller.getFacilityById` | Chi tiết cơ sở |
-| POST | `/api/v1/facility` | JWT | ADMIN | `facility.controller.createFacility` | Tạo cơ sở mới |
-| PUT | `/api/v1/facility/:id` | JWT | ADMIN, STAFF | `facility.controller.updateFacility` | Cập nhật cơ sở |
-| DELETE | `/api/v1/facility/:id` | JWT | ADMIN | `facility.controller.deleteFacility` | Xóa cơ sở |
+|--------|----------|------|------|-----------|-------|
+| GET | `/user` | ✅ | ADMIN | `user.controller.js::queryUsers` | Danh sách user |
+| GET | `/user/:id` | ✅ | ALL | `user.controller.js::getUserProfile` | Xem hồ sơ |
+| PUT | `/user/:id` | ✅ | ALL | `user.controller.js::updateUserProfile` | Cập nhật hồ sơ |
+| PUT | `/user/:id/role` | ✅ | ADMIN | `user.controller.js::updateUserRole` | Thay đổi role |
+| PUT | `/user/:id/status` | ✅ | ADMIN | `user.controller.js::updateUserStatus` | Thay đổi status |
+| POST | `/user/:id/assign-facility` | ✅ | ADMIN | `user.controller.js::assignUserFacility` | Gán cơ sở cho staff |
+| POST | `/user/register-fcm` | ✅ | ALL | `fcm.controller.js::registerFCMToken` | Đăng ký FCM token |
+| POST | `/user/remove-fcm` | ✅ | ALL | `fcm.controller.js::removeFCMToken` | Xóa FCM token |
+| POST | `/user/provision-firebase` | ✅ | ADMIN | `user.controller.js::provisionFirebaseUser` | Tạo Firebase user |
 
 ---
 
-### Nhóm Sport (`/api/v1/sport`)
+### Nhóm: Facility (`/api/v1/facility`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/sport` | JWT | ALL | `sport.controller.querySports` | Danh sách môn thể thao |
-| POST | `/api/v1/sport` | JWT | ADMIN, STAFF | `sport.controller.createSport` | Tạo môn thể thao |
-| PUT | `/api/v1/sport/:id` | JWT | ADMIN, STAFF | `sport.controller.updateSport` | Cập nhật môn |
-| DELETE | `/api/v1/sport/:id` | JWT | ADMIN, STAFF | `sport.controller.deleteSport` | Xóa môn |
+|--------|----------|------|------|-----------|-------|
+| GET | `/facility` | ✅ | ALL | `facility.controller.js::queryFacilities` | Danh sách cơ sở |
+| GET | `/facility/:id` | ✅ | ALL | `facility.controller.js::getFacilityById` | Chi tiết cơ sở |
+| POST | `/facility` | ✅ | ADMIN | `facility.controller.js::createFacility` | Tạo cơ sở |
+| PUT | `/facility/:id` | ✅ | ADMIN, STAFF | `facility.controller.js::updateFacility` | Cập nhật cơ sở |
+| DELETE | `/facility/:id` | ✅ | ADMIN | `facility.controller.js::deleteFacility` | Xóa cơ sở |
 
 ---
 
-### Nhóm Court (`/api/v1/court`)
+### Nhóm: Sport (`/api/v1/sport`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/court` | JWT | ALL | `court.controller.queryCourts` | Danh sách sân (filter by facility, sport) |
-| POST | `/api/v1/court` | JWT | ADMIN, STAFF | `court.controller.createCourt` | Tạo sân mới |
-| PUT | `/api/v1/court/:id` | JWT | ADMIN, STAFF | `court.controller.updateCourt` | Cập nhật thông tin sân |
-| DELETE | `/api/v1/court/:id` | JWT | ADMIN, STAFF | `court.controller.deleteCourt` | Xóa sân |
-| GET | `/api/v1/court/:id/slot-config` | JWT | ALL | `court.controller.getCourtSlotConfig` | Xem cấu hình slot giờ |
-| PUT | `/api/v1/court/:id/slot-config` | JWT | ADMIN, STAFF | `court.controller.upsertCourtSlotConfig` | Thiết lập slot giờ |
+|--------|----------|------|------|-----------|-------|
+| GET | `/sport` | ✅ | ALL | `sport.controller.js::querySports` | Danh sách môn thể thao |
+| POST | `/sport` | ✅ | ADMIN | `sport.controller.js::createSport` | Tạo môn |
+| PUT | `/sport/:id` | ✅ | ADMIN | `sport.controller.js::updateSport` | Cập nhật môn |
+| DELETE | `/sport/:id` | ✅ | ADMIN | `sport.controller.js::deleteSport` | Xóa môn |
 
 ---
 
-### Nhóm Court Block (`/api/v1/court-blocks`)
+### Nhóm: Court (`/api/v1/court`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/court-blocks` | JWT | STAFF, ADMIN | `court-blocks.controller.createCourtBlock` | Tạo lịch khóa/bảo trì sân |
-| GET | `/api/v1/court-blocks` | JWT | STAFF, ADMIN | `court-blocks.controller.queryCourtBlocks` | Danh sách khóa sân |
-| PATCH | `/api/v1/court-blocks/:id` | JWT | STAFF, ADMIN | `court-blocks.controller.updateCourtBlock` | Cập nhật khóa sân |
-| DELETE | `/api/v1/court-blocks/:id` | JWT | STAFF, ADMIN | `court-blocks.controller.cancelCourtBlock` | Hủy khóa sân |
+|--------|----------|------|------|-----------|-------|
+| GET | `/court` | ✅ | ALL | `court.controller.js::queryCourts` | Danh sách sân |
+| POST | `/court` | ✅ | ADMIN, STAFF | `court.controller.js::createCourt` | Tạo sân |
+| PUT | `/court/:id` | ✅ | ADMIN, STAFF | `court.controller.js::updateCourt` | Cập nhật sân |
+| DELETE | `/court/:id` | ✅ | ADMIN, STAFF | `court.controller.js::deleteCourt` | Xóa sân |
+| GET | `/court/:id/slot-config` | ✅ | ALL | `court.controller.js::getCourtSlotConfig` | Lấy cấu hình slot |
+| PUT | `/court/:id/slot-config` | ✅ | ADMIN, STAFF | `court.controller.js::upsertCourtSlotConfig` | Cập nhật slot config |
 
 ---
 
-### Nhóm Booking (`/api/v1/booking`)
+### Nhóm: Court Blocks (`/api/v1/court-blocks`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/booking` | JWT | ALL | `booking.controller.createBooking` | Tạo booking mới |
-| GET | `/api/v1/booking` | JWT | ALL | `booking.controller.queryBookings` | Danh sách booking (filter đa dạng) |
-| GET | `/api/v1/booking/:id` | JWT | ALL | `booking.controller.getBookingDetail` | Chi tiết booking |
-| PUT | `/api/v1/booking/:id/cancel` | JWT | ALL | `booking.controller.cancelBooking` | Hủy booking |
-| PUT | `/api/v1/booking/:id/status` | JWT | ADMIN, STAFF | `booking.controller.updateBookingStatus` | Duyệt/cập nhật trạng thái |
+|--------|----------|------|------|-----------|-------|
+| GET | `/court-blocks` | ✅ | ALL | `court-blocks.controller.js::queryCourtBlocks` | Danh sách block |
+| POST | `/court-blocks` | ✅ | ADMIN, STAFF | `court-blocks.controller.js::createCourtBlock` | Tạo block |
+| DELETE | `/court-blocks/:id` | ✅ | ADMIN, STAFF | `court-blocks.controller.js::deleteCourtBlock` | Xóa block |
 
 ---
 
-### Nhóm Payment (`/api/v1/payment`)
+### Nhóm: Booking (`/api/v1/booking`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/payment` | JWT | ALL | `payment.controller.queryPayments` | Danh sách hóa đơn |
-| POST | `/api/v1/payment` | JWT | ALL | `payment.controller.createPayment` | Tạo hóa đơn |
-| PUT | `/api/v1/payment/:id/status` | JWT | ADMIN, STAFF, CUSTOMER | `payment.controller.updatePaymentStatus` | Cập nhật trạng thái thanh toán |
+|--------|----------|------|------|-----------|-------|
+| POST | `/booking` | ✅ | ALL | `booking.controller.js::createBooking` | Tạo booking |
+| GET | `/booking` | ✅ | ALL | `booking.controller.js::queryBookings` | Danh sách booking |
+| GET | `/booking/:id` | ✅ | ALL | `booking.controller.js::getBookingDetail` | Chi tiết booking |
+| PUT | `/booking/:id` | ✅ | ALL | `booking.controller.js::updateBooking` | Cập nhật booking |
+| PUT | `/booking/:id/cancel` | ✅ | ALL | `booking.controller.js::cancelBooking` | Hủy booking |
+| PUT | `/booking/:id/status` | ✅ | ADMIN, STAFF | `booking.controller.js::updateBookingStatus` | Đổi trạng thái |
 
 ---
 
-### Nhóm ZaloPay (`/api/v1/zalopay`)
+### Nhóm: Payment (`/api/v1/payment`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/zalopay/callback` | Không (HMAC) | ZaloPay Server | `zalopay.controller.handleCallback` | Webhook callback từ ZaloPay |
-| POST | `/api/v1/zalopay/create-order` | JWT | ALL | `zalopay.controller.createOrder` | Tạo đơn hàng ZaloPay |
-| POST | `/api/v1/zalopay/query` | JWT | ALL | `zalopay.controller.queryOrder` | Kiểm tra trạng thái đơn hàng |
+|--------|----------|------|------|-----------|-------|
+| GET | `/payment` | ✅ | ALL | `payment.controller.js::queryPayments` | Danh sách payment |
+| POST | `/payment` | ✅ | ALL | `payment.controller.js::createPayment` | Tạo payment |
+| PUT | `/payment/:id/status` | ✅ | ALL | `payment.controller.js::updatePaymentStatus` | Cập nhật trạng thái |
 
 ---
 
-### Nhóm Fixed Schedule (`/api/v1/fixed-schedule`)
+### Nhóm: ZaloPay (`/api/v1/zalopay`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/fixed-schedule` | JWT | ALL | `fixed-schedule.controller.createFixedSchedule` | Tạo lịch cố định |
-| GET | `/api/v1/fixed-schedule` | JWT | ALL | `fixed-schedule.controller.queryFixedSchedules` | Danh sách lịch cố định |
-| POST | `/api/v1/fixed-schedule/:id/matching/join` | JWT | ALL | `fixed-schedule.controller.joinFixedMatchingSchedule` | Tham gia lịch ghép trận cố định |
-| POST | `/api/v1/fixed-schedule/:id/matching/leave` | JWT | ALL | `fixed-schedule.controller.leaveFixedMatchingSchedule` | Rời lịch ghép trận cố định |
-| POST | `/api/v1/fixed-schedule/:id/occurrences/:date/cancel` | JWT | ALL | `fixed-schedule.controller.cancelFixedMatchingOccurrence` | Hủy một buổi |
-| PUT | `/api/v1/fixed-schedule/:id/approve` | JWT | ALL | `fixed-schedule.controller.approveFixedSchedule` | Duyệt lịch |
-| PUT | `/api/v1/fixed-schedule/:id/reject` | JWT | ALL | `fixed-schedule.controller.rejectFixedSchedule` | Từ chối lịch |
-| PUT | `/api/v1/fixed-schedule/:id/pause` | JWT | ALL | `fixed-schedule.controller.pauseFixedSchedule` | Tạm dừng |
-| PUT | `/api/v1/fixed-schedule/:id/resume` | JWT | ALL | `fixed-schedule.controller.resumeFixedSchedule` | Tiếp tục |
-| PUT | `/api/v1/fixed-schedule/:id/cancel` | JWT | ALL | `fixed-schedule.controller.cancelFixedSchedule` | Hủy cả chuỗi |
+|--------|----------|------|------|-----------|-------|
+| POST | `/zalopay/callback` | ❌ (HMAC) | - | `zalopay.controller.js::handleCallback` | ZaloPay server callback |
+| POST | `/zalopay/create-order` | ✅ | ALL | `zalopay.controller.js::createOrder` | Tạo đơn ZaloPay |
+| POST | `/zalopay/query` | ✅ | ALL | `zalopay.controller.js::queryOrder` | Truy vấn trạng thái |
 
 ---
 
-### Nhóm Matching (`/api/v1/matching`)
+### Nhóm: Notification (`/api/v1/notification`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/matching/queue/join` | JWT | CUSTOMER | `matching.controller.joinQueue` | Vào hàng chờ ghép tự động |
-| POST | `/api/v1/matching/queue/leave` | JWT | CUSTOMER | `matching.controller.leaveQueue` | Rời hàng chờ |
-| GET | `/api/v1/matching/queue/status` | JWT | CUSTOMER | `matching.controller.getQueueStatus` | Xem trạng thái hàng chờ |
-| POST | `/api/v1/matching` | JWT | CUSTOMER | `matching.controller.createSession` | Tạo phiên ghép trận |
-| GET | `/api/v1/matching` | JWT | ALL | `matching.controller.querySessions` | Danh sách phiên ghép trận |
-| GET | `/api/v1/matching/:id` | JWT | ALL | `matching.controller.getSessionDetail` | Chi tiết phiên |
-| POST | `/api/v1/matching/:id/join` | JWT | CUSTOMER | `matching.controller.joinSession` | Tham gia phiên |
-| POST | `/api/v1/matching/:id/leave` | JWT | CUSTOMER | `matching.controller.leaveSession` | Rời phiên |
-| PUT | `/api/v1/matching/:id/members/:userId` | JWT | CUSTOMER | `matching.controller.updateMemberStatus` | Duyệt/từ chối thành viên |
-| PUT | `/api/v1/matching/:id/status` | JWT | CUSTOMER | `matching.controller.updateSessionStatus` | Cập nhật trạng thái phiên |
+|--------|----------|------|------|-----------|-------|
+| GET | `/notification` | ✅ | ALL | `notification.controller.js::queryNotifications` | Danh sách thông báo |
+| PUT | `/notification/:id/read` | ✅ | ALL | `notification.controller.js::markAsRead` | Đánh dấu đã đọc |
 
 ---
 
-### Nhóm Notification (`/api/v1/notification`)
+### Nhóm: Matching (`/api/v1/matching`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/notification` | JWT | ALL | `notification.controller.getMyNotifications` | Lấy thông báo của tôi |
-| PUT | `/api/v1/notification/mark-all-read` | JWT | ALL | `notification.controller.markAllAsRead` | Đọc tất cả |
-| PUT | `/api/v1/notification/:id/read` | JWT | ALL | `notification.controller.markAsRead` | Đọc một thông báo |
-| POST | `/api/v1/notification` | JWT | ADMIN | `notification.controller.createSystemNotification` | Gửi thông báo hệ thống |
+|--------|----------|------|------|-----------|-------|
+| POST | `/matching/queue/join` | ✅ | CUSTOMER | `matching.controller.js::joinQueue` | Vào hàng đợi auto match |
+| POST | `/matching/queue/leave` | ✅ | CUSTOMER | `matching.controller.js::leaveQueue` | Rời hàng đợi |
+| GET | `/matching/queue/status` | ✅ | CUSTOMER | `matching.controller.js::getQueueStatus` | Trạng thái hàng đợi |
+| POST | `/matching` | ✅ | CUSTOMER | `matching.controller.js::createSession` | Tạo phòng ghép trận |
+| GET | `/matching` | ✅ | ALL | `matching.controller.js::querySessions` | Danh sách session |
+| GET | `/matching/:id` | ✅ | ALL | `matching.controller.js::getSessionDetail` | Chi tiết session |
+| POST | `/matching/:id/join` | ✅ | CUSTOMER | `matching.controller.js::joinSession` | Tham gia session |
+| POST | `/matching/:id/leave` | ✅ | CUSTOMER | `matching.controller.js::leaveSession` | Rời session |
+| PUT | `/matching/:id/members/:userId` | ✅ | CUSTOMER | `matching.controller.js::updateMemberStatus` | Duyệt/từ chối member |
+| PUT | `/matching/:id/status` | ✅ | CUSTOMER | `matching.controller.js::updateSessionStatus` | Cập nhật trạng thái session |
 
 ---
 
-### Nhóm Reports (`/api/v1/reports`)
+### Nhóm: Fixed Schedule (`/api/v1/fixed-schedule`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| GET | `/api/v1/reports/court-performance` | JWT | STAFF, ADMIN | `reports.controller.getCourtPerformance` | Báo cáo hiệu suất sân |
-| GET | `/api/v1/reports/advanced-performance` | JWT | STAFF, ADMIN | `reports.controller.getAdvancedPerformance` | Báo cáo nâng cao |
+|--------|----------|------|------|-----------|-------|
+| POST | `/fixed-schedule` | ✅ | ALL | `fixed-schedule.controller.js::createFixedSchedule` | Tạo lịch cố định |
+| GET | `/fixed-schedule` | ✅ | ALL | `fixed-schedule.controller.js::queryFixedSchedules` | Danh sách lịch |
+| PUT | `/fixed-schedule/:id/approve` | ✅ | ADMIN, STAFF | `fixed-schedule.controller.js::approveFixedSchedule` | Duyệt |
+| PUT | `/fixed-schedule/:id/reject` | ✅ | ADMIN, STAFF | `fixed-schedule.controller.js::rejectFixedSchedule` | Từ chối |
+| PUT | `/fixed-schedule/:id/pause` | ✅ | ADMIN, STAFF | `fixed-schedule.controller.js::pauseFixedSchedule` | Tạm dừng |
+| PUT | `/fixed-schedule/:id/resume` | ✅ | ADMIN, STAFF | `fixed-schedule.controller.js::resumeFixedSchedule` | Tiếp tục |
+| PUT | `/fixed-schedule/:id/cancel` | ✅ | ALL | `fixed-schedule.controller.js::cancelFixedSchedule` | Hủy cả chuỗi |
+| POST | `/fixed-schedule/:id/matching/join` | ✅ | CUSTOMER | `fixed-schedule.controller.js::joinFixedMatchingSchedule` | Join lịch matching cố định |
+| POST | `/fixed-schedule/:id/matching/leave` | ✅ | CUSTOMER | `fixed-schedule.controller.js::leaveFixedMatchingSchedule` | Leave lịch matching cố định |
+| POST | `/fixed-schedule/:id/occurrences/:date/cancel` | ✅ | ALL | `fixed-schedule.controller.js::cancelFixedMatchingOccurrence` | Hủy một buổi |
 
 ---
 
-### Nhóm Review (`/api/v1/review`)
+### Nhóm: Reports (`/api/v1/reports`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| (theo route file review.routes.js) | - | JWT | - | `review.controller` | Tạo/xem đánh giá |
+|--------|----------|------|------|-----------|-------|
+| GET | `/reports/court-performance` | ✅ | ADMIN, STAFF | `reports.controller.js::getCourtPerformance` | Báo cáo hiệu suất sân |
+| GET | `/reports/advanced-performance` | ✅ | ADMIN | `reports.controller.js::getAdvancedPerformance` | Báo cáo nâng cao |
 
 ---
 
-### Nhóm Upload (`/api/v1/upload`)
+### Nhóm: Review (`/api/v1/review`)
 
 | Method | Endpoint | Auth | Role | Controller | Mô tả |
-|--------|---------|------|------|-----------|-------|
-| POST | `/api/v1/upload` | JWT | ALL | `upload.controller` | Upload ảnh lên Cloudinary |
+|--------|----------|------|------|-----------|-------|
+| GET | `/review` | ✅ | ALL | `review.controller.js::queryReviews` | Danh sách review |
+| POST | `/review` | ✅ | CUSTOMER | `review.controller.js::createReview` | Tạo review |
+| PUT | `/review/:id` | ✅ | CUSTOMER | `review.controller.js::updateReview` | Cập nhật review |
+| DELETE | `/review/:id` | ✅ | CUSTOMER, ADMIN | `review.controller.js::deleteReview` | Xóa review |
+
+---
+
+### Nhóm: Upload (`/api/v1/upload`)
+
+| Method | Endpoint | Auth | Role | Controller | Mô tả |
+|--------|----------|------|------|-----------|-------|
+| POST | `/upload/image` | ✅ | ALL | `upload.controller.js::uploadImage` | Upload ảnh lên Cloudinary |
 
 ---
 
 ### Health Check
 
 | Method | Endpoint | Auth | Mô tả |
-|--------|---------|------|-------|
-| GET | `/health` | Không | Server health check (uptime, timestamp) |
-| GET | `/api/v1/health` | Không | API health check |
-| GET | `/api/v1/tracker` | Không | Dev: API tracker UI |
-| GET | `/api/v1/export` | Không | Dev: Xuất danh sách API ra file .md |
+|--------|----------|------|-------|
+| GET | `/health` | ❌ | Server status check |
+| GET | `/health/cron` | ❌ | Cron jobs status |
+| GET | `/api/v1/health` | ❌ | API health check |
+| GET | `/api/v1/tracker` | ❌ | API tracker UI (dev tool) |
+| GET | `/api/v1/export` | ❌ | Export API list as Markdown |
 
 ---
 
-## 6.2 API Quan trọng – Mô tả chi tiết
+## 6.2 API Quan trọng — Mô tả chi tiết
 
 ---
 
 ### API 1: Đăng nhập
 
-```
-POST /api/v1/auth/sign-in
-```
+**Endpoint**: `POST /api/v1/auth/sign-in`  
+**Mục đích**: Xác thực người dùng, trả về JWT tokens  
+**Header/Auth**: Không cần Authorization  
+**File code**: `src/controllers/auth.controller.js::signIn()` → `src/services/user-auth.service.js::signIn()`
 
-**Mục đích:** Xác thực người dùng, nhận JWT token
-
-**Header:** `Content-Type: application/json` *(không cần Authorization)*
-
-**Request mẫu:**
+**Request Body**:
 ```json
 {
-  "email": "customer@gmail.com",
-  "password": "123456"
+  "email": "customer@example.com",
+  "password": "Password123!"
 }
 ```
 
-**Response thành công (200):**
+**Response thành công (200)**:
 ```json
 {
   "success": true,
-  "message": "Sign in successful",
   "data": {
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
-      "id": "6847c1a2b3f4e5d6c7890123",
-      "email": "customer@gmail.com",
+      "_id": "6507f1f77bcf86cd799439011",
+      "email": "customer@example.com",
       "role": "CUSTOMER",
       "status": "ACTIVE",
       "profile": {
         "name": "Nguyễn Văn A",
         "phone": "0901234567",
-        "avatar_url": ""
+        "avatar_url": "https://res.cloudinary.com/..."
       }
     }
   }
 }
 ```
 
-**Lỗi thường gặp:**
-- `401 UNAUTHORIZED`: Sai mật khẩu hoặc email không tồn tại
-- `403 FORBIDDEN`: Tài khoản bị khóa (BANNED/INACTIVE)
-
-**File code:** `auth.controller.js`, `user-auth.service.js`
+**Lỗi thường gặp**:
+- `401 INVALID_CREDENTIALS` — Email hoặc mật khẩu sai
+- `403 ACCOUNT_BANNED` — Tài khoản bị khóa
+- `403 EMAIL_NOT_VERIFIED` — Chưa xác thực email
 
 ---
 
-### API 2: Tạo Booking
+### API 2: Đăng ký tài khoản
 
-```
-POST /api/v1/booking
-Authorization: Bearer {accessToken}
-```
+**Endpoint**: `POST /api/v1/auth/register`  
+**Mục đích**: Tạo tài khoản mới, gửi OTP xác thực email  
+**File code**: `src/controllers/auth.controller.js::register()`
 
-**Mục đích:** Tạo đặt sân mới, kiểm tra xung đột và tính giá
-
-**Request mẫu:**
+**Request Body**:
 ```json
 {
-  "court_id": "6847c1a2b3f4e5d6c7890456",
-  "booking_date": "2026-06-20",
-  "start_minutes": 480,
-  "end_minutes": 600
+  "email": "newuser@example.com",
+  "password": "Password123!",
+  "name": "Nguyễn Văn B"
 }
 ```
-*(start_minutes = 480 → 8:00 AM; end_minutes = 600 → 10:00 AM)*
 
-**Response thành công (201):**
+**Response (201)**:
 ```json
 {
   "success": true,
-  "message": "Booking created successfully",
+  "message": "Đăng ký thành công. Vui lòng kiểm tra email để xác thực OTP.",
+  "data": { "userId": "..." }
+}
+```
+
+---
+
+### API 3: Tạo Booking
+
+**Endpoint**: `POST /api/v1/booking`  
+**Auth**: Bearer Token  
+**File code**: `src/controllers/booking.controller.js::createBooking()` → `src/services/booking.service.js`
+
+**Request Body (Booking thường)**:
+```json
+{
+  "court_id": "6507f1f77bcf86cd799439012",
+  "booking_date": "2024-12-25",
+  "start_minutes": 540,
+  "end_minutes": 600
+}
+```
+
+**Request Body (Lịch cố định - khi bật fixed schedule mode)**:
+```json
+{
+  "court_id": "6507f1f77bcf86cd799439012",
+  "booking_date": "2024-12-01",
+  "start_minutes": 540,
+  "end_minutes": 600,
+  "is_fixed_schedule": true,
+  "fixed_schedule": {
+    "frequency": "WEEKLY",
+    "days_of_week": [1, 3, 5],
+    "start_date": "2024-12-01",
+    "end_date": "2025-03-01"
+  }
+}
+```
+
+**Response (201)**:
+```json
+{
+  "success": true,
   "data": {
     "booking": {
-      "_id": "6847c1a2b3f4e5d6c7890789",
-      "user_id": "6847c1a2b3f4e5d6c7890123",
-      "court_id": "6847c1a2b3f4e5d6c7890456",
-      "booking_date": "2026-06-20",
-      "start_minutes": 480,
+      "_id": "...",
+      "court_id": "...",
+      "booking_date": "2024-12-25",
+      "start_minutes": 540,
       "end_minutes": 600,
-      "total_price": 200000,
-      "status": "PENDING",
-      "created_at": "2026-06-16T03:00:00.000Z"
+      "total_price": 150000,
+      "status": "PENDING"
     },
     "payment": {
-      "_id": "6847c1a2b3f4e5d6c7890abc",
-      "booking_id": "6847c1a2b3f4e5d6c7890789",
-      "user_id": "6847c1a2b3f4e5d6c7890123",
-      "amount": 200000,
+      "_id": "...",
+      "amount": 150000,
       "method": "CASH",
       "status": "PENDING"
     }
@@ -293,140 +336,134 @@ Authorization: Bearer {accessToken}
 }
 ```
 
-**Lỗi thường gặp:**
-- `409 CONFLICT`: Slot đã có booking trùng lịch
-- `404 NOT_FOUND`: Court không tồn tại
-- `400 BAD_REQUEST`: Court đang MAINTENANCE hoặc bị CourtBlock
+**Lỗi**:
+- `404 COURT_NOT_FOUND` — Sân không tồn tại
+- `400 COURT_INACTIVE` — Sân không hoạt động
+- `409 SLOT_CONFLICT` — Trùng lịch
 
 ---
 
-### API 3: Duyệt booking (STAFF/ADMIN)
+### API 4: Duyệt Booking
 
-```
-PUT /api/v1/booking/:id/status
-Authorization: Bearer {staffToken}
-```
+**Endpoint**: `PUT /api/v1/booking/:id/status`  
+**Auth**: Bearer Token (STAFF hoặc ADMIN)  
+**File code**: `src/controllers/booking.controller.js::updateBookingStatus()`
 
-**Request mẫu:**
+**Request Body**:
 ```json
 {
   "status": "CONFIRMED"
 }
 ```
 
-**Response (200):**
+**Response (200)**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "6847c1a2b3f4e5d6c7890789",
+    "_id": "...",
     "status": "CONFIRMED",
-    "updated_at": "2026-06-16T03:15:00.000Z"
+    "updated_at": "2024-12-20T10:30:00Z"
   }
 }
 ```
 
 ---
 
-### API 4: Hủy booking
+### API 5: Hủy Booking
 
-```
-PUT /api/v1/booking/:id/cancel
-Authorization: Bearer {accessToken}
-```
+**Endpoint**: `PUT /api/v1/booking/:id/cancel`  
+**Auth**: Bearer Token (CUSTOMER owner hoặc STAFF/ADMIN)  
+**File code**: `src/controllers/booking.controller.js::cancelBooking()`
 
-**Request mẫu:**
+**Request Body**:
 ```json
 {
-  "cancel_reason": "Bận đột xuất, không đến được"
+  "cancel_reason": "Bận việc đột xuất"
 }
 ```
 
-**Response (200):**
+**Response (200)**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "6847c1a2b3f4e5d6c7890789",
+    "_id": "...",
     "status": "CANCELLED",
-    "cancel_reason": "Bận đột xuất, không đến được",
-    "cancelled_by": "6847c1a2b3f4e5d6c7890123",
-    "cancelled_at": "2026-06-16T04:00:00.000Z"
+    "cancel_reason": "Bận việc đột xuất",
+    "cancelled_by": "user_id_here",
+    "cancelled_at": "2024-12-20T09:00:00Z"
   }
 }
 ```
 
 ---
 
-### API 5: Tạo đơn hàng ZaloPay
+### API 6: Tạo Payment
 
-```
-POST /api/v1/zalopay/create-order
-Authorization: Bearer {customerToken}
-```
+**Endpoint**: `POST /api/v1/payment`  
+**Auth**: Bearer Token  
+**File code**: `src/controllers/payment.controller.js::createPayment()`
 
-**Request mẫu:**
+**Request Body**:
 ```json
 {
-  "paymentId": "6847c1a2b3f4e5d6c7890abc"
+  "booking_id": "...",
+  "method": "ZALOPAY"
 }
 ```
 
-**Response (200):**
+**Response (201)**:
 ```json
 {
   "success": true,
   "data": {
-    "order_url": "https://openapi.zalopay.vn/v2/order/checkout?token=...",
-    "app_trans_id": "260616_1234567890",
-    "zp_trans_token": "..."
+    "_id": "...",
+    "booking_id": "...",
+    "amount": 150000,
+    "method": "ZALOPAY",
+    "status": "PENDING"
   }
 }
 ```
 
 ---
 
-### API 6: Tạo phiên ghép trận
+### API 7: Tạo Phòng Ghép Trận
 
-```
-POST /api/v1/matching
-Authorization: Bearer {customerToken}
-```
+**Endpoint**: `POST /api/v1/matching`  
+**Auth**: Bearer Token (CUSTOMER)  
+**File code**: `src/controllers/matching.controller.js::createSession()`
 
-**Request mẫu:**
+**Request Body**:
 ```json
 {
-  "sport_id": "6847c1a2b3f4e5d6c7890111",
-  "facility_id": "6847c1a2b3f4e5d6c7890222",
-  "court_id": "6847c1a2b3f4e5d6c7890456",
-  "booking_id": "6847c1a2b3f4e5d6c7890789",
-  "booking_date": "2026-06-20",
-  "start_minutes": 480,
+  "booking_id": "...",
+  "sport_id": "...",
+  "facility_id": "...",
+  "court_id": "...",
+  "booking_date": "2024-12-25",
+  "start_minutes": 540,
   "end_minutes": 600,
-  "total_players_needed": 6,
+  "total_players_needed": 4,
   "team_mode": "TEAM_VS_TEAM",
-  "description": "Cần 3 người đội B, trình độ trung bình",
+  "description": "Tìm đội bóng đá 5 người để thi đấu giao hữu",
   "auto_approve": true,
   "payment_policy": "SPLIT_EQUALLY"
 }
 ```
 
-**Response (201):**
+**Response (201)**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "6847c1a2b3f4e5d6c7891000",
-    "host_id": "6847c1a2b3f4e5d6c7890123",
+    "_id": "...",
+    "host_id": "...",
     "status": "OPEN",
-    "team_mode": "TEAM_VS_TEAM",
+    "total_players_needed": 4,
     "members": [
-      {
-        "user_id": "6847c1a2b3f4e5d6c7890123",
-        "status": "APPROVED",
-        "team_code": "A",
-        "join_mode": "INDIVIDUAL"
-      }
+      { "user_id": "host_id", "status": "APPROVED", "team_code": "A" }
     ]
   }
 }
@@ -434,127 +471,127 @@ Authorization: Bearer {customerToken}
 
 ---
 
-### API 7: Tham gia hàng đợi ghép tự động
+### API 8: Tham Gia Phòng Ghép Trận
 
-```
-POST /api/v1/matching/queue/join
-Authorization: Bearer {customerToken}
-```
+**Endpoint**: `POST /api/v1/matching/:id/join`  
+**Auth**: Bearer Token (CUSTOMER)  
+**File code**: `src/controllers/matching.controller.js::joinSession()`
 
-**Request mẫu:**
+**Request Body**:
 ```json
 {
-  "sport_id": "6847c1a2b3f4e5d6c7890111",
-  "facility_id": "6847c1a2b3f4e5d6c7890222",
-  "booking_date": "2026-06-20",
-  "start_minutes": 480,
-  "end_minutes": 600,
-  "group_size": 4,
-  "team_mode": "INDIVIDUAL",
-  "payment_policy": "SPLIT_EQUALLY"
+  "join_mode": "INDIVIDUAL",
+  "team_code": "B",
+  "represented_count": 1,
+  "note": "Mình chơi thủ môn"
 }
 ```
 
-**Response (201):**
+**Response (200)**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "6847c1a2b3f4e5d6c7892000",
-    "status": "SEARCHING",
-    "created_at": "2026-06-16T03:00:00.000Z"
+    "_id": "...",
+    "status": "OPEN",
+    "members": [
+      { "user_id": "host_id", "status": "APPROVED", "team_code": "A" },
+      { "user_id": "joiner_id", "status": "APPROVED", "team_code": "B", "note": "Mình chơi thủ môn" }
+    ]
   }
 }
 ```
 
 ---
 
-### API 8: Tạo lịch cố định
+### API 9: Tạo Lịch Cố Định
 
-```
-POST /api/v1/fixed-schedule
-Authorization: Bearer {customerToken}
-```
+**Endpoint**: `POST /api/v1/fixed-schedule`  
+**Auth**: Bearer Token  
+**File code**: `src/controllers/fixed-schedule.controller.js::createFixedSchedule()`
 
-**Request mẫu:**
+**Request Body**:
 ```json
 {
   "type": "COURT_BOOKING",
-  "sport_id": "6847c1a2b3f4e5d6c7890111",
-  "facility_id": "6847c1a2b3f4e5d6c7890222",
-  "court_id": "6847c1a2b3f4e5d6c7890456",
+  "sport_id": "...",
+  "facility_id": "...",
+  "court_id": "...",
   "start_minutes": 480,
   "end_minutes": 600,
   "frequency": "WEEKLY",
-  "days_of_week": [1, 3, 5],
-  "start_date": "2026-06-20"
+  "days_of_week": [2, 4, 6],
+  "start_date": "2024-12-01",
+  "end_date": "2025-06-30"
 }
 ```
 
-**Response (201):**
+**Response (201)**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "6847c1a2b3f4e5d6c7893000",
+    "_id": "...",
     "status": "PENDING_APPROVAL",
     "frequency": "WEEKLY",
-    "days_of_week": [1, 3, 5]
+    "days_of_week": [2, 4, 6]
   }
 }
 ```
 
 ---
 
-### API 9: Duyệt lịch cố định
+### API 10: Duyệt Lịch Cố Định
 
-```
-PUT /api/v1/fixed-schedule/:id/approve
-Authorization: Bearer {staffOrAdminToken}
-```
+**Endpoint**: `PUT /api/v1/fixed-schedule/:id/approve`  
+**Auth**: Bearer Token (STAFF hoặc ADMIN)  
+**File code**: `src/controllers/fixed-schedule.controller.js::approveFixedSchedule()`
 
-**Response (200):**
+**Request Body**: `{}` (không cần body)  
+
+**Response (200)**:
 ```json
 {
   "success": true,
   "data": {
-    "_id": "6847c1a2b3f4e5d6c7893000",
+    "_id": "...",
     "status": "ACTIVE",
-    "approved_by": "6847c1a2b3f4e5d6c7890999",
-    "approved_at": "2026-06-16T05:00:00.000Z"
+    "approved_by": "staff_user_id",
+    "approved_at": "2024-12-20T08:00:00Z"
   }
 }
 ```
 
 ---
 
-### API 10: Báo cáo hiệu suất sân
+### API 11: Báo cáo Hiệu Suất Sân
 
-```
-GET /api/v1/reports/court-performance?facility_id=...&from=2026-06-01&to=2026-06-30
-Authorization: Bearer {staffToken}
-```
+**Endpoint**: `GET /api/v1/reports/court-performance`  
+**Auth**: Bearer Token (STAFF hoặc ADMIN)  
+**Query Params**:
+- `facility_id` (optional) — Lọc theo cơ sở
+- `from` — Ngày bắt đầu (YYYY-MM-DD)
+- `to` — Ngày kết thúc (YYYY-MM-DD)
 
-**Response (200):**
+**Response (200)**:
 ```json
 {
   "success": true,
   "data": {
-    "facility_id": "6847c1a2b3f4e5d6c7890222",
-    "period": { "from": "2026-06-01", "to": "2026-06-30" },
     "courts": [
       {
-        "court_id": "6847c1a2b3f4e5d6c7890456",
-        "court_name": "Sân A",
-        "total_bookings": 45,
-        "confirmed_bookings": 40,
-        "total_revenue": 8000000,
-        "occupancy_rate": 0.72
+        "court_id": "...",
+        "court_name": "Sân 1",
+        "booking_count": 45,
+        "revenue": 6750000,
+        "utilization_rate": 0.75,
+        "cancelled_count": 3
       }
     ],
     "summary": {
-      "total_revenue": 8000000,
-      "total_bookings": 45
+      "total_revenue": 15000000,
+      "total_bookings": 100,
+      "average_utilization": 0.68
     }
   }
 }
@@ -562,18 +599,38 @@ Authorization: Bearer {staffToken}
 
 ---
 
-### API 11: Health Check
+### API 12: Health Check
 
-```
-GET /health
-```
+**Endpoint**: `GET /health`  
+**Auth**: Không cần  
 
-**Response (200):**
+**Response (200)**:
 ```json
 {
   "status": "ok",
+  "message": "Server is running",
   "service": "sport-energy-backend",
   "uptime": 3600.5,
-  "timestamp": "2026-06-16T03:00:00.000Z"
+  "timestamp": "2024-12-20T10:30:00Z"
+}
+```
+
+**Endpoint Cron Health**: `GET /health/cron`  
+
+**Response (200)**:
+```json
+{
+  "status": "ok",
+  "timestamp": "2024-12-20T10:30:00Z",
+  "cron": {
+    "autoCancelBookings": {
+      "schedule": "*/1 * * * *",
+      "lastRun": { "startedAt": "...", "status": "success", "summary": {...} }
+    },
+    "fixedScheduler": {
+      "schedule": "5 0 * * *",
+      "lastRun": { "startedAt": "...", "status": "success" }
+    }
+  }
 }
 ```
