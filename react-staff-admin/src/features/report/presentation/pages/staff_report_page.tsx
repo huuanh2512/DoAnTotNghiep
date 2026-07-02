@@ -226,7 +226,14 @@ const StaffReportPage: React.FC = () => {
         dateFrom: range[0].format('YYYY-MM-DD'),
         dateTo: range[1].format('YYYY-MM-DD'),
       });
-      setReport(response);
+      // Nếu API trả về thành công nhưng dailyStats rỗng dù có booking,
+      // tự sinh dailyStats từ dữ liệu booking theo date range
+      if (response.dailyStats.length === 0 && response.summary.totalBookings > 0) {
+        const fallback = await buildFallbackReport();
+        setReport({ ...response, dailyStats: fallback.dailyStats });
+      } else {
+        setReport(response);
+      }
     } catch (error: any) {
       const reason = error.response?.data?.message || error.message || 'Report endpoint lỗi';
       console.warn('[StaffReport] Falling back to list aggregation:', reason);

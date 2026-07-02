@@ -196,7 +196,14 @@ const AdminOverviewPage: React.FC = () => {
         dateTo: range[1].format('YYYY-MM-DD'),
         include: 'summary,courtStats,facilityStats,sportStats,dailyStats,peakHours,customerStats',
       });
-      setReport(response);
+      // Nếu API trả về thành công nhưng dailyStats rỗng dù có booking,
+      // tự sinh dailyStats từ dữ liệu booking theo date range
+      if (response.dailyStats.length === 0 && response.summary.totalBookings > 0) {
+        const fallback = await buildFallbackReport();
+        setReport({ ...response, dailyStats: fallback.dailyStats });
+      } else {
+        setReport(response);
+      }
       setRecentBookings([]);
     } catch (error: any) {
       const reason = error.response?.data?.message || error.message || 'Report endpoint lỗi';

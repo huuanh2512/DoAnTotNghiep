@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Poster ĐATN – Quản lý Khu Liên Hợp Thể Thao</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-dark:   #050d1a;
+    --bg-card:   #081428;
+    --bg-card2:  #0a1c38;
+    --accent1:   #00d4ff;
+    --accent2:   #0088ff;
+    --accent3:   #7c3aed;
+    --accent4:   #10b981;
+    --gold:      #fbbf24;
+    --text-main: #e2f0ff;
+    --text-sub:  #94adc8;
+    --border:    rgba(0,212,255,0.18);
+    --glow:      0 0 18px rgba(0,180,255,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    width: 794px;        /* A4 portrait ≈ 794px */
+    min-height: 1123px;
+    margin: 0 auto;
+  }
+
+  /* ─── HEADER ───────────────────────────────────────── */
+  .header {
+    background: linear-gradient(135deg, #030b18 0%, #062040 50%, #030b18 100%);
+    border-bottom: 2px solid var(--accent1);
+    padding: 18px 24px 14px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 120% at 50% -20%, rgba(0,212,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .logo-box {
+    flex-shrink: 0;
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #001f3f, #003d7a);
+    border: 2px solid var(--accent1);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--glow);
+    overflow: hidden;
+  }
+  .logo-box svg { width: 52px; height: 52px; }
+  .header-text { flex: 1; }
+  .header-text h1 {
+    font-size: 17.5px;
+    font-weight: 900;
+    line-height: 1.3;
+    background: linear-gradient(90deg, #ffffff 0%, #a0d8ff 60%, var(--accent1) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .header-advisor {
+    margin-top: 7px;
+    font-size: 10.5px;
+    color: var(--text-sub);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .header-advisor span { color: var(--accent1); font-weight: 600; }
+
+  /* ─── MAIN GRID ─────────────────────────────────────── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr 200px;
+    gap: 0;
+    padding: 12px 10px 10px;
+    column-gap: 10px;
+  }
+
+  /* ─── CARD BASE ─────────────────────────────────────── */
+  .card {
+    background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-card2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent1), transparent);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--accent1);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 7px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-title .icon { font-size: 13px; }
+
+  /* ─── LEFT COLUMN ───────────────────────────────────── */
+  .left-col {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  /* Giới thiệu */
+  .intro-block { margin-bottom: 8px; }
+  .intro-block h3 {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gold);
+    display: flex; align-items: center; gap: 5px;
+    margin-bottom: 5px;
+  }
+  .intro-block ul {
+    list-style: none;
+    padding-left: 4px;
+  }
+  .intro-block ul li {
+    font-size: 9.5px;
+    color: var(--text-sub);
+    padding: 2px 0;
+    display: flex; gap: 5px;
+    line-height: 1.4;
+  }
+  .intro-block ul li::before {
+    content: '▸';
+    color: var(--accent1);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Users */
+  .users-row {
+    display: flex; gap: 6px; justify-content: space-around;
+    margin-top: 6px;
+  }
+  .user-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .user-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    border: 1.5px solid;
+  }
+  .user-icon.customer { background: rgba(0,212,255,0.12); border-color: var(--accent1); }
+  .user-icon.staff    { background: rgba(124,58,237,0.12); border-color: var(--accent3); }
+  .user-icon.admin    { background: rgba(251,191,36,0.12); border-color: var(--gold); }
+  .user-label {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--text-sub);
+  }
+
+  /* Facility visual */
+  .facility-visual {
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, #062040, #030b18);
+    padding: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .court-svg { width: 100%; max-width: 180px; }
+
+  /* ─── MIDDLE COLUMN ──────────────────────────────────── */
+  .mid-col {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  /* Tech stack */
+  .tech-stack {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .tech-item {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 10px;
+    transition: border-color 0.2s;
+  }
+  .tech-logo {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .tech-logo.flutter  { background: linear-gradient(135deg,#027DFD,#00C4FF); }
+  .tech-logo.node     { background: linear-gradient(135deg,#215732,#339933); }
+  .tech-logo.mongo    { background: linear-gradient(135deg,#023430,#00ED64); }
+  .tech-logo.react    { background: linear-gradient(135deg,#1a2a3a,#61DAFB); }
+
+  .tech-name {
+    font-size: 12px; font-weight: 700; color: var(--text-main); line-height: 1.1;
+  }
+  .tech-desc { font-size: 8.5px; color: var(--text-sub); }
+
+  /* Arrow between stacks */
+  .arrow-down {
+    text-align: center; font-size: 14px; color: var(--accent2);
+    margin: -2px 0; line-height: 1;
+  }
+
+  /* Services row */
+  .services-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .service-chip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 9px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-sub);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .service-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* Cron jobs */
+  .cron-badge {
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(124,58,237,0.05));
+    border: 1px solid rgba(124,58,237,0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 4px;
+  }
+  .cron-number {
+    font-size: 28px; font-weight: 900;
+    color: var(--accent3);
+    line-height: 1;
+  }
+  .cron-text { font-size: 9px; color: var(--text-sub); line-height: 1.5; }
+  .cron-text strong { color: var(--text-main); font-size: 10px; }
+
+  /* ─── RIGHT COLUMN ───────────────────────────────────── */
+  .right-col {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .feature-list { display: flex; flex-direction: column; gap: 5px; }
+  .feature-item {
+    display: flex; align-items: flex-start; gap: 7px;
+    font-size: 9.5px; color: var(--text-sub);
+    line-height: 1.4;
+    padding: 4px 6px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .feature-icon {
+    width: 22px; height: 22px; flex-shrink: 0;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    margin-top: 0px;
+  }
+  .fi-blue   { background: rgba(0,136,255,0.15); }
+  .fi-green  { background: rgba(16,185,129,0.15); }
+  .fi-purple { background: rgba(124,58,237,0.15); }
+  .fi-gold   { background: rgba(251,191,36,0.15); }
+  .fi-cyan   { background: rgba(0,212,255,0.15); }
+  .fi-red    { background: rgba(239,68,68,0.15); }
+
+  /* ─── KẾT QUẢ ĐẠT ĐƯỢC ──────────────────────────────── */
+  .results-section {
+    padding: 10px 10px 6px;
+    margin: 0 10px 0;
+    background: linear-gradient(145deg, rgba(0,20,50,0.8), rgba(0,30,70,0.6));
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,180,255,0.1), inset 0 0 30px rgba(0,100,200,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .results-section::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent1), transparent);
+  }
+  .results-title {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent1);
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .results-title::before,
+  .results-title::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent1));
+  }
+  .results-title::after {
+    background: linear-gradient(270deg, transparent, var(--accent1));
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  /* Stat box (top) */
+  .stat-box {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-card2));
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .stat-box::before {
+    content:''; position: absolute; top:0;left:0;right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  }
+  .stat-num {
+    font-size: 32px; font-weight: 900; line-height: 1;
+    background: linear-gradient(135deg, var(--accent1), #ffffff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+  .stat-num sup { font-size: 16px; }
+  .stat-label { font-size: 10px; color: var(--text-sub); margin-top: 3px; font-weight: 700; letter-spacing: 0.3px; }
+
+  /* Completed features grid */
+  .completed-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+  }
+  .completed-item {
+    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,136,255,0.06));
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 7px;
+    padding: 6px 9px;
+    display: flex; align-items: center; gap: 6px;
+    transition: border-color 0.2s;
+  }
+  .completed-check {
+    width: 20px; height: 20px; flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent4), #059669);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #fff; font-weight: 900;
+    box-shadow: 0 0 8px rgba(16,185,129,0.4);
+  }
+  .completed-text {
+    font-size: 9px; color: var(--text-main); line-height: 1.3; font-weight: 600;
+  }
+
+  /* ─── FOOTER ─────────────────────────────────────────── */
+  .footer {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 8px 10px 12px;
+  }
+  .info-card {
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-card2));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    position: relative; overflow: hidden;
+  }
+  .info-card::before {
+    content:''; position:absolute; top:0;left:0;right:0;height:2px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  }
+  .info-card-title {
+    font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--accent1); margin-bottom: 7px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .info-row { display: flex; gap: 6px; font-size: 9.5px; margin-bottom: 3px; }
+  .info-row .label { color: var(--text-sub); min-width: 55px; flex-shrink: 0; }
+  .info-row .value { color: var(--text-main); font-weight: 600; }
+
+  /* Brand */
+  .brand-card {
+    background: linear-gradient(145deg, #080b20, #10184a);
+    border: 1px solid rgba(124,58,237,0.35);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px;
+    position: relative; overflow: hidden;
+  }
+  .brand-card::before {
+    content:''; position:absolute; top:0;left:0;right:0;height:2px;
+    background: linear-gradient(90deg, transparent, var(--accent3), transparent);
+  }
+  .brand-name {
+    font-size: 18px; font-weight: 900; letter-spacing: 1px;
+    background: linear-gradient(90deg, var(--accent3), var(--accent1));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .brand-slogan {
+    font-size: 8.5px; color: var(--text-sub); text-align: center; line-height: 1.5;
+  }
+  .brand-icon { font-size: 30px; }
+
+  /* ─── SCAN LINE EFFECT ────────────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px,
+      transparent 1px, transparent 2px
+    );
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ HEADER -->
+<header class="header">
+  <div class="logo-box">
+    <!-- TVU Logo simplified SVG -->
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="48" stroke="#00d4ff" stroke-width="3" fill="#001f3f"/>
+      <text x="50" y="38" font-family="Arial" font-weight="900" font-size="18" fill="#ffffff" text-anchor="middle">ĐẠI HỌC</text>
+      <text x="50" y="56" font-family="Arial" font-weight="900" font-size="20" fill="#00d4ff" text-anchor="middle">TRÀ VINH</text>
+      <text x="50" y="72" font-family="Arial" font-size="10" fill="#94adc8" text-anchor="middle">TVU</text>
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>Xây dựng ứng dụng di động<br/>Quản lý Khu Liên Hợp Thể Thao<br/>Tích hợp chức năng Tìm kiếm Đối Thủ</h1>
+    <div class="header-advisor">
+      👤 Giảng viên hướng dẫn: <span>ThS. Nguyễn Hoàng Duy Thiện</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════ MAIN -->
+<div class="main-grid">
+
+  <!-- ── LEFT: GIỚI THIỆU ── -->
+  <div class="left-col">
+
+    <div class="card">
+      <div class="section-title"><span class="icon">🎯</span> Giới Thiệu</div>
+
+      <div class="intro-block">
+        <h3>🔖 Lý do chọn đề tài</h3>
+        <ul>
+          <li>Số hóa quy trình đặt sân thể thao</li>
+          <li>Kết nối người chơi cùng đam mê</li>
+          <li>Nâng cao hiệu quả vận hành</li>
+        </ul>
+      </div>
+
+      <div class="intro-block">
+        <h3>🏆 Mục tiêu hệ thống</h3>
+        <ul>
+          <li>Quản lý sân, lịch đặt và thanh toán tập trung</li>
+          <li>Ghép trận thủ công và tự động</li>
+          <li>Thông báo thời gian thực</li>
+        </ul>
+      </div>
+
+      <div class="intro-block">
+        <h3>👥 Đối tượng người dùng</h3>
+        <div class="users-row">
+          <div class="user-item">
+            <div class="user-icon customer">👤</div>
+            <div class="user-label">Khách hàng</div>
+          </div>
+          <div class="user-item">
+            <div class="user-icon staff">🧑‍💼</div>
+            <div class="user-label">Nhân viên</div>
+          </div>
+          <div class="user-item">
+            <div class="user-icon admin">🛡️</div>
+            <div class="user-label">Quản trị</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Facility Visual -->
+    <div class="card">
+      <div class="facility-visual">
+        <svg class="court-svg" viewBox="0 0 180 110" xmlns="http://www.w3.org/2000/svg">
+          <!-- Stadium outer -->
+          <rect x="5" y="5" width="170" height="100" rx="14" fill="rgba(0,80,40,0.6)" stroke="#00d4ff" stroke-width="1.5"/>
+          <!-- Field -->
+          <rect x="20" y="18" width="140" height="74" rx="5" fill="rgba(0,120,60,0.7)" stroke="white" stroke-width="1"/>
+          <!-- Center line -->
+          <line x1="90" y1="18" x2="90" y2="92" stroke="white" stroke-width="0.8"/>
+          <!-- Center circle -->
+          <circle cx="90" cy="55" r="13" fill="none" stroke="white" stroke-width="0.8"/>
+          <!-- Center dot -->
+          <circle cx="90" cy="55" r="2" fill="white"/>
+          <!-- Left penalty box -->
+          <rect x="20" y="35" width="22" height="40" fill="none" stroke="white" stroke-width="0.8"/>
+          <!-- Right penalty box -->
+          <rect x="138" y="35" width="22" height="40" fill="none" stroke="white" stroke-width="0.8"/>
+          <!-- Goals -->
+          <rect x="14" y="47" width="6" height="16" fill="rgba(255,255,255,0.15)" stroke="#fbbf24" stroke-width="1"/>
+          <rect x="160" y="47" width="6" height="16" fill="rgba(255,255,255,0.15)" stroke="#fbbf24" stroke-width="1"/>
+          <!-- Glowing effect -->
+          <circle cx="90" cy="55" r="48" fill="none" stroke="rgba(0,212,255,0.1)" stroke-width="4"/>
+          <!-- Labels -->
+          <text x="90" y="106" font-family="Arial" font-size="7" fill="#00d4ff" text-anchor="middle" font-weight="bold"> </text>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MIDDLE: KIẾN TRÚC & CÔNG NGHỆ ── -->
+  <div class="mid-col">
+
+    <div class="card">
+      <div class="section-title"><span class="icon">⚙️</span> Kiến Trúc &amp; Công Nghệ</div>
+
+      <div class="tech-stack">
+        <div class="tech-item">
+          <div class="tech-logo flutter">🐦</div>
+          <div>
+            <div class="tech-name">Flutter</div>
+            <div class="tech-desc">Ứng dụng Android — BLoC + Clean Architecture</div>
+          </div>
+        </div>
+        <div class="arrow-down">↕</div>
+        <div class="tech-item">
+          <div class="tech-logo node">⬡</div>
+          <div>
+            <div class="tech-name">REST API — Node.js + Express.js</div>
+            <div class="tech-desc">Controller → Service → Repository → Model</div>
+          </div>
+        </div>
+        <div class="arrow-down">↕</div>
+        <div class="tech-item">
+          <div class="tech-logo mongo">🍃</div>
+          <div>
+            <div class="tech-name">MongoDB Atlas</div>
+            <div class="tech-desc">12 Schemas — Compound &amp; Partial Index</div>
+          </div>
+        </div>
+        <div class="arrow-down">↕</div>
+        <div class="tech-item">
+          <div class="tech-logo react">⚛</div>
+          <div>
+            <div class="tech-name">React Web Admin</div>
+            <div class="tech-desc">TypeScript + Ant Design + TanStack Query</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="section-title" style="font-size:9px;margin-bottom:7px;"><span class="icon">🔗</span> Tích Hợp &amp; Dịch Vụ</div>
+        <div class="services-row">
+          <div class="service-chip"><span class="dot" style="background:#61DAFB;"></span>React Web</div>
+          <div class="service-chip"><span class="dot" style="background:#ff6b35;"></span>Socket.IO</div>
+          <div class="service-chip"><span class="dot" style="background:#FFCA28;"></span>Firebase FCM</div>
+          <div class="service-chip"><span class="dot" style="background:#0068ff;"></span>ZaloPay</div>
+          <div class="service-chip"><span class="dot" style="background:#9B72D0;"></span>Cloudinary</div>
+        </div>
+
+        <div class="cron-badge">
+          <div class="cron-number">4</div>
+          <div class="cron-text">
+            <strong>Cron Jobs Tự Động Hóa</strong><br/>
+            Auto-cancel • Auto-complete<br/>
+            Matchmaker • Fixed Scheduler
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT: TÍNH NĂNG NỔI BẬT ── -->
+  <div class="right-col">
+
+    <div class="card">
+      <div class="section-title"><span class="icon">⚡</span> Tính Năng Nổi Bật</div>
+
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon fi-blue">📅</div>
+          Đặt sân
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-green">✅</div>
+          Kiểm tra xung đột tự động
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-cyan">🗓️</div>
+          Lịch đặt sân cố định
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-purple">🤝</div>
+          Ghép trận thủ công và tự động
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-gold">💳</div>
+          Thanh toán ZaloPay và tiền mặt
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-cyan">🔔</div>
+          Thông báo thời gian thực<br/>(Socket.IO + FCM)
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-green">📊</div>
+          Báo cáo doanh thu &amp; hiệu suất
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon fi-purple">🌐</div>
+          Web quản trị đa vai trò
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ KẾT QUẢ -->
+<div class="results-section">
+  <div class="results-title">🏅 Kết Quả Đạt Được</div>
+
+  <!-- Top stats -->
+  <div class="results-grid" style="margin-bottom:8px;">
+    <div class="stat-box">
+      <div class="stat-num">86<sup>+</sup></div>
+      <div class="stat-label">API Endpoints</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">28<sup>+</sup></div>
+      <div class="stat-label">Màn hình Flutter</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">12</div>
+      <div class="stat-label">MongoDB Schemas</div>
+    </div>
+  </div>
+
+  <!-- Completed features -->
+  <div class="completed-grid">
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Đăng ký, đăng nhập &amp; xác thực OTP</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Quản lý cơ sở, sân &amp; môn thể thao</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Đặt sân &amp; kiểm tra xung đột tự động</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Lịch cố định tự động sinh booking</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Ghép trận thủ công &amp; hàng đợi tự động</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Thanh toán ZaloPay &amp; tiền mặt</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Thông báo thời gian thực (Socket.IO + FCM)</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">4 Cron jobs tự động hóa hoạt động</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Báo cáo doanh thu &amp; hiệu suất sân</div>
+    </div>
+    <div class="completed-item">
+      <div class="completed-check">✓</div>
+      <div class="completed-text">Web Admin đa vai trò (Nhân viên / Quản trị)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ FOOTER -->
+<div class="footer">
+  <div class="info-card">
+    <div class="info-card-title">📋 Thông Tin</div>
+    <div class="info-row"><span class="label">Họ và tên:</span><span class="value">Nguyễn Hữu Anh</span></div>
+    <div class="info-row"><span class="label">Lớp:</span><span class="value">DA22TTA</span></div>
+    <div class="info-row"><span class="label">Khoa:</span><span class="value">Công nghệ thông tin</span></div>
+    <div class="info-row"><span class="label">MSSV:</span><span class="value">110122033</span></div>
+  </div>
+  <div class="brand-card">
+    <div class="brand-icon">⚽</div>
+    <div class="brand-name">SPORT ENERGY</div>
+    <div class="brand-slogan">Hệ thống quản lý khu liên hợp thể thao<br/>tích hợp tìm kiếm đối thủ thông minh</div>
+  </div>
+</div>
+
+</body>
+</html>
